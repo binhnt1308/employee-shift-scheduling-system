@@ -2,26 +2,48 @@
 
 ## Tên đề tài
 
-**Tên:** Employee Shift Scheduling & Workforce Management System (Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên)
+**Tên tiếng Anh:** Employee Shift Scheduling & Workforce Management System  
+**Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên
 
-## Giới thiệu đề tài
+## Giới thiệu
 
-Đề tài xây dựng một hệ thống web hỗ trợ lập lịch và quản lý phân công ca làm việc cho nhân viên tại một cửa hàng bán lẻ quy mô nhỏ. Hệ thống được áp dụng cho một chi nhánh có khoảng 10–20 nhân viên, gồm hai vị trí công việc là nhân viên tư vấn và nhân viên thu ngân.
+Đề tài xây dựng hệ thống web hỗ trợ lập lịch làm việc cho một cửa hàng bán lẻ quy mô nhỏ, gồm khoảng 10–20 nhân viên thuộc hai vị trí là nhân viên tư vấn và nhân viên thu ngân.
 
-Hệ thống cho phép nhân viên đăng ký lịch rảnh, xem lịch làm việc, gửi đơn xin nghỉ và yêu cầu đổi ca. Quản lý có thể quản lý thông tin nhân viên, thiết lập nhu cầu nhân sự, phân công ca, duyệt các yêu cầu và công bố lịch làm việc chính thức.
+Hệ thống cho phép nhân viên đăng ký lịch rảnh, xem lịch đã công bố, gửi đơn xin nghỉ và yêu cầu đổi ca. Quản lý có thể quản lý nhân viên, ca làm việc, phân công ca, tạo lịch đề xuất và công bố lịch chính thức.
 
-Nhân viên được phân loại theo hình thức làm việc toàn thời gian hoặc bán thời gian và theo ba cấp độ năng lực gồm Level 1, Level 2 và Level 3. Khi phân ca, hệ thống kiểm tra các điều kiện như lịch rảnh, ngày nghỉ, vị trí công việc, hình thức làm việc, level và nhu cầu nhân sự của từng ca.
+Google OR-Tools CP-SAT được sử dụng ở mức cơ bản để hỗ trợ tạo lịch đề xuất. Quản lý vẫn là người kiểm tra, điều chỉnh và quyết định lịch cuối cùng.
 
-Ngoài chức năng phân ca thủ công, đề tài dự kiến sử dụng Google OR-Tools CP-SAT để hỗ trợ tạo lịch đề xuất. Lịch đề xuất chỉ là phương án tham khảo; quản lý vẫn là người kiểm tra, điều chỉnh và công bố lịch cuối cùng.
 ## Chức năng chính
 
-- Quản lý tài khoản và phân quyền.
-- Quản lý thông tin nhân viên.
-- Quản lý vị trí, level và hình thức làm việc.
-- Đăng ký lịch rảnh theo tuần.
-- Phân công ca thủ công.
-- Tạo lịch đề xuất bằng Google OR-Tools CP-SAT.
-- Quản lý đơn xin nghỉ.
-- Quản lý yêu cầu đổi ca.
-- Công bố lịch làm việc.
-- Tổng hợp số ca và số giờ làm.
+1. Quản lý tài khoản và phân quyền.
+2. Quản lý nhân viên.
+3. Quản lý ca làm việc.
+4. Quản lý lịch rảnh.
+5. Quản lý lịch làm việc.
+6. Quản lý đơn xin nghỉ.
+7. Quản lý yêu cầu đổi ca.
+8. Tính tổng số ca và giờ làm.
+
+## Công nghệ dự kiến sử dụng
+
+- C#
+- ASP.NET MVC
+- Razor View và Bootstrap
+- SQL Server
+- Entity Framework Code First
+- Google OR-Tools CP-SAT
+- GitHub
+
+## Phạm vi
+
+- Một chi nhánh.
+- Khoảng 10–20 nhân viên.
+- Ba ca cố định: sáng, chiều và tối.
+- Hai vị trí: tư vấn và thu ngân.
+- Không bao gồm chấm công, tính lương và quản lý nhiều chi nhánh.
+
+## Tác giả
+
+**Sinh viên:** Nguyễn Thanh Bình  
+**MSSV:** 2354050017  
+**GVHD:** Th.S Võ Việt Khoa
