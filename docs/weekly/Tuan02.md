@@ -26,7 +26,7 @@ Các nội dung đã thực hiện gồm:
 * Xem lại các quy tắc về lịch rảnh, đơn xin nghỉ, vị trí công việc, level, hình thức làm việc và điều kiện công bố lịch.
 * Bắt đầu xây dựng sơ đồ phân rã chức năng của hệ thống.
 
-## 2. Đang vướng và cần xin ý kiến của 
+## 2. Đang vướng và cần xin ý kiến của thầy
 
 Trong quá trình thực hiện, em gặp một số khó khăn sau:
 
