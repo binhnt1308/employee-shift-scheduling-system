@@ -28,7 +28,8 @@
 - Em chưa hiểu rõ mức độ chi tiết cần trình bày ở phần thiết kế kiến trúc hệ thống: chỉ cần vẽ sơ đồ các tầng và thành phần công nghệ, hay cần mô tả chi tiết luồng xử lý giữa các thành phần.
 - Đây là lần đầu em vẽ Class Diagram cho toàn hệ thống nên chưa chắc cách xác định lớp, phương thức và quan hệ giữa các lớp đã đúng chuẩn UML và phù hợp để triển khai bằng Entity Framework Code First.
 - Cần giảng viên xem lại sự thống nhất giữa đặc tả Use Case, Activity Diagram, Sequence Diagram, Class Diagram, ERD và ma trận truy vết.
-- Cần kiểm tra lại bố cục và kích thước các sơ đồ khi đưa vào Word và xuất sang PDF.
+- Cần kiểm tra lại bố cục và kích thước các sơ đồ khi đưa vào Word
+- Em có nên vẽ thêm activity và sequence cho UC10 và UC07 không ạ.
 - Các giao diện thử nghiệm đã hiển thị được bố cục cơ bản nhưng vẫn còn một số lỗi trình bày và chưa hoàn thiện toàn bộ chức năng.
 
 ## 3. Nội dung cần giảng viên góp ý
