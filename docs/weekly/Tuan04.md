@@ -37,3 +37,8 @@ HỆ THỐNG LẬP LỊCH VÀ PHÂN CÔNG CA LÀM VIỆC
 - Xây dựng Service kiểm tra các ràng buộc phân ca.
 - Tiếp tục hoàn thiện nội dung và hình ảnh cho Chương 4.
 - Kiểm thử các chức năng đã hoàn thành và cập nhật mã nguồn lên GitHub.
+## Ghi chú
+
+Trong quá trình tải mã nguồn lên GitHub theo đúng cấu trúc thư mục của project, em vẫn gặp một số lỗi liên quan đến việc đồng bộ file và thư mục. Vì vậy, ở lần nộp này em tạm thời đính kèm toàn bộ mã nguồn dưới dạng file `.rar` để bảo đảm thầy có thể xem được đầy đủ nội dung project.
+
+Em sẽ tiếp tục kiểm tra và khắc phục lỗi để đưa mã nguồn lên repository đúng cấu trúc trong tuần tiếp theo. Mong thầy thông cảm.Em cảm ơn thầy nhiều ạ.
