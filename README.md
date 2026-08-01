@@ -22,25 +22,80 @@ Google OR-Tools CP-SAT được sử dụng ở mức cơ bản để hỗ trợ
 5. Quản lý lịch làm việc.
 6. Quản lý đơn xin nghỉ.
 7. Quản lý yêu cầu đổi ca.
-8. Tính tổng số ca và giờ làm.
+8. Tổng hợp số ca và giờ làm.
 
-## Công nghệ dự kiến sử dụng
+## Công nghệ sử dụng
 
-- C#
-- ASP.NET MVC
-- Razor View và Bootstrap
-- SQL Server
-- Entity Framework Code First
-- Google OR-Tools CP-SAT
-- GitHub
+- C# / .NET 8
+- ASP.NET Core MVC
+- Razor View và Bootstrap 5
+- Entity Framework Core
+- SQL Server LocalDB
+- Cookie Authentication
+- Git và GitHub
 
-## Phạm vi
+## Kiến trúc hệ thống
 
-- Một chi nhánh.
-- Khoảng 10–20 nhân viên.
-- Ba ca cố định: sáng, chiều và tối.
-- Hai vị trí: tư vấn và thu ngân.
-- Không bao gồm chấm công, tính lương và quản lý nhiều chi nhánh.
+```text
+Razor View
+    ↓
+Controller
+    ↓
+Service
+    ↓
+Entity Framework Core
+    ↓
+SQL Server
+```
+
+## Chức năng hiện có
+
+- Đăng nhập, đăng xuất và phân quyền.
+- Quản lý tài khoản.
+- Quản lý nhân viên.
+- Quản lý ca làm việc.
+- Tạo cơ sở dữ liệu từ 11 Entity bằng EF Core Code First.
+- Khởi tạo tài khoản và ba ca làm việc mặc định.
+
+## Tài khoản mặc định
+
+| Vai trò | Username | Password |
+|---|---|---|
+| Admin | `admin` | `admin123` |
+| Quản lý | `quanly` | `quanly123` |
+
+## Ca làm việc mặc định
+
+| Ca | Thời gian |
+|---|---|
+| Ca sáng | 08:00–12:00 |
+| Ca chiều | 12:00–16:00 |
+| Ca tối | 16:00–20:00 |
+
+## Hướng dẫn chạy
+
+1. Mở file `ShiftScheduling.sln`.
+2. Chờ Visual Studio hoàn thành NuGet Restore.
+3. Mở Package Manager Console.
+4. Chọn project `ShiftScheduling`.
+5. Chạy lệnh:
+
+```powershell
+Update-Database
+```
+
+6. Nhấn `Ctrl + F5` để chạy project.
+
+## Chức năng đang phát triển
+
+- Kỳ lịch và định mức nhân sự.
+- Lịch rảnh.
+- Phân công và công bố lịch.
+- Đơn xin nghỉ.
+- Yêu cầu đổi ca.
+- Tổng hợp giờ làm.
+- Google OR-Tools.
+- Docker, CI/CD và triển khai website.
 
 ## Tác giả
 
