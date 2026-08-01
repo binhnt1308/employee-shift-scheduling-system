@@ -1,0 +1,176 @@
+@using System.Security.Claims
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var username = User.Identity?.Name ?? "Khách";
+    var role = User.FindFirstValue(ClaimTypes.Role);
+    var isAdmin = role == "Admin";
+    var isManager = role is "Admin" or "Manager";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ShiftScheduler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand navbar-brand-custom"
+               asp-controller="Home"
+               asp-action="Index">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <span>ShiftScheduler</span>
+            </a>
+
+            <button class="navbar-toggler border-0"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navMenu">
+                @if (isAuthenticated)
+                {
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Home" ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="Index">
+                                <i class="fa-solid fa-house"></i> Tổng quan
+                            </a>
+                        </li>
+
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "Account" && currentAction != "Login" ? "active" : "")"
+                                   asp-controller="Account"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-user-shield"></i> Tài khoản
+                                </a>
+                            </li>
+                        }
+
+                        @if (isManager)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "Employee" ? "active" : "")"
+                                   asp-controller="Employee"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-users"></i> Nhân viên
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "ShiftType" ? "active" : "")"
+                                   asp-controller="ShiftType"
+                                   asp-action="Index">
+                                    <i class="fa-regular fa-clock"></i> Ca làm
+                                </a>
+                            </li>
+                        }
+
+                        <li class="nav-item">
+                            <span class="nav-link nav-link-custom opacity-50"
+                                  title="Sẽ triển khai trong tuần 2">
+                                <i class="fa-solid fa-calendar-week"></i> Kỳ lịch
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <span class="nav-link nav-link-custom opacity-50"
+                                  title="Sẽ triển khai trong tuần 2">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Phân công
+                            </span>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-profile-pill">
+                            <div class="rounded-circle bg-primary bg-opacity-25 text-white d-flex align-items-center justify-content-center"
+                                 style="width:26px; height:26px; font-size:0.75rem;">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div class="d-flex flex-column">
+                                <span class="fw-bold">@username</span>
+                                <span class="text-white-50"
+                                      style="font-size:0.7rem; line-height:1;">
+                                    @(role == "Admin"
+                                        ? "Quản trị viên"
+                                        : role == "Manager"
+                                            ? "Quản lý"
+                                            : "Nhân viên")
+                                </span>
+                            </div>
+                        </div>
+
+                        <form asp-controller="Account"
+                              asp-action="Logout"
+                              method="post">
+                            <button type="submit"
+                                    class="btn btn-outline-light btn-sm rounded-pill px-3">
+                                <i class="fa-solid fa-right-from-bracket me-1"></i>
+                                Thoát
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid px-lg-4 my-4 flex-grow-1">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-custom alert-custom-success alert-dismissible fade show">
+                <i class="fa-solid fa-circle-check fs-5 me-2"></i>
+                <div class="flex-grow-1">@success</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-custom alert-custom-danger alert-dismissible fade show">
+                <i class="fa-solid fa-circle-exclamation fs-5 me-2"></i>
+                <div class="flex-grow-1">@error</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @RenderBody()
+    </main>
+
+    <footer class="footer-custom mt-auto">
+        <div class="container-fluid px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <div>
+                <span class="fw-bold text-dark me-2">ShiftScheduler</span>
+                <span>&copy; @DateTime.Now.Year - Employee Shift Scheduling</span>
+            </div>
+            <div class="d-flex gap-3">
+                <span class="badge badge-custom badge-primary-custom">
+                    <i class="fa-solid fa-code-branch me-1"></i>
+                    ASP.NET Core 8 MVC
+                </span>
+                <span class="badge badge-custom badge-info-custom">
+                    <i class="fa-solid fa-database me-1"></i>
+                    EF Core + SQL Server
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
