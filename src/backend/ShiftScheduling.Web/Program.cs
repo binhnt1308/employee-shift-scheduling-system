@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using ShiftScheduling.Common.Auditing;
+using ShiftScheduling.Common.Notifications;
 using ShiftScheduling.Common.Security;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.Accounts.Repositories;
@@ -10,6 +11,10 @@ using ShiftScheduling.Features.Authentication.Repositories;
 using ShiftScheduling.Features.Authentication.Services;
 using ShiftScheduling.Features.Employees.Repositories;
 using ShiftScheduling.Features.Employees.Services;
+using ShiftScheduling.Features.LeaveRequests.Repositories;
+using ShiftScheduling.Features.LeaveRequests.Services;
+using ShiftScheduling.Features.ShiftTransfers.Repositories;
+using ShiftScheduling.Features.ShiftTransfers.Services;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
 using ShiftScheduling.Features.ShiftTypes.Services;
 using ShiftScheduling.Infrastructure.Persistence;
@@ -33,6 +38,7 @@ builder.Services.AddScoped<IUnitOfWork, ApplicationUnitOfWork>();
 builder.Services.AddScoped<IClock, SystemClock>();
 builder.Services.AddScoped<IPasswordHashService, Pbkdf2PasswordHashService>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 builder.Services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -40,11 +46,21 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
+builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+builder.Services.AddScoped<IShiftTransferRepository, ShiftTransferRepository>();
+builder.Services.AddScoped<IShiftTransferService, ShiftTransferService>();
 builder.Services.AddScoped<IShiftTypeRepository, ShiftTypeRepository>();
 builder.Services.AddScoped<IShiftTypeService, ShiftTypeService>();
-builder.Services.AddScoped<ShiftScheduling.Features.Dashboard.Services.IDashboardService, ShiftScheduling.Features.Dashboard.Services.DashboardService>();
-builder.Services.AddScoped<ShiftScheduling.Features.SchedulePeriods.Repositories.ISchedulePeriodRepository, ShiftScheduling.Features.SchedulePeriods.Repositories.SchedulePeriodRepository>();
-builder.Services.AddScoped<ShiftScheduling.Features.SchedulePeriods.Services.ISchedulePeriodService, ShiftScheduling.Features.SchedulePeriods.Services.SchedulePeriodService>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.Dashboard.Services.IDashboardService,
+    ShiftScheduling.Features.Dashboard.Services.DashboardService>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.SchedulePeriods.Repositories.ISchedulePeriodRepository,
+    ShiftScheduling.Features.SchedulePeriods.Repositories.SchedulePeriodRepository>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.SchedulePeriods.Services.ISchedulePeriodService,
+    ShiftScheduling.Features.SchedulePeriods.Services.SchedulePeriodService>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -77,21 +93,19 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
-    // Chi bat buoc HTTPS  tren moi truong trien khai.
+    // Chỉ bắt buộc HTTPS trên môi trường triển khai.
     app.UseHttpsRedirection();
     app.UseHsts();
 }
 if (app.Environment.IsDevelopment())
 {
-    // Hien chi tiet loi trong moi truong phat trien de de sua.
+    // Hiện chi tiết lỗi trong môi trường phát triển để dễ sửa.
     app.UseDeveloperExceptionPage();
 }
 else
 {
-    // An thong tin loi noi bo khi chay tren moi truong trien khai.
+    // Ẩn thông tin lỗi nội bộ khi chạy trên môi trường triển khai.
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-    app.UseHttpsRedirection();
 }
 
 app.Use(async (context, next) =>
@@ -102,7 +116,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();

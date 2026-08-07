@@ -1,0 +1,58 @@
+@model ShiftScheduling.Features.ShiftTransfers.ViewModels.ShiftTransferDetailsViewModel
+
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu đổi ca";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Chi tiết yêu cầu đổi ca</h1>
+        <p class="page-subtitle">Yêu cầu #@Model.ShiftTransferRequestId</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary-custom">Quay lại</a>
+</div>
+
+<div class="card-custom">
+    <div class="card-header-custom">@Model.WorkDate.ToString("dd/MM/yyyy") · @Model.ShiftName</div>
+    <div class="p-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Kỳ lịch</dt>
+            <dd class="col-sm-9">@Model.PeriodName</dd>
+            <dt class="col-sm-3">Thời gian</dt>
+            <dd class="col-sm-9">@Model.StartTime.ToString("HH:mm") - @Model.EndTime.ToString("HH:mm")</dd>
+            <dt class="col-sm-3">Vị trí</dt>
+            <dd class="col-sm-9">@Model.PositionName</dd>
+            <dt class="col-sm-3">Người gửi</dt>
+            <dd class="col-sm-9">@Model.SenderName</dd>
+            <dt class="col-sm-3">Người nhận</dt>
+            <dd class="col-sm-9">@Model.ReceiverName</dd>
+            <dt class="col-sm-3">Nội dung</dt>
+            <dd class="col-sm-9">@Model.Reason</dd>
+            <dt class="col-sm-3">Ghi chú Quản lý</dt>
+            <dd class="col-sm-9">@(Model.ManagerNote ?? "—")</dd>
+        </dl>
+
+        <div class="d-flex gap-2 mt-4">
+            @if (Model.CanRespond)
+            {
+                <form asp-action="Respond"
+                      asp-route-id="@Model.ShiftTransferRequestId"
+                      method="post"
+                      data-prevent-double-submit="true">
+                    <button type="submit" name="accept" value="false" class="btn btn-secondary-custom">Từ chối</button>
+                    <button type="submit" name="accept" value="true" class="btn btn-primary-custom ms-2">
+                        Đồng ý nhận ca
+                    </button>
+                </form>
+            }
+            @if (Model.CanReview)
+            {
+                <a asp-action="Review"
+                   asp-route-id="@Model.ShiftTransferRequestId"
+                   class="btn btn-primary-custom">
+                    Kiểm tra và xử lý
+                </a>
+            }
+        </div>
+    </div>
+</div>

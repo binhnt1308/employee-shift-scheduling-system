@@ -1,0 +1,162 @@
+@model ShiftScheduling.Features.LeaveRequests.ViewModels.LeaveRequestIndexViewModel
+
+@{
+    ViewData["Title"] = Model.IsManager ? "Quản lý đơn xin nghỉ" : "Đơn xin nghỉ của tôi";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@ViewData["Title"]</h1>
+        <p class="page-subtitle">
+            @(Model.IsManager
+                ? "Xem xét đơn xin nghỉ và theo dõi các ca chính thức bị ảnh hưởng."
+                : "Gửi và theo dõi trạng thái các đơn xin nghỉ của bạn.")
+        </p>
+    </div>
+
+    @if (!Model.IsManager)
+    {
+        <a asp-action="Create" class="btn btn-primary-custom">
+            <i class="fa-solid fa-plus"></i>
+            Gửi đơn xin nghỉ
+        </a>
+    }
+</div>
+
+<div class="card-custom mb-4">
+    <div class="card-header-custom">Bộ lọc</div>
+    <div class="p-3">
+        <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Kỳ lịch</label>
+                    <select name="schedulePeriodId" class="form-select form-select-custom">
+                        <option value="">Tất cả kỳ lịch</option>
+                        @foreach (var period in Model.Periods)
+                        {
+                            <option value="@period.SchedulePeriodId"
+                                    selected="@(Model.SchedulePeriodId == period.SchedulePeriodId ? "selected" : null)">
+                                @period.PeriodName (@period.WeekStartDate.ToString("dd/MM") -
+                                @period.WeekEndDate.ToString("dd/MM/yyyy"))
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Trạng thái</label>
+                    <select name="status" class="form-select form-select-custom">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Pending"
+                                selected="@(Model.Status == LeaveRequestStatus.Pending ? "selected" : null)">
+                            Chờ duyệt
+                        </option>
+                        <option value="Approved"
+                                selected="@(Model.Status == LeaveRequestStatus.Approved ? "selected" : null)">
+                            Đã duyệt
+                        </option>
+                        <option value="Rejected"
+                                selected="@(Model.Status == LeaveRequestStatus.Rejected ? "selected" : null)">
+                            Từ chối
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary-custom">Lọc</button>
+                    <a asp-action="Index" class="btn btn-secondary-custom">Bỏ lọc</a>
+                </div>
+        </form>
+    </div>
+</div>
+
+<div class="card-custom">
+    <div class="table-responsive">
+        <table class="table-custom mb-0">
+            <thead>
+                <tr>
+                    @if (Model.IsManager)
+                    {
+                        <th>Nhân viên</th>
+                    }
+                    <th>Kỳ lịch</th>
+                    <th>Ngày / ca</th>
+                    <th>Lý do</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Requests.Count == 0)
+                {
+                    <tr>
+                        <td colspan="@(Model.IsManager ? 6 : 5)" class="text-center text-muted py-5">
+                            Chưa có đơn xin nghỉ phù hợp.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in Model.Requests)
+                    {
+                        <tr>
+                            @if (Model.IsManager)
+                            {
+                                <td>
+                                    <div class="fw-bold">@item.EmployeeName</div>
+                                    <div class="text-muted small">@item.EmployeeCode</div>
+                                </td>
+                            }
+                            <td>@item.PeriodName</td>
+                            <td>
+                                <div class="fw-semibold">@item.LeaveDate.ToString("dd/MM/yyyy")</div>
+                                <div class="text-muted small">@item.ShiftName</div>
+                            </td>
+                            <td>@item.Reason</td>
+                            <td>
+                                @if (item.Status == LeaveRequestStatus.Pending)
+                                {
+                                    <span class="badge badge-custom badge-pending">Chờ duyệt</span>
+                                }
+                                else if (item.Status == LeaveRequestStatus.Approved)
+                                {
+                                    <span class="badge badge-custom badge-active">Đã duyệt</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-custom badge-rejected">Từ chối</span>
+                                }
+
+                                @if (item.HasPublishedAssignment && item.Status != LeaveRequestStatus.Rejected)
+                                {
+                                    <div class="mt-2">
+                                        @if (item.Status == LeaveRequestStatus.Approved)
+                                        {
+                                            <span class="badge badge-custom badge-rejected">Cần điều chỉnh lịch</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-custom badge-pending">Có lịch liên quan</span>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Details"
+                                   asp-route-id="@item.LeaveRequestId"
+                                   class="btn btn-sm btn-secondary-custom">
+                                    Chi tiết
+                                </a>
+                                @if (Model.IsManager && item.Status == LeaveRequestStatus.Pending)
+                                {
+                                    <a asp-action="Review"
+                                       asp-route-id="@item.LeaveRequestId"
+                                       class="btn btn-sm btn-primary-custom ms-1">
+                                        Xử lý
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

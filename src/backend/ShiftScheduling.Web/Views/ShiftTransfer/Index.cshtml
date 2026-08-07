@@ -1,0 +1,79 @@
+@using ShiftScheduling.Features.ShiftTransfers.ViewModels
+@model ShiftScheduling.Features.ShiftTransfers.ViewModels.ShiftTransferIndexViewModel
+
+@{
+    ViewData["Title"] = Model.IsManager ? "Quản lý yêu cầu đổi ca" : "Đổi ca";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@ViewData["Title"]</h1>
+        <p class="page-subtitle">
+            @(Model.IsManager
+                ? "Theo dõi trạng thái, kiểm tra và xử lý các yêu cầu đổi ca."
+                : "Chuyển một ca đã được phân cho đồng nghiệp nhận thay và theo dõi kết quả xử lý.")
+        </p>
+    </div>
+    @if (!Model.IsManager)
+    {
+        <a asp-action="Create" class="btn btn-primary-custom">
+            <i class="fa-solid fa-right-left"></i>
+            Tạo yêu cầu đổi ca
+        </a>
+    }
+</div>
+
+@if (Model.IsManager)
+{
+    <div class="card-custom mb-4">
+        <div class="card-header-custom">Bộ lọc</div>
+        <div class="p-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Trạng thái</label>
+                    <select name="status" class="form-select form-select-custom">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="WaitingReceiver"
+                                selected="@(Model.ManagerStatus == ShiftTransferStatusFilter.WaitingReceiver
+                                    ? "selected" : null)">
+                            Chờ người nhận phản hồi
+                        </option>
+                        <option value="WaitingManager"
+                                selected="@(Model.ManagerStatus == ShiftTransferStatusFilter.WaitingManager
+                                    ? "selected" : null)">
+                            Chờ Quản lý duyệt
+                        </option>
+                        <option value="Approved"
+                                selected="@(Model.ManagerStatus == ShiftTransferStatusFilter.Approved
+                                    ? "selected" : null)">
+                            Đã duyệt
+                        </option>
+                        <option value="Rejected"
+                                selected="@(Model.ManagerStatus == ShiftTransferStatusFilter.Rejected
+                                    ? "selected" : null)">
+                            Đã từ chối
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary-custom">Lọc</button>
+                    <a asp-action="Index" class="btn btn-secondary-custom">Bỏ lọc</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <partial name="_ManagerRequests" model="Model.ManagerRequests" />
+}
+else
+{
+    <div class="card-custom mb-4">
+        <div class="card-header-custom">Yêu cầu tôi đã gửi</div>
+        <partial name="_RequestTable" model="Model.SentRequests" />
+    </div>
+
+    <div class="card-custom">
+        <div class="card-header-custom">Yêu cầu gửi đến tôi</div>
+        <partial name="_RequestTable" model="Model.ReceivedRequests" />
+    </div>
+}

@@ -24,4 +24,18 @@ public static class ErrorCodes
     public const string InvalidSchedulePeriodStatus = "INVALID_SCHEDULE_PERIOD_STATUS";
     public const string InvalidStaffingRequirement = "INVALID_STAFFING_REQUIREMENT";
     public const string RegistrationDeadlineExpired = "REGISTRATION_DEADLINE_EXPIRED";
+    public const string LeaveRequestNotFound = "LEAVE_REQUEST_NOT_FOUND";
+    public const string LeaveRequestDuplicate = "LEAVE_REQUEST_DUPLICATE";
+    public const string LeaveRequestInvalidDate = "LEAVE_REQUEST_INVALID_DATE";
+    public const string LeaveRequestShiftEnded = "LEAVE_REQUEST_SHIFT_ENDED";
+    public const string LeaveRequestAlreadyReviewed = "LEAVE_REQUEST_ALREADY_REVIEWED";
+    public const string ShiftTransferNotFound = "SHIFT_TRANSFER_NOT_FOUND";
+    public const string ShiftAssignmentNotFound = "SHIFT_ASSIGNMENT_NOT_FOUND";
+    public const string ShiftTransferDuplicate = "SHIFT_TRANSFER_DUPLICATE";
+    public const string ShiftTransferInvalidReceiver = "SHIFT_TRANSFER_INVALID_RECEIVER";
+    public const string ShiftTransferRuleViolation = "SHIFT_TRANSFER_RULE_VIOLATION";
+    public const string ShiftTransferAlreadyHandled = "SHIFT_TRANSFER_ALREADY_HANDLED";
+    public const string ShiftTransferNotAccepted = "SHIFT_TRANSFER_NOT_ACCEPTED";
+    public const string PublishedScheduleRequired = "PUBLISHED_SCHEDULE_REQUIRED";
+    public const string ShiftAlreadyStarted = "SHIFT_ALREADY_STARTED";
 }

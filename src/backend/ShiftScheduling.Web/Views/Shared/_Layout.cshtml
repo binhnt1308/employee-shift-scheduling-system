@@ -10,6 +10,7 @@
 
     var isAdmin = role == RoleNames.Admin;
     var isStoreManager = role == RoleNames.Manager;
+    var isEmployee = role == RoleNames.Employee;
     var canManageEmployees = isAdmin || isStoreManager;
 }
 
@@ -85,7 +86,10 @@
                         @if (isAdmin)
                         {
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(currentController == "Account" && currentAction != "Login" ? "active" : "")"
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "Account" && currentAction != "Login"
+                                              ? "active"
+                                              : "")"
                                    asp-controller="Account"
                                    asp-action="Index">
 
@@ -121,7 +125,8 @@
                             </li>
 
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(currentController == "SchedulePeriod" ? "active" : "")"
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "SchedulePeriod" ? "active" : "")"
                                    asp-controller="SchedulePeriod"
                                    asp-action="Index">
 
@@ -136,6 +141,49 @@
                                     Phân công
                                 </span>
                             </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "LeaveRequest" ? "active" : "")"
+                                   asp-controller="LeaveRequest"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-calendar-minus"></i>
+                                    Đơn xin nghỉ
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "ShiftTransfer" ? "active" : "")"
+                                   asp-controller="ShiftTransfer"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-right-left"></i>
+                                    Đổi ca
+                                </a>
+                            </li>
+                        }
+
+                        @if (isEmployee)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "LeaveRequest" ? "active" : "")"
+                                   asp-controller="LeaveRequest"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-calendar-minus"></i>
+                                    Xin nghỉ
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom
+                                          @(currentController == "ShiftTransfer" ? "active" : "")"
+                                   asp-controller="ShiftTransfer"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-right-left"></i>
+                                    Đổi ca
+                                </a>
+                            </li>
                         }
                     </ul>
 
@@ -143,7 +191,8 @@
 
                         <div class="user-profile-pill">
 
-                            <div class="rounded-circle bg-primary bg-opacity-25 text-white d-flex align-items-center justify-content-center"
+                            <div class="rounded-circle bg-primary bg-opacity-25 text-white
+                                        d-flex align-items-center justify-content-center"
                                  style="width:26px; height:26px; font-size:0.75rem;">
 
                                 <i class="fa-solid fa-user"></i>
@@ -224,7 +273,8 @@
     </main>
 
     <footer class="footer-custom mt-auto">
-        <div class="container-fluid px-lg-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+        <div class="container-fluid px-lg-4 d-flex flex-column flex-md-row
+                    justify-content-between align-items-center gap-2">
 
             <div>
                 <span class="fw-bold text-dark me-2">
@@ -252,6 +302,34 @@
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js">
+    </script>
+
+    <script>
+        document.addEventListener('submit', function (event) {
+            const form = event.target.closest('form[data-prevent-double-submit="true"]');
+            if (!form || !form.checkValidity()) {
+                return;
+            }
+
+            if (form.dataset.submitting === 'true') {
+                event.preventDefault();
+                return;
+            }
+
+            form.dataset.submitting = 'true';
+            const submitter = event.submitter;
+            if (submitter && submitter.name) {
+                const submittedValue = document.createElement('input');
+                submittedValue.type = 'hidden';
+                submittedValue.name = submitter.name;
+                submittedValue.value = submitter.value;
+                form.appendChild(submittedValue);
+            }
+
+            form.querySelectorAll('button[type="submit"]').forEach(function (button) {
+                button.disabled = true;
+            });
+        });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

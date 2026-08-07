@@ -1,0 +1,224 @@
+using Microsoft.EntityFrameworkCore;
+using ShiftScheduling.Infrastructure.Persistence;
+using ShiftScheduling.Models.Entities;
+using ShiftScheduling.Models.Enums;
+
+namespace ShiftScheduling.Features.ShiftTransfers.Repositories;
+
+public sealed class ShiftTransferRepository : IShiftTransferRepository
+{
+    private readonly ApplicationDbContext _dbContext;
+
+    public ShiftTransferRepository(ApplicationDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public Task<Employee?> GetEmployeeByAccountIdAsync(
+        int accountId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Employee> query = _dbContext.Employees.Include(employee => employee.UserAccount);
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query.SingleOrDefaultAsync(employee => employee.UserAccountId == accountId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftAssignment>> GetPublishedAssignmentsForEmployeeAsync(
+        int employeeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await AssignmentQuery(true)
+            .Where(assignment => assignment.EmployeeId == employeeId
+                && assignment.WorkSchedule.Status == ScheduleStatus.Published)
+            .OrderBy(assignment => assignment.WorkDate)
+            .ThenBy(assignment => assignment.ShiftType.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<ShiftAssignment?> GetAssignmentByIdAsync(
+        int shiftAssignmentId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        return AssignmentQuery(asNoTracking)
+            .SingleOrDefaultAsync(
+                assignment => assignment.ShiftAssignmentId == shiftAssignmentId,
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Employee>> GetActiveEmployeesByPositionAsync(
+        EmployeePosition position,
+        int excludedEmployeeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Employees
+            .AsNoTracking()
+            .Include(employee => employee.UserAccount)
+            .Where(employee => employee.IsActive
+                && employee.Position == position
+                && employee.EmployeeId != excludedEmployeeId)
+            .OrderBy(employee => employee.FullName)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<bool> HasAvailabilityAsync(
+        int employeeId,
+        int schedulePeriodId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Availabilities.AsNoTracking().AnyAsync(
+            availability => availability.EmployeeId == employeeId
+                && availability.SchedulePeriodId == schedulePeriodId
+                && availability.WorkDate == workDate
+                && availability.ShiftTypeId == shiftTypeId,
+            cancellationToken);
+    }
+
+    public Task<bool> HasApprovedLeaveAsync(
+        int employeeId,
+        int schedulePeriodId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.LeaveRequests.AsNoTracking().AnyAsync(
+            request => request.EmployeeId == employeeId
+                && request.SchedulePeriodId == schedulePeriodId
+                && request.LeaveDate == workDate
+                && request.Status == LeaveRequestStatus.Approved
+                && (!request.ShiftTypeId.HasValue || request.ShiftTypeId == shiftTypeId),
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftAssignment>> GetPublishedAssignmentsForEmployeeInPeriodAsync(
+        int employeeId,
+        int schedulePeriodId,
+        CancellationToken cancellationToken = default)
+    {
+        return await AssignmentQuery(true)
+            .Where(assignment => assignment.EmployeeId == employeeId
+                && assignment.WorkSchedule.Status == ScheduleStatus.Published
+                && assignment.WorkSchedule.SchedulePeriodId == schedulePeriodId)
+            .OrderBy(assignment => assignment.WorkDate)
+            .ThenBy(assignment => assignment.ShiftType.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftAssignment>> GetAssignmentsForShiftAsync(
+        int workScheduleId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await AssignmentQuery(true)
+            .Where(assignment => assignment.WorkScheduleId == workScheduleId
+                && assignment.WorkDate == workDate
+                && assignment.ShiftTypeId == shiftTypeId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<StaffingRequirement?> GetStaffingRequirementAsync(
+        int schedulePeriodId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.StaffingRequirements.AsNoTracking().SingleOrDefaultAsync(
+            requirement => requirement.SchedulePeriodId == schedulePeriodId
+                && requirement.WorkDate == workDate
+                && requirement.ShiftTypeId == shiftTypeId,
+            cancellationToken);
+    }
+
+    public Task<bool> HasActiveRequestForAssignmentAsync(
+        int shiftAssignmentId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.ShiftTransferRequests.AsNoTracking().AnyAsync(
+            request => request.ShiftAssignmentId == shiftAssignmentId
+                && request.ReceiverStatus != ReceiverStatus.Rejected
+                && request.ApprovalStatus == ApprovalStatus.Pending,
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftTransferRequest>> GetSentRequestsAsync(
+        int employeeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await RequestQuery(true)
+            .Where(request => request.SenderEmployeeId == employeeId)
+            .OrderByDescending(request => request.SubmittedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftTransferRequest>> GetReceivedRequestsAsync(
+        int employeeId,
+        CancellationToken cancellationToken = default)
+    {
+        return await RequestQuery(true)
+            .Where(request => request.ReceiverEmployeeId == employeeId)
+            .OrderBy(request => request.ReceiverStatus)
+            .ThenByDescending(request => request.SubmittedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftTransferRequest>> GetManagerRequestsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await RequestQuery(true)
+            .OrderBy(request => request.ApprovalStatus)
+            .ThenBy(request => request.ReceiverStatus)
+            .ThenByDescending(request => request.SubmittedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<ShiftTransferRequest?> GetRequestByIdAsync(
+        int shiftTransferRequestId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        return RequestQuery(asNoTracking)
+            .SingleOrDefaultAsync(
+                request => request.ShiftTransferRequestId == shiftTransferRequestId,
+                cancellationToken);
+    }
+
+    public void Add(ShiftTransferRequest request)
+    {
+        _dbContext.ShiftTransferRequests.Add(request);
+    }
+
+    private IQueryable<ShiftAssignment> AssignmentQuery(bool asNoTracking)
+    {
+        IQueryable<ShiftAssignment> query = _dbContext.ShiftAssignments
+            .Include(assignment => assignment.Employee)
+                .ThenInclude(employee => employee.UserAccount)
+            .Include(assignment => assignment.ShiftType)
+            .Include(assignment => assignment.WorkSchedule)
+                .ThenInclude(schedule => schedule.SchedulePeriod);
+        return asNoTracking ? query.AsNoTracking() : query;
+    }
+
+    private IQueryable<ShiftTransferRequest> RequestQuery(bool asNoTracking)
+    {
+        IQueryable<ShiftTransferRequest> query = _dbContext.ShiftTransferRequests
+            .Include(request => request.SenderEmployee)
+                .ThenInclude(employee => employee.UserAccount)
+            .Include(request => request.ReceiverEmployee)
+                .ThenInclude(employee => employee.UserAccount)
+            .Include(request => request.ShiftAssignment)
+                .ThenInclude(assignment => assignment.ShiftType)
+            .Include(request => request.ShiftAssignment)
+                .ThenInclude(assignment => assignment.WorkSchedule)
+                    .ThenInclude(schedule => schedule.SchedulePeriod)
+            .Include(request => request.ApprovedByAccount);
+        return asNoTracking ? query.AsNoTracking() : query;
+    }
+}
