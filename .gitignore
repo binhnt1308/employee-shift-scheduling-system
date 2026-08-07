@@ -1,5 +1,14 @@
-
-
+# Visual Studio & IDE
 .vs/
+*.user
+*.suo
+
+# Build outputs
 **/bin/
 **/obj/
+
+# Environment files & Production config
+.env
+.env.*
+!.env.example
+appsettings.Production.json
