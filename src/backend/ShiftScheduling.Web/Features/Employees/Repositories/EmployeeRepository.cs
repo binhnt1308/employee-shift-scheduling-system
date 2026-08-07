@@ -78,6 +78,30 @@ public sealed class EmployeeRepository : IEmployeeRepository
             cancellationToken);
     }
 
+    public Task<List<Employee>> GetAllActiveAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Employees
+            .AsNoTracking()
+            .Where(e => e.IsActive)
+            .OrderBy(e => e.EmployeeCode)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<Employee?> GetByAccountIdAsync(
+        int accountId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Employee> query = _dbContext.Employees;
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query.FirstOrDefaultAsync(e => e.UserAccountId == accountId, cancellationToken);
+    }
+
     public void Add(Employee employee)
     {
         _dbContext.Employees.Add(employee);

@@ -38,4 +38,11 @@ public static class ErrorCodes
     public const string ShiftTransferNotAccepted = "SHIFT_TRANSFER_NOT_ACCEPTED";
     public const string PublishedScheduleRequired = "PUBLISHED_SCHEDULE_REQUIRED";
     public const string ShiftAlreadyStarted = "SHIFT_ALREADY_STARTED";
+    public const string EmployeeNotAvailable = "EMPLOYEE_NOT_AVAILABLE";
+    public const string EmployeeOnLeave = "EMPLOYEE_ON_LEAVE";
+    public const string ShiftAssignmentOverlap = "SHIFT_ASSIGNMENT_OVERLAP";
+    public const string InvalidShiftAssignment = "INVALID_SHIFT_ASSIGNMENT";
+    public const string InvalidScheduleStatus = "INVALID_SCHEDULE_STATUS";
+    public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
+    public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";
 }

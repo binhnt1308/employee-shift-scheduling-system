@@ -26,5 +26,13 @@ public interface IEmployeeRepository
         int? excludedEmployeeId,
         CancellationToken cancellationToken = default);
 
+    Task<List<Employee>> GetAllActiveAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<Employee?> GetByAccountIdAsync(
+        int accountId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default);
+
     void Add(Employee employee);
 }

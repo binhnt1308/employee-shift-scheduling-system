@@ -13,8 +13,14 @@ namespace ShiftScheduling.Tests.Fakes;
 
 internal sealed class FakeClock : IClock
 {
-    public DateTime UtcNow { get; init; } = new(2026, 8, 6, 4, 0, 0, DateTimeKind.Utc);
+    public DateTime UtcNow { get; init; }
     public DateOnly TodayInVietnam { get; init; } = new(2026, 8, 6);
+
+    public FakeClock(DateTime? utcNow = null)
+    {
+        UtcNow = utcNow ?? new DateTime(2026, 8, 6, 4, 0, 0, DateTimeKind.Utc);
+        TodayInVietnam = DateOnly.FromDateTime(UtcNow.AddHours(7));
+    }
 
     public DateTime ToVietnamTime(DateTime utcDateTime)
     {
@@ -98,6 +104,20 @@ internal sealed class FakeEmployeeRepository : IEmployeeRepository
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult(EmailExists);
+    }
+
+    public Task<List<Employee>> GetAllActiveAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Employees.Where(x => x.IsActive).ToList());
+    }
+
+    public Task<Employee?> GetByAccountIdAsync(
+        int accountId,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Employees.FirstOrDefault(x => x.UserAccountId == accountId));
     }
 
     public void Add(Employee employee)

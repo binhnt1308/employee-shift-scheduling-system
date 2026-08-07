@@ -150,6 +150,16 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<LeaveRequest>> GetApprovedLeavesByPeriodAsync(
+        int schedulePeriodId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.LeaveRequests
+            .AsNoTracking()
+            .Where(r => r.SchedulePeriodId == schedulePeriodId && r.Status == LeaveRequestStatus.Approved)
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(LeaveRequest leaveRequest)
     {
         _dbContext.LeaveRequests.Add(leaveRequest);

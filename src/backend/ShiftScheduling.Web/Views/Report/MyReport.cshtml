@@ -1,0 +1,97 @@
+@model ShiftScheduling.Features.Reports.ViewModels.EmployeeWorkReportOverviewViewModel
+@{
+    ViewData["Title"] = "Tổng hợp số ca & giờ làm của tôi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Tổng hợp số ca & giờ làm của tôi</h3>
+        <p class="text-muted small mb-0">Xem số ca, số ngày làm việc và tổng số giờ làm được tính từ lịch chính thức</p>
+    </div>
+</div>
+
+<div class="card card-custom border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="MyReport" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold">Chọn kỳ lịch (Đã công bố)</label>
+                <select name="schedulePeriodId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    @if (!Model.PeriodOptions.Any())
+                    {
+                        <option value="">-- Chưa có kỳ lịch công bố --</option>
+                    }
+                    @foreach (var opt in Model.PeriodOptions)
+                    {
+                        <option value="@opt.SchedulePeriodId" selected="@(opt.SchedulePeriodId == Model.SchedulePeriodId ? "selected" : null)">@opt.PeriodName</option>
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Summary is null)
+{
+    <div class="card card-custom border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <i class="fa-solid fa-file-excel fa-3x text-muted mb-3"></i>
+            <h5 class="fw-bold text-secondary">Chưa có dữ liệu tổng hợp</h5>
+            <p class="text-muted mb-0">Bạn chưa được phân ca trong kỳ lịch chính thức đã chọn.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card card-custom border-0 shadow-sm text-center py-3 bg-primary bg-opacity-10 border-start border-4 border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Tổng số ca làm</h6>
+                    <h2 class="fw-bold text-primary font-monospace mb-0">@Model.Summary.TotalShifts ca</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-custom border-0 shadow-sm text-center py-3 bg-success bg-opacity-10 border-start border-4 border-success">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Số ngày làm việc</h6>
+                    <h2 class="fw-bold text-success font-monospace mb-0">@Model.Summary.TotalWorkDays ngày</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-custom border-0 shadow-sm text-center py-3 bg-info bg-opacity-10 border-start border-4 border-info">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Tổng số giờ làm</h6>
+                    <h2 class="fw-bold text-info font-monospace mb-0">@Model.Summary.TotalHours giờ</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-custom border-0 shadow-sm">
+        <div class="card-header bg-light py-3 fw-bold">
+            <i class="fa-solid fa-info-circle me-2"></i>Đánh giá mức làm việc dự kiến (BR18)
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    @if (Model.Summary.IsTargetMet)
+                    {
+                        <i class="fa-solid fa-circle-check fa-2x text-success"></i>
+                    }
+                    else
+                    {
+                        <i class="fa-solid fa-triangle-exclamation fa-2x text-warning"></i>
+                    }
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1">Trạng thái: @Model.Summary.Warning</h6>
+                    <p class="text-muted small mb-0">
+                        Mức dự kiến chuẩn theo quy định: Nhân viên PT ~ 5 ca/tuần (20h), Nhân viên FT ~ 6 ngày/tuần (48h).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}

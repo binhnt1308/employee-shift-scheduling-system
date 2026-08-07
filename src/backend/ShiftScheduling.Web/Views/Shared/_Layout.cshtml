@@ -118,47 +118,49 @@
                                 <a class="nav-link nav-link-custom @(currentController == "ShiftType" ? "active" : "")"
                                    asp-controller="ShiftType"
                                    asp-action="Index">
-
-                                    <i class="fa-regular fa-clock"></i>
-                                    Ca làm
+                                    <i class="fa-regular fa-clock"></i> Ca làm
                                 </a>
                             </li>
-
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom
-                                          @(currentController == "SchedulePeriod" ? "active" : "")"
+                                <a class="nav-link nav-link-custom @(currentController == "SchedulePeriod" ? "active" : "")"
                                    asp-controller="SchedulePeriod"
                                    asp-action="Index">
-
-                                    <i class="fa-solid fa-calendar-week"></i>
-                                    Kỳ lịch
+                                    <i class="fa-solid fa-calendar-week"></i> Kỳ lịch
                                 </a>
                             </li>
-
                             <li class="nav-item">
-                                <span class="nav-link nav-link-custom opacity-50">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                    Phân công
-                                </span>
+                                <a class="nav-link nav-link-custom @(currentController == "Availability" ? "active" : "")"
+                                   asp-controller="Availability"
+                                   asp-action="Overview">
+                                    <i class="fa-solid fa-users-viewfinder"></i> Lịch rảnh
+                                </a>
                             </li>
-
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom
-                                          @(currentController == "LeaveRequest" ? "active" : "")"
+                                <a class="nav-link nav-link-custom @(currentController == "WorkSchedule" ? "active" : "")"
+                                   asp-controller="WorkSchedule"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Phân công
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "LeaveRequest" ? "active" : "")"
                                    asp-controller="LeaveRequest"
                                    asp-action="Index">
-                                    <i class="fa-solid fa-calendar-minus"></i>
-                                    Đơn xin nghỉ
+                                    <i class="fa-solid fa-calendar-minus"></i> Đơn xin nghỉ
                                 </a>
                             </li>
-
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom
-                                          @(currentController == "ShiftTransfer" ? "active" : "")"
+                                <a class="nav-link nav-link-custom @(currentController == "ShiftTransfer" ? "active" : "")"
                                    asp-controller="ShiftTransfer"
                                    asp-action="Index">
-                                    <i class="fa-solid fa-right-left"></i>
-                                    Đổi ca
+                                    <i class="fa-solid fa-right-left"></i> Đổi ca
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "Report" ? "active" : "")"
+                                   asp-controller="Report"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-chart-column"></i> Báo cáo
                                 </a>
                             </li>
                         }
@@ -166,22 +168,38 @@
                         @if (isEmployee)
                         {
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom
-                                          @(currentController == "LeaveRequest" ? "active" : "")"
-                                   asp-controller="LeaveRequest"
+                                <a class="nav-link nav-link-custom @(currentController == "Availability" ? "active" : "")"
+                                   asp-controller="Availability"
                                    asp-action="Index">
-                                    <i class="fa-solid fa-calendar-minus"></i>
-                                    Xin nghỉ
+                                    <i class="fa-solid fa-user-clock"></i> Đăng ký rảnh
                                 </a>
                             </li>
-
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom
-                                          @(currentController == "ShiftTransfer" ? "active" : "")"
+                                <a class="nav-link nav-link-custom @(currentController == "MySchedule" ? "active" : "")"
+                                   asp-controller="MySchedule"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-calendar-check"></i> Lịch của tôi
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "LeaveRequest" ? "active" : "")"
+                                   asp-controller="LeaveRequest"
+                                   asp-action="Index">
+                                    <i class="fa-solid fa-calendar-minus"></i> Xin nghỉ
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "ShiftTransfer" ? "active" : "")"
                                    asp-controller="ShiftTransfer"
                                    asp-action="Index">
-                                    <i class="fa-solid fa-right-left"></i>
-                                    Đổi ca
+                                    <i class="fa-solid fa-right-left"></i> Đổi ca
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(currentController == "Report" ? "active" : "")"
+                                   asp-controller="Report"
+                                   asp-action="MyReport">
+                                    <i class="fa-solid fa-chart-pie"></i> Báo cáo ca
                                 </a>
                             </li>
                         }

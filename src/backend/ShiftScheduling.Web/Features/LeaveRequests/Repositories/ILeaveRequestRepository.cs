@@ -53,5 +53,9 @@ public interface ILeaveRequestRepository
         int? shiftTypeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<LeaveRequest>> GetApprovedLeavesByPeriodAsync(
+        int schedulePeriodId,
+        CancellationToken cancellationToken = default);
+
     void Add(LeaveRequest leaveRequest);
 }

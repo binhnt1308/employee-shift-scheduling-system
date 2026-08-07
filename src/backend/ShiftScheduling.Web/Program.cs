@@ -62,6 +62,31 @@ builder.Services.AddScoped<
     ShiftScheduling.Features.SchedulePeriods.Services.ISchedulePeriodService,
     ShiftScheduling.Features.SchedulePeriods.Services.SchedulePeriodService>();
 
+builder.Services.AddScoped<
+    ShiftScheduling.Features.Availabilities.Repositories.IAvailabilityRepository,
+    ShiftScheduling.Features.Availabilities.Repositories.AvailabilityRepository>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.Availabilities.Services.IAvailabilityService,
+    ShiftScheduling.Features.Availabilities.Services.AvailabilityService>();
+
+builder.Services.AddScoped<
+    ShiftScheduling.Features.WorkSchedules.Services.IScheduleValidationService,
+    ShiftScheduling.Features.WorkSchedules.Services.ScheduleValidationService>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.WorkSchedules.Services.IOrToolsSchedulingService,
+    ShiftScheduling.Features.WorkSchedules.Services.OrToolsSchedulingService>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.WorkSchedules.Repositories.IWorkScheduleRepository,
+    ShiftScheduling.Features.WorkSchedules.Repositories.WorkScheduleRepository>();
+builder.Services.AddScoped<
+    ShiftScheduling.Features.WorkSchedules.Services.IWorkScheduleService,
+    ShiftScheduling.Features.WorkSchedules.Services.WorkScheduleService>();
+
+builder.Services.AddScoped<
+    ShiftScheduling.Features.Reports.Services.IWorkReportService,
+    ShiftScheduling.Features.Reports.Services.WorkReportService>();
+
+
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

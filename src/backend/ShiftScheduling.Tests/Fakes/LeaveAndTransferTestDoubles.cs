@@ -145,6 +145,14 @@ internal sealed class FakeLeaveRequestRepository : ILeaveRequestRepository
         return Task.FromResult(exists);
     }
 
+    public Task<IReadOnlyList<LeaveRequest>> GetApprovedLeavesByPeriodAsync(
+        int schedulePeriodId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<LeaveRequest>>(
+            Requests.Where(r => r.SchedulePeriodId == schedulePeriodId && r.Status == LeaveRequestStatus.Approved).ToList());
+    }
+
     public void Add(LeaveRequest leaveRequest)
     {
         leaveRequest.LeaveRequestId = leaveRequest.LeaveRequestId == 0

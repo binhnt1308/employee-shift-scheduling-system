@@ -328,6 +328,31 @@ public sealed class SchedulePeriodServiceTests
         return repo;
     }
 
+    [Fact(DisplayName = "TC03-08 - UC03 BR03 - Duplicate SchedulePeriod for same week is rejected")]
+    public async Task CreateAsync_WhenWeekAlreadyExists_ReturnsOverlapError()
+    {
+        // Sap xep
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var service = CreateService(periodRepo, shiftTypeRepo);
+        var start = new DateOnly(2026, 8, 10);
+        var model = new SchedulePeriodCreateViewModel
+        {
+            PeriodName = "Kỳ lịch tuần 33",
+            WeekStartDate = start,
+            AvailabilityDeadline = new DateTime(2026, 8, 8, 23, 59, 0, DateTimeKind.Utc)
+        };
+
+        // Tao lan 1
+        var result1 = await service.CreateAsync(model, 1);
+        Assert.True(result1.Succeeded);
+
+        // Tao lan 2 cung weekStartDate
+        var result2 = await service.CreateAsync(model, 1);
+        Assert.False(result2.Succeeded);
+        Assert.Equal(ErrorCodes.SchedulePeriodOverlap, result2.ErrorCode);
+    }
+
     private static SchedulePeriod CreateValidPeriodWith21Requirements()
     {
         var start = new DateOnly(2026, 8, 10);

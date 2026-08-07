@@ -1,0 +1,98 @@
+@model List<ShiftScheduling.Features.Availabilities.ViewModels.AvailabilityPeriodItemViewModel>
+@{
+    ViewData["Title"] = "Đăng ký lịch rảnh";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-calendar-check text-primary me-2"></i>Đăng ký lịch rảnh</h3>
+        <p class="text-muted small mb-0">Đăng ký các ca làm việc bạn có thể đi làm trong kỳ lịch</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card card-custom border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tên kỳ lịch</th>
+                        <th>Thời gian tuần</th>
+                        <th>Hạn đăng ký</th>
+                        <th>Trạng thái đăng ký</th>
+                        <th>Số ca đã chọn</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Chưa có kỳ lịch nào.</td>
+                        </tr>
+                    }
+                    @foreach (var period in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@period.PeriodName</td>
+                            <td>@period.WeekStartDate.ToString("dd/MM/yyyy") - @period.WeekEndDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @period.AvailabilityDeadline.ToString("dd/MM/yyyy HH:mm")
+                                @if (period.IsExpired)
+                                {
+                                    <span class="badge bg-danger ms-1">Đã hết hạn</span>
+                                }
+                            </td>
+                            <td>
+                                @if (period.IsOpen)
+                                {
+                                    <span class="badge bg-success">Đang mở đăng ký</span>
+                                }
+                                else if (period.RegistrationStatus == ShiftScheduling.Models.Enums.RegistrationStatus.Preparing)
+                                {
+                                    <span class="badge bg-secondary">Đang chuẩn bị</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-dark">Đã đóng đăng ký</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark font-monospace">@period.RegisteredCount ca</span>
+                            </td>
+                            <td class="text-end">
+                                @if (period.IsOpen)
+                                {
+                                    <a asp-action="Register" asp-route-id="@period.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Đăng ký / Đổi
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-action="Register" asp-route-id="@period.SchedulePeriodId" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fa-solid fa-eye me-1"></i>Xem chi tiết
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
