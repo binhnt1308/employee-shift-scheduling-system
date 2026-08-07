@@ -1,0 +1,232 @@
+@using System.Security.Claims
+@using ShiftScheduling.Models.Constants
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan";
+    var role = User.FindFirstValue(ClaimTypes.Role);
+    var isAdmin = role == RoleNames.Admin;
+    var isStoreManager = role == RoleNames.Manager;
+    var canManageEmployees = isAdmin || isStoreManager;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tổng quan hệ thống</h1>
+
+        <p class="page-subtitle">
+            Quản lý tài khoản, hồ sơ nhân viên và cấu hình ca làm việc.
+        </p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card stat-card-indigo h-100">
+            <div class="small opacity-75">
+                Tài khoản
+            </div>
+
+            <div class="display-6 fw-bold">
+                @Model.AccountCount
+            </div>
+
+            <div>
+                tài khoản hệ thống
+            </div>
+
+            <i class="fa-solid fa-user-shield stat-icon"></i>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card stat-card-teal h-100">
+            <div class="small opacity-75">
+                Nhân viên
+            </div>
+
+            <div class="display-6 fw-bold">
+                @Model.EmployeeCount
+            </div>
+
+            <div>
+                hồ sơ nhân sự
+            </div>
+
+            <i class="fa-solid fa-users stat-icon"></i>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card stat-card-amber h-100">
+            <div class="small opacity-75">
+                Ca làm
+            </div>
+
+            <div class="display-6 fw-bold">
+                @Model.ShiftTypeCount
+            </div>
+
+            <div>
+                ca cố định
+            </div>
+
+            <i class="fa-regular fa-clock stat-icon"></i>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card stat-card-rose h-100">
+            <div class="small opacity-75">
+                Lịch làm việc
+            </div>
+
+            <div class="display-6 fw-bold">
+                Chưa có
+            </div>
+
+            <div>
+                chưa phân công
+            </div>
+
+            <i class="fa-solid fa-calendar-days stat-icon"></i>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4">
+
+    <div class="col-lg-8">
+        <div class="card card-custom h-100">
+
+            <div class="card-header-custom">
+                <i class="fa-regular fa-clock text-primary me-2"></i>
+                Danh sách ca làm việc
+            </div>
+
+            <div class="card-body p-4">
+
+                <div class="list-group list-group-flush">
+                    @if (Model.ShiftTypes.Count == 0)
+                    {
+                        <div class="list-group-item text-center text-muted py-4">
+                            Chưa có ca làm việc nào trong hệ thống.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var shift in Model.ShiftTypes)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@shift.ShiftName</strong><br />
+
+                                    <small class="text-muted font-monospace">
+                                        @shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")
+                                    </small>
+                                </div>
+
+                                @if (shift.IsActive)
+                                {
+                                    <span class="badge badge-custom badge-active align-self-center">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        Đang hoạt động
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-custom badge-rejected align-self-center">
+                                        Ngừng hoạt động
+                                    </span>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div class="alert alert-custom alert-custom-info mt-4 mb-0">
+
+                    <i class="fa-solid fa-circle-info fs-5 me-2"></i>
+
+                    <div>
+                        Hi! Chào mừng bạn đến với hệ thống quản lý ca làm việc.
+                        Chọn một chức năng ở bên phải để bắt đầu sử dụng.
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-custom h-100">
+
+            <div class="card-header-custom">
+                <i class="fa-solid fa-bolt text-warning me-2"></i>
+                Thao tác nhanh
+            </div>
+
+            <div class="card-body p-3 d-flex flex-column gap-2">
+
+                @if (isAdmin)
+                {
+                    <a asp-controller="Account"
+                       asp-action="Index"
+                       class="btn btn-primary-custom w-100 justify-content-center">
+
+                        <i class="fa-solid fa-user-shield"></i>
+                        Quản lý tài khoản
+                    </a>
+                }
+
+                @if (canManageEmployees)
+                {
+                    <a asp-controller="Employee"
+                       asp-action="Index"
+                       class="btn btn-primary-custom w-100 justify-content-center">
+
+                        <i class="fa-solid fa-users"></i>
+                        Quản lý nhân viên
+                    </a>
+                }
+
+                @if (isStoreManager)
+                {
+                    <a asp-controller="ShiftType"
+                       asp-action="Index"
+                       class="btn btn-secondary-custom w-100 justify-content-center">
+
+                        <i class="fa-regular fa-clock"></i>
+                        Cấu hình ca làm
+                    </a>
+
+                    <a asp-controller="SchedulePeriod"
+                       asp-action="Index"
+                       class="btn btn-secondary-custom w-100 justify-content-center">
+
+                        <i class="fa-solid fa-calendar-week"></i>
+                        Quản lý kỳ lịch
+                    </a>
+                }
+
+                <span class="btn btn-secondary-custom opacity-50
+                             w-100 justify-content-center">
+
+                    <i class="fa-solid fa-calendar-days"></i>
+                    Lịch làm việc
+                </span>
+
+                <span class="btn btn-secondary-custom opacity-50
+                             w-100 justify-content-center">
+
+                    <i class="fa-solid fa-calendar-check"></i>
+                    Đơn xin nghỉ
+                </span>
+
+            </div>
+        </div>
+    </div>
+
+</div>

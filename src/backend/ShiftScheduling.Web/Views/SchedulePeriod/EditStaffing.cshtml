@@ -1,0 +1,104 @@
+@model StaffingRequirementEditViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa định mức nhân sự";
+
+    string GetDayOfWeekName(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => "Thứ Hai",
+        DayOfWeek.Tuesday => "Thứ Ba",
+        DayOfWeek.Wednesday => "Thứ Tư",
+        DayOfWeek.Thursday => "Thứ Năm",
+        DayOfWeek.Friday => "Thứ Sáu",
+        DayOfWeek.Saturday => "Thứ Bảy",
+        DayOfWeek.Sunday => "Chủ Nhật",
+        _ => day.ToString()
+    };
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Định mức nhân sự: @Model.PeriodName</h1>
+        <p class="page-subtitle">Thiết lập số lượng nhân sự tư vấn và thu ngân cho 21 tổ hợp ngày-ca.</p>
+    </div>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.SchedulePeriodId" class="btn btn-secondary-custom">
+            <i class="fa-solid fa-arrow-left me-1"></i>
+            Quay lại chi tiết
+        </a>
+    </div>
+</div>
+
+<form method="post" asp-action="EditStaffing">
+    <input type="hidden" asp-for="SchedulePeriodId" />
+    <input type="hidden" asp-for="PeriodName" />
+    <input type="hidden" asp-for="WeekStartDate" />
+    <input type="hidden" asp-for="WeekEndDate" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-custom alert-custom-danger mb-3"></div>
+
+    <div class="card card-custom mb-4">
+        <div class="card-header-custom">
+            <i class="fa-solid fa-sliders text-primary me-2"></i>
+            Danh sách 21 tổ hợp ngày-ca (7 ngày × 3 ca)
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-custom align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Ngày làm việc</th>
+                            <th>Ca làm việc</th>
+                            <th style="width: 200px;">Tư vấn</th>
+                            <th style="width: 200px;">Thu ngân</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Requirements.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="hidden" asp-for="Requirements[i].StaffingRequirementId" />
+                                    <input type="hidden" asp-for="Requirements[i].WorkDate" />
+                                    <input type="hidden" asp-for="Requirements[i].ShiftTypeId" />
+                                    <input type="hidden" asp-for="Requirements[i].ShiftCode" />
+                                    <input type="hidden" asp-for="Requirements[i].ShiftName" />
+
+                                    <strong>@Model.Requirements[i].WorkDate.ToString("dd/MM/yyyy")</strong>
+                                    <span class="text-muted small">(@GetDayOfWeekName(Model.Requirements[i].WorkDate.DayOfWeek))</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary bg-opacity-10 text-dark border me-1">@Model.Requirements[i].ShiftName</span>
+                                    <small class="text-muted font-monospace">(@Model.Requirements[i].StartTime.ToString("HH:mm") - @Model.Requirements[i].EndTime.ToString("HH:mm"))</small>
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="fa-solid fa-user-tag"></i></span>
+                                        <input asp-for="Requirements[i].RequiredSalesStaff" type="number" min="0" max="50" class="form-control form-control-custom" />
+                                    </div>
+                                    <span asp-validation-for="Requirements[i].RequiredSalesStaff" class="text-danger small"></span>
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="fa-solid fa-calculator"></i></span>
+                                        <input asp-for="Requirements[i].RequiredCashiers" type="number" min="0" max="50" class="form-control form-control-custom" />
+                                    </div>
+                                    <span asp-validation-for="Requirements[i].RequiredCashiers" class="text-danger small"></span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer p-3 bg-light d-flex justify-content-end gap-2">
+            <a asp-action="Details" asp-route-id="@Model.SchedulePeriodId" class="btn btn-secondary-custom">
+                Hủy bỏ
+            </a>
+            <button type="submit" class="btn btn-primary-custom px-4">
+                <i class="fa-solid fa-floppy-disk me-1"></i>
+                Lưu định mức
+            </button>
+        </div>
+    </div>
+</form>
+

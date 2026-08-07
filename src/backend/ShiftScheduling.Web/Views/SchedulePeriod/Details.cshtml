@@ -1,0 +1,174 @@
+@model SchedulePeriodDetailsViewModel
+@{
+    ViewData["Title"] = Model.PeriodName;
+
+    string GetDayOfWeekName(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday => "Thứ Hai",
+        DayOfWeek.Tuesday => "Thứ Ba",
+        DayOfWeek.Wednesday => "Thứ Tư",
+        DayOfWeek.Thursday => "Thứ Năm",
+        DayOfWeek.Friday => "Thứ Sáu",
+        DayOfWeek.Saturday => "Thứ Bảy",
+        DayOfWeek.Sunday => "Chủ Nhật",
+        _ => day.ToString()
+    };
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@Model.PeriodName</h1>
+        <p class="page-subtitle">
+            Khoảng ngày: @Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy") (7 ngày) | Hạn đăng ký: @Model.AvailabilityDeadline.ToString("dd/MM/yyyy HH:mm")
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-secondary-custom">
+            <i class="fa-solid fa-arrow-left me-1"></i>
+            Danh sách
+        </a>
+        @if (Model.RegistrationStatus == RegistrationStatus.Preparing)
+        {
+            <a asp-action="EditStaffing" asp-route-id="@Model.SchedulePeriodId" class="btn btn-secondary-custom">
+                <i class="fa-solid fa-sliders me-1"></i>
+                Chỉnh sửa định mức
+            </a>
+        }
+    </div>
+</div>
+
+@if (TempData["StatusMessage"] is string statusMsg)
+{
+    <div class="alert alert-custom alert-custom-success alert-dismissible fade show mb-4" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@statusMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string errorMsg)
+{
+    <div class="alert alert-custom alert-custom-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@errorMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase fw-bold small">Trạng thái kỳ lịch</h6>
+                <div class="mt-2 mb-3">
+                    @switch (Model.RegistrationStatus)
+                    {
+                        case RegistrationStatus.Preparing:
+                            <span class="badge badge-custom badge-pending fs-6 px-3 py-2"><i class="fa-solid fa-pen me-1"></i>Đang chuẩn bị</span>
+                            break;
+                        case RegistrationStatus.Open:
+                            <span class="badge badge-custom badge-active fs-6 px-3 py-2"><i class="fa-solid fa-door-open me-1"></i>Đang mở đăng ký</span>
+                            break;
+                        case RegistrationStatus.Closed:
+                            <span class="badge badge-custom badge-info-custom fs-6 px-3 py-2"><i class="fa-solid fa-lock me-1"></i>Đã đóng đăng ký</span>
+                            break;
+                    }
+                </div>
+
+                @if (Model.RegistrationStatus == RegistrationStatus.Preparing)
+                {
+                    <form method="post" asp-action="OpenRegistration" asp-route-id="@Model.SchedulePeriodId">
+                        <button type="submit" class="btn btn-primary-custom w-100 justify-content-center" @(Model.CanOpenRegistration ? "" : "disabled")>
+                            <i class="fa-solid fa-door-open me-1"></i>
+                            Mở đăng ký lịch rảnh
+                        </button>
+                    </form>
+                    @if (!Model.CanOpenRegistration)
+                    {
+                        <div class="form-text text-danger mt-2">
+                            Yêu cầu để mở đăng ký: Hạn đăng ký chưa hết và đã nhập đủ định mức cho 21 tổ hợp ngày-ca (tổng nhân sự > 0).
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card card-custom h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase fw-bold small">Thông tin chung</h6>
+                <div class="row mt-2">
+                    <div class="col-6 mb-2">
+                        <span class="text-muted small d-block">Người tạo:</span>
+                        <span class="fw-semibold">@Model.CreatedByUsername</span>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <span class="text-muted small d-block">Ngày tạo:</span>
+                        <span class="fw-semibold">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted small d-block">Tổng số ca cấu hình:</span>
+                        <span class="fw-semibold text-primary">@Model.Requirements.Count / 21 tổ hợp ngày-ca</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted small d-block">Yêu cầu kinh nghiệm:</span>
+                        <span class="badge badge-custom badge-info-custom">Ít nhất 1 nhân viên Level 2 trở lên</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom">
+    <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-table-cells text-primary me-2"></i>Định mức nhân sự (7 ngày × 3 ca = 21 tổ hợp ngày-ca)</span>
+        @if (Model.RegistrationStatus == RegistrationStatus.Preparing)
+        {
+            <a asp-action="EditStaffing" asp-route-id="@Model.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
+                <i class="fa-solid fa-pen-to-square me-1"></i>Chỉnh sửa
+            </a>
+        }
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Ngày làm việc</th>
+                        <th>Ca làm việc</th>
+                        <th class="text-center">Tư vấn</th>
+                        <th class="text-center">Thu ngân</th>
+                        <th class="text-center">Tổng nhân sự</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var req in Model.Requirements)
+                    {
+                        var total = req.RequiredSalesStaff + req.RequiredCashiers;
+                        <tr>
+                            <td>
+                                <strong>@req.WorkDate.ToString("dd/MM/yyyy")</strong>
+                                <span class="text-muted small">(@GetDayOfWeekName(req.WorkDate.DayOfWeek))</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark border me-1">@req.ShiftName</span>
+                                <small class="text-muted font-monospace">(@req.StartTime.ToString("HH:mm") - @req.EndTime.ToString("HH:mm"))</small>
+                            </td>
+                            <td class="text-center fw-semibold">@req.RequiredSalesStaff</td>
+                            <td class="text-center fw-semibold">@req.RequiredCashiers</td>
+                            <td class="text-center">
+                                @if (total > 0)
+                                {
+                                    <span class="badge badge-custom badge-active">@total nhân sự</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-custom badge-rejected">Chưa nhập</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
