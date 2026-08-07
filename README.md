@@ -244,22 +244,6 @@ PROJECT VERIFY: PASS
 | FR04 / UC04 | Đăng ký lịch rảnh | ⏳ Tiếp theo |
 | FR05+ | Phân công, OR-Tools, nghỉ, đổi ca, báo cáo | ⏳ Chưa triển khai |
 
-## Hình ảnh Demo Giao diện
-
-Có thể lưu ảnh demo tại:
-
-```text
-docs/assets/
-```
-
-Gợi ý:
-
-- `demo_login.png`
-- `demo_dashboard.png`
-- `demo_account.png`
-- `demo_employee.png`
-- `demo_shifttype.png`
-- `demo_schedule_period.png`
 
 ## Repository
 
