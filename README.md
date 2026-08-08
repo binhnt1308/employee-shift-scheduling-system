@@ -10,78 +10,160 @@
 Hệ thống web hỗ trợ quản lý nhân viên và lập lịch ca làm việc cho cửa hàng bán lẻ quy mô nhỏ
 (khoảng 10–20 nhân viên).
 
-Mục tiêu của hệ thống là hỗ trợ quản lý dữ liệu nhân sự, thiết lập ca làm việc, tạo kỳ lịch theo tuần,
-cấu hình định mức nhân sự và từng bước tự động hóa quá trình phân ca bằng Google OR-Tools.
+Hệ thống hỗ trợ từ quản lý tài khoản, nhân viên, kỳ lịch, đăng ký lịch rảnh,
+phân công ca thủ công, sinh lịch bằng Google OR-Tools, công bố lịch,
+xin nghỉ, đổi ca đến báo cáo số ca và giờ làm việc.
 
-## Tiến độ hiện tại
+---
 
-### Đã hoàn thành
+## Chức năng đã hoàn thành
 
 - Đăng nhập / đăng xuất bằng Cookie Authentication.
 - Hash mật khẩu bằng PBKDF2.
-- Quản lý tài khoản.
-- Khóa / mở khóa tài khoản.
-- Phân quyền người dùng.
+- Quản lý tài khoản, khóa / mở khóa và phân quyền.
 - Quản lý nhân viên.
-- Quản lý 3 ca làm việc cố định:
+- Quản lý 3 ca cố định:
   - Ca sáng: `08:00–12:00`
   - Ca chiều: `12:00–16:00`
   - Ca tối: `16:00–20:00`
-- Thiết lập kỳ lịch làm việc 7 ngày.
+- Thiết lập kỳ lịch 7 ngày.
 - Tự động tạo `7 ngày × 3 ca = 21` tổ hợp ngày-ca.
 - Cấu hình định mức nhân sự theo vị trí Tư vấn / Thu ngân.
-- Kiểm tra yêu cầu nhân sự Level 2 trở lên.
-- Phân quyền giao diện và backend theo vai trò.
-- Tách kiến trúc backend theo Feature.
-- Kiểm thử tự động và script kiểm tra project.
-
-### Trạng thái kiểm thử gần nhất
-
-- **Build:** PASS
-- **Warnings:** 0
-- **Errors:** 0
-- **Tests:** 36/36 PASS
-- **Project verification:** PASS
-
-### Chức năng tiếp theo
-
-- Đăng ký lịch rảnh.
-- Phân công ca thủ công.
-- Sinh lịch đề xuất bằng Google OR-Tools.
-- Công bố lịch làm việc.
+- Kiểm tra yêu cầu nhân viên Level 2 trở lên.
+- Đăng ký và cập nhật lịch rảnh của Employee.
+- Phân công ca thủ công:
+  - Thêm nhân viên.
+  - Xóa nhân viên.
+  - Thay thế nhân viên.
+- Sinh lịch đề xuất bằng Google OR-Tools CP-SAT.
+- Kiểm tra ràng buộc trước khi phân công và công bố lịch.
+- Lưu lịch Draft và công bố lịch chính thức.
+- Employee xem lịch làm việc đã công bố.
 - Quản lý đơn xin nghỉ.
 - Quản lý yêu cầu đổi ca.
-- Báo cáo tổng hợp giờ/ca làm.
-- Docker, CI/CD và triển khai.
+- Báo cáo số ca, số ngày và tổng giờ làm.
+- Xuất báo cáo CSV.
 
-## Phân quyền hiện tại
+---
+
+## Quy trình lập lịch
+
+```text
+Manager tạo kỳ lịch
+        ↓
+Cấu hình định mức
+        ↓
+Mở đăng ký lịch rảnh
+        ↓
+Employee đăng ký lịch rảnh
+        ↓
+Manager đóng đăng ký
+        ↓
+┌─────────────────────────┐
+│ Phân công ca thủ công   │
+│ Add / Remove / Replace  │
+└─────────────────────────┘
+            hoặc
+┌─────────────────────────┐
+│ Google OR-Tools CP-SAT  │
+│ Sinh lịch đề xuất       │
+└─────────────────────────┘
+        ↓
+Draft
+        ↓
+Kiểm tra ràng buộc
+        ↓
+Publish
+        ↓
+Employee xem lịch
+```
+
+> Google OR-Tools chỉ sinh lịch đề xuất. Manager phải chủ động sử dụng đề xuất,
+> chỉnh sửa nếu cần và công bố lịch.
+
+---
+
+## Trạng thái chức năng
+
+| Mã | Chức năng | Trạng thái |
+| --- | --- | --- |
+| UC01 | Quản lý tài khoản | ✅ Hoàn thành |
+| UC02 | Quản lý nhân viên | ✅ Hoàn thành |
+| UC03 | Kỳ lịch & định mức nhân sự | ✅ Hoàn thành |
+| UC04 | Quản lý lịch rảnh | ✅ Hoàn thành |
+| UC05 | Phân công ca thủ công | ✅ Hoàn thành |
+| UC06 | Sinh lịch bằng Google OR-Tools | ✅ Hoàn thành |
+| UC07 | Duyệt và công bố lịch | ✅ Hoàn thành |
+| UC08 | Xem lịch làm việc cá nhân | ✅ Hoàn thành |
+| UC09 | Quản lý đơn xin nghỉ | ✅ Hoàn thành |
+| UC10 | Quản lý yêu cầu đổi ca | ✅ Hoàn thành |
+| UC11 | Báo cáo số ca và giờ làm | ✅ Hoàn thành |
+
+---
+
+## Phân quyền
 
 | Chức năng | Admin | Manager | Employee |
-|---|:---:|:---:|:---:|
-| Tổng quan | ✅ | ✅ | ✅ |
+| --- | :---: | :---: | :---: |
 | Quản lý tài khoản | ✅ | ❌ | ❌ |
-| Khóa / mở tài khoản | ✅ | ❌ | ❌ |
-| Phân quyền | ✅ | ❌ | ❌ |
 | Quản lý nhân viên | ✅ | ✅ | ❌ |
-| Cấu hình ca làm | ❌ | ✅ | ❌ |
-| Thiết lập kỳ lịch / định mức | ❌ | ✅ | ❌ |
+| Cấu hình ca / kỳ lịch | ❌ | ✅ | ❌ |
+| Đăng ký lịch rảnh | ❌ | ❌ | ✅ |
+| Xem tổng hợp lịch rảnh | ❌ | ✅ | ❌ |
 | Phân công lịch | ❌ | ✅ | ❌ |
+| Sinh lịch bằng OR-Tools | ❌ | ✅ | ❌ |
+| Công bố lịch | ❌ | ✅ | ❌ |
+| Xem lịch cá nhân | ❌ | ❌ | ✅ |
+| Gửi đơn xin nghỉ | ❌ | ❌ | ✅ |
+| Duyệt đơn xin nghỉ | ❌ | ✅ | ❌ |
+| Gửi / phản hồi đổi ca | ❌ | ❌ | ✅ |
+| Duyệt đổi ca | ❌ | ✅ | ❌ |
+| Báo cáo tổng hợp | ❌ | ✅ | ❌ |
+| Báo cáo cá nhân | ❌ | ❌ | ✅ |
+
+---
+
+## Một số quy tắc nghiệp vụ chính
+
+- Một kỳ lịch kéo dài đúng 7 ngày.
+- Hệ thống sử dụng đúng 3 ca cố định.
+- Mỗi kỳ lịch có đúng 21 tổ hợp ngày-ca.
+- Không cho phép tạo trùng kỳ lịch cùng tuần.
+- Employee chỉ đăng ký lịch rảnh khi kỳ lịch đang mở và chưa hết hạn.
+- Chỉ phân công nhân viên đang hoạt động.
+- Nhân viên phải đăng ký rảnh trước khi được phân công.
+- Nhân viên có đơn nghỉ đã duyệt không được phân vào ca nghỉ.
+- Phân công phải đúng vị trí công việc.
+- PartTime tối đa 1 ca/ngày.
+- FullTime làm hai ca liên tiếp sáng–chiều hoặc chiều–tối.
+- FullTime tối đa 6 ngày/tuần.
+- Mỗi ca phải đáp ứng định mức nhân sự theo vị trí.
+- Mỗi ca phải có ít nhất một nhân viên Level 2 trở lên.
+- Draft có thể lưu khi chưa hoàn chỉnh nhưng không được Publish nếu còn lỗi cứng.
+- OR-Tools chỉ tạo lịch đề xuất.
+- Trước khi Publish, hệ thống kiểm tra lại dữ liệu mới nhất.
+- Đổi ca là chuyển ca một chiều.
+- Các mục tiêu cân bằng khối lượng công việc là ràng buộc mềm và không được phá ràng buộc cứng.
+
+---
 
 ## Công nghệ sử dụng
 
 - **Backend:** ASP.NET Core MVC 8 (.NET 8, C#)
 - **Frontend:** Razor View, Bootstrap 5, HTML5, CSS3, JavaScript
 - **ORM:** Entity Framework Core 8
-- **Database:** SQL Server LocalDB
+- **Database:** SQL Server
 - **Authentication:** Cookie Authentication
 - **Password Hashing:** PBKDF2
+- **Scheduling Engine:** Google OR-Tools CP-SAT
 - **Testing:** xUnit
 - **Version Control:** Git, GitHub
-- **Scheduling Engine:** Google OR-Tools *(giai đoạn tiếp theo)*
+
+---
 
 ## Kiến trúc backend
 
-Backend hiện được tổ chức theo Feature:
+Backend được tổ chức theo Feature:
 
 ```text
 Controller
@@ -95,51 +177,58 @@ Entity Framework Core
 SQL Server
 ```
 
-Business logic được xử lý tại tầng Service. Controller không truy cập trực tiếp `DbContext`.
+Business logic được xử lý tại tầng Service.  
+Controller không truy cập trực tiếp `DbContext`.
 
-## Cấu trúc Repository
+Các feature chính:
 
 ```text
-employee-shift-scheduling-system/
-├── README.md
-├── .gitignore
-├── .editorconfig
-├── docs/
-│   ├── BaoCao/
-│   ├── kiem-thu/
-│   └── weekly/
-└── src/
-    ├── backend/
-    │   ├── ShiftScheduling.Web/
-    │   │   ├── Common/
-    │   │   ├── Features/
-    │   │   │   ├── Accounts/
-    │   │   │   ├── Authentication/
-    │   │   │   ├── Dashboard/
-    │   │   │   ├── Employees/
-    │   │   │   ├── SchedulePeriods/
-    │   │   │   └── ShiftTypes/
-    │   │   ├── Infrastructure/
-    │   │   ├── Views/
-    │   │   ├── wwwroot/
-    │   │   ├── Program.cs
-    │   │   └── ShiftScheduling.Web.csproj
-    │   ├── ShiftScheduling.Tests/
-    │   ├── ShiftScheduling.sln
-    │   └── verify_project.ps1
-    └── frontend/
-        └── README.md
+Features/
+├── Accounts/
+├── Authentication/
+├── Availabilities/
+├── Dashboard/
+├── Employees/
+├── LeaveRequests/
+├── Reports/
+├── SchedulePeriods/
+├── ShiftTransfers/
+├── ShiftTypes/
+└── WorkSchedules/
 ```
 
-## Yêu cầu hệ thống
+---
 
-- .NET 8 SDK
-- SQL Server LocalDB hoặc SQL Server Express
-- Visual Studio 2022 / VS Code
+## Kiểm thử gần nhất
 
-## Cài đặt và chạy ứng dụng
+```text
+Build:
+0 warnings
+0 errors
 
-Từ thư mục root của repository:
+Tests:
+85 total
+85 passed
+0 failed
+```
+
+Các luồng chính đã được kiểm tra:
+
+- Đăng ký và cập nhật lịch rảnh.
+- Phân công thủ công Add / Remove / Replace.
+- Kiểm tra các ràng buộc phân ca.
+- OR-Tools sinh lịch hợp lệ.
+- OR-Tools xử lý trường hợp `INFEASIBLE`.
+- Chặn Publish khi Draft chưa hợp lệ.
+- Kiểm tra lại dữ liệu mới nhất trước khi Publish.
+- Phân quyền theo vai trò.
+- Đơn xin nghỉ.
+- Đổi ca.
+- Báo cáo và xuất CSV.
+
+---
+
+## Cài đặt và chạy
 
 ### 1. Restore package
 
@@ -155,14 +244,14 @@ dotnet build src/backend/ShiftScheduling.sln `
   --warnaserror
 ```
 
-### 3. Cập nhật cơ sở dữ liệu
+### 3. Cập nhật database
 
 ```powershell
 dotnet ef database update `
   --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
 ```
 
-Nếu máy chưa có EF CLI:
+Nếu chưa có Entity Framework CLI:
 
 ```powershell
 dotnet tool install --global dotnet-ef
@@ -175,80 +264,56 @@ dotnet run `
   --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
 ```
 
-Mở URL được hiển thị trong terminal, ví dụ:
+Mở URL được hiển thị trong terminal.
 
-```text
-http://localhost:5198
-```
+---
 
-## Kiểm thử
-
-### Chạy toàn bộ test
+## Chạy kiểm thử
 
 ```powershell
+dotnet format src/backend/ShiftScheduling.sln --verify-no-changes
+
+dotnet build src/backend/ShiftScheduling.sln `
+  --no-restore `
+  --warnaserror
+
 dotnet test src/backend/ShiftScheduling.sln `
   --no-build `
   --verbosity normal
 ```
 
-### Kiểm tra toàn project
-
-```powershell
-powershell -ExecutionPolicy Bypass `
-  -File src/backend/verify_project.ps1
-```
-
-Baseline hiện tại:
-
-```text
-36 tests
-36 passed
-0 failed
-0 skipped
-
-Build:
-0 warnings
-0 errors
-
-PROJECT VERIFY: PASS
-```
+---
 
 ## Tài khoản demo
 
-| Vai trò | Username | Password | Quyền chính |
-|---|---|---|---|
-| Admin | `admin` | `admin123` | Tài khoản, nhân viên |
-| Manager | `quanly` | `quanly123` | Nhân viên, ca làm, kỳ lịch |
+| Vai trò | Username | Password |
+| --- | --- | --- |
+| Admin | `admin` | `admin123` |
+| Manager | `quanly` | `quanly123` |
 
-> Tài khoản demo Employee chưa được seed trong phiên bản hiện tại.
+> Tài khoản Employee hiện được sử dụng trong dữ liệu kiểm thử.
+> Dữ liệu seed Employee chính thức sẽ được hoàn thiện sau.
 
-## Quy tắc nghiệp vụ chính đã triển khai
+---
 
-- Một kỳ lịch kéo dài đúng 7 ngày.
-- Hệ thống sử dụng đúng 3 ca cố định.
-- Mỗi kỳ lịch có đúng 21 tổ hợp ngày-ca.
-- Định mức nhân sự được cấu hình theo vị trí Tư vấn và Thu ngân.
-- Không cho phép định mức âm.
-- Tổng nhân sự của một tổ hợp ngày-ca phải lớn hơn 0.
-- Mỗi ca phải đáp ứng yêu cầu nhân sự có Level 2 trở lên theo cấu hình hiện tại.
-- Chỉ Manager được cấu hình ca làm và kỳ lịch.
-- Admin được quản lý tài khoản và nhân viên.
+## Công việc tiếp theo
 
-## Trạng thái chức năng
+- Hoàn thiện dữ liệu demo.
+- Hoàn thiện ma trận truy vết yêu cầu – test case.
+- Bổ sung kiểm thử E2E.
+- Hoàn thiện giao diện và responsive.
+- Docker hóa ứng dụng.
+- Thiết lập CI/CD.
+- Chuẩn bị triển khai và demo bảo vệ.
 
-| Mã | Chức năng | Trạng thái |
-|---|---|---|
-| FR01 / UC01 | Quản lý tài khoản | ✅ Hoàn thành |
-| FR02 / UC02 | Quản lý nhân viên | ✅ Hoàn thành |
-| FR03 / UC03 | Kỳ lịch & định mức nhân sự | ✅ Hoàn thành |
-| FR04 / UC04 | Đăng ký lịch rảnh | ⏳ Tiếp theo |
-| FR05+ | Phân công, OR-Tools, nghỉ, đổi ca, báo cáo | ⏳ Chưa triển khai |
-
+---
 
 ## Repository
 
 - **GitHub:** https://github.com/binhnt1308/employee-shift-scheduling-system
-- **Branch hiện tại:** `tuan-05`
+- **Branch phát triển:** `tuan-05`
+
+---
 
 ## Thông tin sinh viên
 
