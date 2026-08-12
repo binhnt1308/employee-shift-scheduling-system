@@ -12,11 +12,11 @@ namespace ShiftScheduling.Features.WorkSchedules.Services;
 /// </summary>
 public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
 {
-    private readonly IScheduleValidationService _validationService;
+    private readonly ISchedulingValidationService _validationService;
     private readonly ILogger<OrToolsSchedulingService> _logger;
 
     public OrToolsSchedulingService(
-        IScheduleValidationService validationService,
+        ISchedulingValidationService validationService,
         ILogger<OrToolsSchedulingService> logger)
     {
         _validationService = validationService;
@@ -260,7 +260,8 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
             }
 
             var valResult = _validationService.ValidateSchedule(
-                period, activeEmployees, availabilities, approvedLeaves, staffingRequirements, tempAssignments, shiftTypes);
+                period, activeEmployees, availabilities, approvedLeaves,
+                staffingRequirements, tempAssignments, shiftTypes);
 
             return new OrToolsProposalResultViewModel
             {

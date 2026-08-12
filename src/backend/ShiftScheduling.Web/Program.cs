@@ -70,8 +70,8 @@ builder.Services.AddScoped<
     ShiftScheduling.Features.Availabilities.Services.AvailabilityService>();
 
 builder.Services.AddScoped<
-    ShiftScheduling.Features.WorkSchedules.Services.IScheduleValidationService,
-    ShiftScheduling.Features.WorkSchedules.Services.ScheduleValidationService>();
+    ShiftScheduling.Features.WorkSchedules.Services.ISchedulingValidationService,
+    ShiftScheduling.Features.WorkSchedules.Services.SchedulingValidationService>();
 builder.Services.AddScoped<
     ShiftScheduling.Features.WorkSchedules.Services.IOrToolsSchedulingService,
     ShiftScheduling.Features.WorkSchedules.Services.OrToolsSchedulingService>();
