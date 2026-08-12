@@ -1,5 +1,6 @@
 using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Features.ShiftTransfers.ViewModels;
+using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.Errors;
@@ -189,10 +190,22 @@ public sealed partial class ShiftTransferService
             {
                 errors.Add("Việc nhận ca làm nhân viên bán thời gian vượt quá một ca trong ngày.");
             }
-            return;
+        }
+        else
+        {
+            AddFullTimeRuleErrors(projectedAssignments, errors);
         }
 
-        AddFullTimeRuleErrors(projectedAssignments, errors);
+        // BR20, BR21: Kiểm tra quy tắc nghỉ tối thiểu 12h giữa ca cuối ngày D và ca đầu ngày D+1,
+        // và 24h liên tục trong kỳ lịch.
+        var shiftTypeMap = projectedAssignments
+            .Where(a => a.ShiftType is not null)
+            .GroupBy(a => a.ShiftTypeId)
+            .ToDictionary(g => g.Key, g => g.First().ShiftType);
+        var weekStartDate = target.WorkSchedule.SchedulePeriod.WeekStartDate;
+        var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
+            receiver, projectedAssignments, shiftTypeMap, weekStartDate);
+        errors.AddRange(restErrors);
     }
 
     private static void AddFullTimeRuleErrors(

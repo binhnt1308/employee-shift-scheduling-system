@@ -44,9 +44,9 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         ValidateStaffingRequirements(
             staffingRequirements, fixedShiftIds, validAssignments, empMap, hardErrors);
 
-        // 2. Kiểm tra phân công và khối lượng công việc cho từng nhân viên (BR02, BR05, BR06, BR09-BR11, BR18)
+        // 2. Kiểm tra phân công, khối lượng công việc và nghỉ tối thiểu (BR02, BR05, BR06, BR09-BR11, BR18, BR20, BR21)
         var summaries = ValidateEmployeesAndBuildSummaries(
-            activeEmployees, validAssignments, availSet, leaveLookup, shiftTypeMap, hardErrors);
+            period, activeEmployees, validAssignments, availSet, leaveLookup, shiftTypeMap, hardErrors);
 
         // BR19: Cảnh báo công bằng khối lượng công việc giữa các nhân viên cùng hình thức
         AddFairnessWarnings(summaries, warnings);
@@ -108,9 +108,10 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
     }
 
     /// <summary>
-    /// Kiểm tra quy tắc cá nhân (BR02, BR05, BR06, BR09-BR11) và xây dựng tóm tắt công việc (BR18).
+    /// Kiểm tra quy tắc cá nhân (BR02, BR05, BR06, BR09-BR11, BR20, BR21) và xây dựng tóm tắt công việc (BR18).
     /// </summary>
     private static List<EmployeeSummaryItemViewModel> ValidateEmployeesAndBuildSummaries(
+        SchedulePeriod period,
         IReadOnlyList<Employee> activeEmployees,
         List<ShiftAssignment> validAssignments,
         HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> availSet,
@@ -130,45 +131,57 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
                 ? list
                 : new List<ShiftAssignment>();
 
-            var workDaysCount = userAssigns.Select(a => a.WorkDate).Distinct().Count();
-            var totalShiftsCount = userAssigns.Count;
-
-            var totalHours = userAssigns.Sum(
-                assignment => shiftTypeMap.TryGetValue(assignment.ShiftTypeId, out var shiftType)
-                    ? shiftType.DurationHours
-                    : 0m);
-
-            // BR02: Chỉ nhân viên đang hoạt động
-            if (!emp.IsActive && userAssigns.Count > 0)
-            {
-                hardErrors.Add($"Nhân viên {emp.FullName} ({emp.EmployeeCode}) đã ngưng hoạt động nhưng vẫn có ca.");
-            }
-
-            // BR05, BR06: Đăng ký rảnh và Đơn xin nghỉ đã duyệt
-            ValidateEmployeeAssignmentDetails(emp, userAssigns, availSet, leaveLookup, shiftTypeMap, hardErrors);
-
-            // BR09 / BR10 / BR11: Quy tắc khối lượng công việc theo hình thức làm việc
-            ValidateEmployeeWorkloadRules(emp, userAssigns, shiftTypeMap, hardErrors);
-
-            // BR18: Cảnh báo ưu tiên khối lượng công việc
-            var warningText = GetWorkloadWarning(emp, totalShiftsCount, workDaysCount);
-
-            summaries.Add(new EmployeeSummaryItemViewModel
-            {
-                EmployeeId = emp.EmployeeId,
-                EmployeeCode = emp.EmployeeCode,
-                FullName = emp.FullName,
-                Position = emp.Position,
-                EmploymentType = emp.EmploymentType,
-                Level = emp.Level,
-                TotalShifts = totalShiftsCount,
-                TotalWorkDays = workDaysCount,
-                TotalHours = totalHours,
-                Warning = warningText
-            });
+            summaries.Add(BuildSingleEmployeeSummary(
+                period, emp, userAssigns, availSet, leaveLookup, shiftTypeMap, hardErrors));
         }
 
         return summaries;
+    }
+
+    private static EmployeeSummaryItemViewModel BuildSingleEmployeeSummary(
+        SchedulePeriod period,
+        Employee emp,
+        List<ShiftAssignment> userAssigns,
+        HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> availSet,
+        ApprovedLeaveLookup leaveLookup,
+        Dictionary<int, ShiftType> shiftTypeMap,
+        List<string> hardErrors)
+    {
+        var workDaysCount = userAssigns.Select(a => a.WorkDate).Distinct().Count();
+        var totalShiftsCount = userAssigns.Count;
+
+        var totalHours = userAssigns.Sum(
+            assignment => shiftTypeMap.TryGetValue(assignment.ShiftTypeId, out var shiftType)
+                ? shiftType.DurationHours
+                : 0m);
+
+        if (!emp.IsActive && userAssigns.Count > 0)
+        {
+            hardErrors.Add($"Nhân viên {emp.FullName} ({emp.EmployeeCode}) đã ngưng hoạt động nhưng vẫn có ca.");
+        }
+
+        ValidateEmployeeAssignmentDetails(emp, userAssigns, availSet, leaveLookup, shiftTypeMap, hardErrors);
+        ValidateEmployeeWorkloadRules(emp, userAssigns, shiftTypeMap, hardErrors);
+
+        var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
+            emp, userAssigns, shiftTypeMap, period.WeekStartDate);
+        hardErrors.AddRange(restErrors);
+
+        var warningText = GetWorkloadWarning(emp, totalShiftsCount, workDaysCount);
+
+        return new EmployeeSummaryItemViewModel
+        {
+            EmployeeId = emp.EmployeeId,
+            EmployeeCode = emp.EmployeeCode,
+            FullName = emp.FullName,
+            Position = emp.Position,
+            EmploymentType = emp.EmploymentType,
+            Level = emp.Level,
+            TotalShifts = totalShiftsCount,
+            TotalWorkDays = workDaysCount,
+            TotalHours = totalHours,
+            Warning = warningText
+        };
     }
 
     /// <summary>

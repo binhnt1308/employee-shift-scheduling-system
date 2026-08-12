@@ -22,7 +22,7 @@ public static class SchedulingRuleConstants
     public const int MinimumDailyRestHours = 12;
 
     /// <summary>
-    /// Số giờ nghỉ liên tục tối thiểu trong tuần (Chuẩn bị cho BR21).
+    /// Số giờ nghỉ liên tục tối thiểu trong kỳ lịch 7 ngày (BR21).
     /// </summary>
     public const int MinimumWeeklyContinuousRestHours = 24;
 }

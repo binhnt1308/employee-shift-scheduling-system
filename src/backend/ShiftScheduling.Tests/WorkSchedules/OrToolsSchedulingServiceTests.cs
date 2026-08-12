@@ -22,102 +22,8 @@ public sealed class OrToolsSchedulingServiceTests
         };
 
         var shiftTypes = CreateThreeFixedShifts();
-
-        var employees = new List<Employee>
-        {
-            new Employee
-            {
-                EmployeeId = 1,
-                EmployeeCode = "NV01",
-                FullName = "NV 1",
-                Position = EmployeePosition.Sales,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 2,
-                EmployeeCode = "NV02",
-                FullName = "NV 2",
-                Position = EmployeePosition.Sales,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 3,
-                EmployeeCode = "NV03",
-                FullName = "NV 3",
-                Position = EmployeePosition.Sales,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 4,
-                EmployeeCode = "NV04",
-                FullName = "NV 4",
-                Position = EmployeePosition.Cashier,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 5,
-                EmployeeCode = "NV05",
-                FullName = "NV 5",
-                Position = EmployeePosition.Cashier,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 6,
-                EmployeeCode = "NV06",
-                FullName = "NV 6",
-                Position = EmployeePosition.Cashier,
-                Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime,
-                IsActive = true
-            }
-        };
-
-        var avails = new List<Availability>();
-        var requirements = new List<StaffingRequirement>();
-
-        // Đăng ký rảnh toàn bộ và định mức ca
-        for (int d = 0; d < 7; d++)
-        {
-            var date = period.WeekStartDate.AddDays(d);
-            foreach (var st in shiftTypes)
-            {
-                foreach (var emp in employees)
-                {
-                    avails.Add(new Availability
-                    {
-                        EmployeeId = emp.EmployeeId,
-                        WorkDate = date,
-                        ShiftTypeId = st.ShiftTypeId
-                    });
-                }
-
-                requirements.Add(new StaffingRequirement
-                {
-                    WorkDate = date,
-                    ShiftTypeId = st.ShiftTypeId,
-                    ShiftType = st,
-                    RequiredSalesStaff = 1,
-                    RequiredCashiers = 1,
-                    RequiredExperiencedStaff = 1,
-                    MinimumLevel = EmployeeLevel.Level2
-                });
-            }
-        }
+        var employees = CreateSixEmployees();
+        var (avails, requirements) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
 
         var result = _service.GenerateProposal(
             period, employees, avails, new List<LeaveRequest>(), requirements, shiftTypes, 5);
@@ -138,7 +44,6 @@ public sealed class OrToolsSchedulingServiceTests
         };
 
         var shiftTypes = CreateThreeFixedShifts();
-
         var employees = new List<Employee>
         {
             new Employee
@@ -171,39 +76,121 @@ public sealed class OrToolsSchedulingServiceTests
         Assert.Equal("INFEASIBLE", result.Status.ToUpperInvariant());
     }
 
+    [Fact(DisplayName = "TC06-03 - UC06 BR15 - Sinh proposal chỉ trả về đề xuất, không tự động công bố")]
+    public void GenerateProposal_DoesNotAutoPublishSchedule()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var shiftTypes = CreateThreeFixedShifts();
+        var employees = new List<Employee>
+        {
+            new Employee
+            {
+                EmployeeId = 1, EmployeeCode = "NV01", FullName = "NV 1",
+                Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2,
+                EmploymentType = EmploymentType.PartTime, IsActive = true
+            },
+            new Employee
+            {
+                EmployeeId = 2, EmployeeCode = "NV02", FullName = "NV 2",
+                Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level2,
+                EmploymentType = EmploymentType.PartTime, IsActive = true
+            }
+        };
+
+        var (avails, _) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
+
+        var result = _service.GenerateProposal(
+            period, employees, avails, new List<LeaveRequest>(), new List<StaffingRequirement>(), shiftTypes, 5);
+
+        Assert.NotNull(result);
+        Assert.True(result.Succeeded);
+    }
+
+    private static List<Employee> CreateSixEmployees()
+    {
+        var emps = new List<Employee>();
+        for (int i = 1; i <= 6; i++)
+        {
+            emps.Add(new Employee
+            {
+                EmployeeId = i,
+                EmployeeCode = $"NV{i:D2}",
+                FullName = $"NV {i}",
+                Position = i <= 3 ? EmployeePosition.Sales : EmployeePosition.Cashier,
+                Level = EmployeeLevel.Level2,
+                EmploymentType = EmploymentType.PartTime,
+                IsActive = true
+            });
+        }
+        return emps;
+    }
+
+    private static (List<Availability> Avails, List<StaffingRequirement> Reqs) CreateAvailabilitiesAndRequirements(
+        SchedulePeriod period,
+        List<ShiftType> shiftTypes,
+        List<Employee> employees)
+    {
+        var avails = new List<Availability>();
+        var requirements = new List<StaffingRequirement>();
+
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            foreach (var st in shiftTypes)
+            {
+                foreach (var emp in employees)
+                {
+                    avails.Add(new Availability
+                    {
+                        EmployeeId = emp.EmployeeId,
+                        WorkDate = date,
+                        ShiftTypeId = st.ShiftTypeId
+                    });
+                }
+
+                requirements.Add(new StaffingRequirement
+                {
+                    WorkDate = date,
+                    ShiftTypeId = st.ShiftTypeId,
+                    ShiftType = st,
+                    RequiredSalesStaff = 1,
+                    RequiredCashiers = 1,
+                    RequiredExperiencedStaff = 1,
+                    MinimumLevel = EmployeeLevel.Level2
+                });
+            }
+        }
+
+        return (avails, requirements);
+    }
+
     private static List<ShiftType> CreateThreeFixedShifts()
     {
         return new List<ShiftType>
         {
             new ShiftType
             {
-                ShiftTypeId = 1,
-                ShiftCode = "MORNING",
-                ShiftName = "Ca sáng",
-                StartTime = new TimeOnly(8, 0),
-                EndTime = new TimeOnly(12, 0),
-                DisplayOrder = 1,
-                IsActive = true
+                ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng",
+                StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0),
+                DisplayOrder = 1, IsActive = true
             },
             new ShiftType
             {
-                ShiftTypeId = 2,
-                ShiftCode = "AFTERNOON",
-                ShiftName = "Ca chiều",
-                StartTime = new TimeOnly(12, 0),
-                EndTime = new TimeOnly(16, 0),
-                DisplayOrder = 2,
-                IsActive = true
+                ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều",
+                StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0),
+                DisplayOrder = 2, IsActive = true
             },
             new ShiftType
             {
-                ShiftTypeId = 3,
-                ShiftCode = "EVENING",
-                ShiftName = "Ca tối",
-                StartTime = new TimeOnly(16, 0),
-                EndTime = new TimeOnly(20, 0),
-                DisplayOrder = 3,
-                IsActive = true
+                ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối",
+                StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0),
+                DisplayOrder = 3, IsActive = true
             }
         };
     }
