@@ -9,7 +9,7 @@ using ShiftScheduling.Models.Enums;
 namespace ShiftScheduling.Features.Reports.Services;
 
 /// <summary>
-/// Service tong hop so ca, so ngay va tong so gio lam theo UC11.
+/// Service tổng hợp số ca, số ngày và tổng số giờ làm theo UC11.
 /// </summary>
 public sealed class WorkReportService : IWorkReportService
 {
@@ -45,10 +45,7 @@ public sealed class WorkReportService : IWorkReportService
             };
         }
 
-        if (schedulePeriodId == 0 || !publishedPeriods.Any(p => p.SchedulePeriodId == schedulePeriodId))
-        {
-            schedulePeriodId = publishedPeriods.First().SchedulePeriodId;
-        }
+        schedulePeriodId = ResolveSchedulePeriodId(schedulePeriodId, publishedPeriods);
 
         var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
         if (period is null)
@@ -60,13 +57,33 @@ public sealed class WorkReportService : IWorkReportService
             schedulePeriodId, cancellationToken);
 
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
+
+        return BuildManagerReportOverview(
+            period, publishedPeriods, activeEmployees, publishedSchedule,
+            employeeIdFilter, positionFilter, employmentTypeFilter);
+    }
+
+    private static ManagerWorkReportOverviewViewModel BuildManagerReportOverview(
+        SchedulePeriod period,
+        List<ReportPeriodOptionViewModel> publishedPeriods,
+        IReadOnlyList<Employee> activeEmployees,
+        WorkSchedule? publishedSchedule,
+        int? employeeIdFilter,
+        EmployeePosition? positionFilter,
+        EmploymentType? employmentTypeFilter)
+    {
         var employeeOptions = activeEmployees.Select(e => new ReportEmployeeOptionViewModel
         {
             EmployeeId = e.EmployeeId,
             DisplayName = $"{e.EmployeeCode} - {e.FullName}"
         }).ToList();
 
-        var rows = BuildReportRows(activeEmployees, publishedSchedule?.ShiftAssignments.ToList() ?? new List<ShiftAssignment>(), employeeIdFilter, positionFilter, employmentTypeFilter);
+        var rows = BuildReportRows(
+            activeEmployees,
+            publishedSchedule?.ShiftAssignments.ToList() ?? new List<ShiftAssignment>(),
+            employeeIdFilter,
+            positionFilter,
+            employmentTypeFilter);
 
         return new ManagerWorkReportOverviewViewModel
         {
@@ -104,10 +121,7 @@ public sealed class WorkReportService : IWorkReportService
             };
         }
 
-        if (schedulePeriodId == 0 || !publishedPeriods.Any(p => p.SchedulePeriodId == schedulePeriodId))
-        {
-            schedulePeriodId = publishedPeriods.First().SchedulePeriodId;
-        }
+        schedulePeriodId = ResolveSchedulePeriodId(schedulePeriodId, publishedPeriods);
 
         var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
         if (period is null)
@@ -121,9 +135,9 @@ public sealed class WorkReportService : IWorkReportService
         var rows = BuildReportRows(
             new List<Employee> { employee },
             publishedSchedule?.ShiftAssignments.ToList() ?? new List<ShiftAssignment>(),
-            employee.EmployeeId, null, null);
-
-        var summary = rows.FirstOrDefault();
+            employee.EmployeeId,
+            null,
+            null);
 
         return new EmployeeWorkReportOverviewViewModel
         {
@@ -132,7 +146,7 @@ public sealed class WorkReportService : IWorkReportService
             WeekStartDate = period.WeekStartDate,
             WeekEndDate = period.WeekEndDate,
             PeriodOptions = publishedPeriods,
-            Summary = summary
+            Summary = rows.FirstOrDefault()
         };
     }
 
@@ -156,14 +170,32 @@ public sealed class WorkReportService : IWorkReportService
             {
                 var posStr = row.Position == EmployeePosition.Sales ? "Tư vấn" : "Thu ngân";
                 var typeStr = row.EmploymentType == EmploymentType.PartTime ? "PT" : "FT";
-                builder.AppendLine($"{row.Index},{EscapeCsv(row.EmployeeCode)},{EscapeCsv(row.FullName)},{posStr},{typeStr},{row.TotalShifts},{row.TotalWorkDays},{row.TotalHours},{EscapeCsv(row.Warning)}");
+                var code = EscapeCsv(row.EmployeeCode);
+                var name = EscapeCsv(row.FullName);
+                var warn = EscapeCsv(row.Warning);
+                builder.AppendLine(
+                    $"{row.Index},{code},{name},{posStr},{typeStr}," +
+                    $"{row.TotalShifts},{row.TotalWorkDays},{row.TotalHours},{warn}");
             }
         }
 
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(builder.ToString())).ToArray();
     }
 
-    private async Task<List<ReportPeriodOptionViewModel>> GetPublishedPeriodOptionsAsync(CancellationToken cancellationToken)
+    private static int ResolveSchedulePeriodId(
+        int schedulePeriodId,
+        List<ReportPeriodOptionViewModel> publishedPeriods)
+    {
+        if (schedulePeriodId == 0 || !publishedPeriods.Any(p => p.SchedulePeriodId == schedulePeriodId))
+        {
+            return publishedPeriods.First().SchedulePeriodId;
+        }
+
+        return schedulePeriodId;
+    }
+
+    private async Task<List<ReportPeriodOptionViewModel>> GetPublishedPeriodOptionsAsync(
+        CancellationToken cancellationToken)
     {
         var paged = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
         var list = new List<ReportPeriodOptionViewModel>();
@@ -195,6 +227,29 @@ public sealed class WorkReportService : IWorkReportService
             .GroupBy(a => a.EmployeeId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        var filteredEmps = FilterEmployees(employees, employeeIdFilter, positionFilter, employmentTypeFilter);
+
+        var rows = new List<WorkReportRowItemViewModel>();
+        int index = 1;
+
+        foreach (var emp in filteredEmps.OrderBy(e => e.EmployeeCode))
+        {
+            var userAssigns = assignGroup.TryGetValue(emp.EmployeeId, out var list)
+                ? list
+                : new List<ShiftAssignment>();
+
+            rows.Add(BuildSingleReportRow(index++, emp, userAssigns));
+        }
+
+        return rows;
+    }
+
+    private static IEnumerable<Employee> FilterEmployees(
+        IReadOnlyList<Employee> employees,
+        int? employeeIdFilter,
+        EmployeePosition? positionFilter,
+        EmploymentType? employmentTypeFilter)
+    {
         var filteredEmps = employees.AsEnumerable();
 
         if (employeeIdFilter.HasValue && employeeIdFilter.Value > 0)
@@ -212,49 +267,53 @@ public sealed class WorkReportService : IWorkReportService
             filteredEmps = filteredEmps.Where(e => e.EmploymentType == employmentTypeFilter.Value);
         }
 
-        var rows = new List<WorkReportRowItemViewModel>();
-        int index = 1;
+        return filteredEmps;
+    }
 
-        foreach (var emp in filteredEmps.OrderBy(e => e.EmployeeCode))
+    private static WorkReportRowItemViewModel BuildSingleReportRow(
+        int index,
+        Employee emp,
+        List<ShiftAssignment> userAssigns)
+    {
+        int totalShifts = userAssigns.Count;
+        int totalWorkDays = userAssigns.Select(a => a.WorkDate).Distinct().Count();
+        decimal totalHours = userAssigns.Sum(a => a.ShiftType?.DurationHours ?? 0m);
+
+        var (warning, isTargetMet) = EvaluateWorkloadTarget(emp, totalShifts, totalWorkDays);
+
+        return new WorkReportRowItemViewModel
         {
-            var userAssigns = assignGroup.TryGetValue(emp.EmployeeId, out var list) ? list : new List<ShiftAssignment>();
-            int totalShifts = userAssigns.Count;
-            int totalWorkDays = userAssigns.Select(a => a.WorkDate).Distinct().Count();
-            int totalHours = totalShifts * 4;
+            Index = index,
+            EmployeeId = emp.EmployeeId,
+            EmployeeCode = emp.EmployeeCode,
+            FullName = emp.FullName,
+            Position = emp.Position,
+            EmploymentType = emp.EmploymentType,
+            TotalShifts = totalShifts,
+            TotalWorkDays = totalWorkDays,
+            TotalHours = totalHours,
+            Warning = warning,
+            IsTargetMet = isTargetMet
+        };
+    }
 
-            string warning;
-            bool isTargetMet;
-
-            if (emp.EmploymentType == EmploymentType.PartTime)
-            {
-                if (totalShifts == 5) { warning = "Đạt mức dự kiến"; isTargetMet = true; }
-                else if (totalShifts < 5) { warning = $"Chưa đủ 5 ca ({totalShifts}/5 ca)"; isTargetMet = false; }
-                else { warning = $"Vượt mức 5 ca ({totalShifts}/5 ca)"; isTargetMet = true; }
-            }
-            else
-            {
-                if (totalWorkDays == 6) { warning = "Đạt mức dự kiến"; isTargetMet = true; }
-                else if (totalWorkDays < 6) { warning = $"Chưa đủ 6 ngày làm việc ({totalWorkDays}/6 ngày)"; isTargetMet = false; }
-                else { warning = $"Vượt mức 6 ngày ({totalWorkDays}/6 ngày)"; isTargetMet = true; }
-            }
-
-            rows.Add(new WorkReportRowItemViewModel
-            {
-                Index = index++,
-                EmployeeId = emp.EmployeeId,
-                EmployeeCode = emp.EmployeeCode,
-                FullName = emp.FullName,
-                Position = emp.Position,
-                EmploymentType = emp.EmploymentType,
-                TotalShifts = totalShifts,
-                TotalWorkDays = totalWorkDays,
-                TotalHours = totalHours,
-                Warning = warning,
-                IsTargetMet = isTargetMet
-            });
+    private static (string Warning, bool IsTargetMet) EvaluateWorkloadTarget(
+        Employee emp,
+        int totalShifts,
+        int totalWorkDays)
+    {
+        if (emp.EmploymentType == EmploymentType.PartTime)
+        {
+            if (totalShifts == 5) return ("Đạt mức dự kiến", true);
+            if (totalShifts < 5) return ($"Chưa đủ 5 ca ({totalShifts}/5 ca)", false);
+            return ($"Vượt mức 5 ca ({totalShifts}/5 ca)", true);
         }
-
-        return rows;
+        else
+        {
+            if (totalWorkDays == 6) return ("Đạt mức dự kiến", true);
+            if (totalWorkDays < 6) return ($"Chưa đủ 6 ngày làm việc ({totalWorkDays}/6 ngày)", false);
+            return ($"Vượt mức 6 ngày ({totalWorkDays}/6 ngày)", true);
+        }
     }
 
     private static string EscapeCsv(string text)
@@ -263,6 +322,7 @@ public sealed class WorkReportService : IWorkReportService
         {
             return $"\"{text.Replace("\"", "\"\"")}\"";
         }
+
         return text;
     }
 }

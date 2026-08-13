@@ -12,7 +12,7 @@ public sealed class WorkReportRowItemViewModel
     public EmploymentType EmploymentType { get; set; }
     public int TotalShifts { get; set; }
     public int TotalWorkDays { get; set; }
-    public int TotalHours { get; set; }
+    public decimal TotalHours { get; set; }
     public string Warning { get; set; } = string.Empty;
     public bool IsTargetMet { get; set; }
 }
