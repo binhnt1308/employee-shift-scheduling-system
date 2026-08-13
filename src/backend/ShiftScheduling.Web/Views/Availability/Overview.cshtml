@@ -1,0 +1,126 @@
+@model ShiftScheduling.Features.Availabilities.ViewModels.ManagerAvailabilityOverviewViewModel
+@{
+    ViewData["Title"] = "Tổng quan lịch rảnh nhân viên";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-users-viewfinder text-primary me-2"></i>Lịch rảnh nhân viên</h3>
+        <p class="text-muted small mb-0">Xem và lọc danh sách nhân viên đã đăng ký rảnh theo từng ngày và ca</p>
+    </div>
+</div>
+
+<div class="card card-custom border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Overview" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Kỳ lịch</label>
+                <select name="schedulePeriodId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    @foreach (var opt in Model.PeriodOptions)
+                    {
+                        <option value="@opt.SchedulePeriodId" selected="@(opt.SchedulePeriodId == Model.SchedulePeriodId ? "selected" : null)">@opt.PeriodName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Nhân viên</label>
+                <select name="employeeId" class="form-select form-select-sm">
+                    <option value="">-- Tất cả nhân viên --</option>
+                    @foreach (var emp in Model.EmployeeOptions)
+                    {
+                        <option value="@emp.EmployeeId" selected="@(emp.EmployeeId == Model.EmployeeIdFilter ? "selected" : null)">@emp.DisplayName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Vị trí</label>
+                <select name="position" class="form-select form-select-sm">
+                    <option value="">-- Tất cả --</option>
+                    <option value="Sales" selected="@(Model.PositionFilter == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "selected" : null)">Tư vấn bán hàng</option>
+                    <option value="Cashier" selected="@(Model.PositionFilter == ShiftScheduling.Models.Enums.EmployeePosition.Cashier ? "selected" : null)">Thu ngân</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold">Ca làm việc</label>
+                <select name="shiftTypeId" class="form-select form-select-sm">
+                    <option value="">-- Tất cả ca --</option>
+                    @foreach (var st in Model.ShiftOptions)
+                    {
+                        <option value="@st.ShiftTypeId" selected="@(st.ShiftTypeId == Model.ShiftTypeIdFilter ? "selected" : null)">@st.ShiftName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-sm btn-primary-custom w-100 me-2"><i class="fa-solid fa-filter me-1"></i>Lọc</button>
+                <a asp-action="Overview" asp-route-schedulePeriodId="@Model.SchedulePeriodId" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate-left"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card card-custom border-0 shadow-sm mb-4">
+    <div class="card-header bg-light py-3 fw-bold">
+        <i class="fa-solid fa-table me-2"></i>@Model.PeriodName (@Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy"))
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th style="width: 200px;">Ngày</th>
+                        <th>Ca sáng (08:00 - 12:00)</th>
+                        <th>Ca chiều (12:00 - 16:00)</th>
+                        <th>Ca tối (16:00 - 20:00)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var day in Model.Days)
+                    {
+                        <tr>
+                            <td class="fw-semibold bg-light bg-opacity-50 ps-3">
+                                @day.DayOfWeekName
+                            </td>
+                            @foreach (var shift in day.Shifts)
+                            {
+                                <td class="align-top p-2" style="min-width: 220px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                        <span class="badge bg-secondary">@shift.ShiftName</span>
+                                        <span class="badge bg-info text-dark font-monospace">@shift.AvailableEmployees.Count người</span>
+                                    </div>
+                                    @if (!shift.AvailableEmployees.Any())
+                                    {
+                                        <div class="text-muted small italic text-center py-2">Chưa có nhân viên rảnh</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-column gap-1">
+                                            @foreach (var emp in shift.AvailableEmployees)
+                                            {
+                                                <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
+                                                    <div>
+                                                        <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
+                                                    </div>
+                                                    <div>
+                                                        @if (emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
+                                                        {
+                                                            <span class="badge bg-primary me-1">Sales</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-success me-1">TN</span>
+                                                        }
+                                                        <span class="badge bg-outline-secondary border text-muted">@emp.Level</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

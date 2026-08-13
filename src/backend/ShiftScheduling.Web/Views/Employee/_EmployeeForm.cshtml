@@ -1,0 +1,99 @@
+@model EmployeeFormViewModel
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger"></div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label asp-for="EmployeeCode" class="form-label fw-semibold">
+            Mã nhân viên <span class="text-danger">*</span>
+        </label>
+        <input asp-for="EmployeeCode"
+               class="form-control form-control-custom"
+               placeholder="Ví dụ: NV017" />
+        <span asp-validation-for="EmployeeCode"
+              class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="FullName" class="form-label fw-semibold">
+            Họ tên nhân viên <span class="text-danger">*</span>
+        </label>
+        <input asp-for="FullName"
+               class="form-control form-control-custom"
+               placeholder="Ví dụ: Nguyễn Văn A" />
+        <span asp-validation-for="FullName"
+              class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label asp-for="DateOfBirth" class="form-label fw-semibold"></label>
+        <input asp-for="DateOfBirth"
+               type="date"
+               class="form-control form-control-custom" />
+        <span asp-validation-for="DateOfBirth"
+              class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="StartDate" class="form-label fw-semibold"></label>
+        <input asp-for="StartDate"
+               type="date"
+               class="form-control form-control-custom" />
+        <span asp-validation-for="StartDate"
+              class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+        <input asp-for="PhoneNumber"
+               class="form-control form-control-custom"
+               placeholder="0912..." />
+        <span asp-validation-for="PhoneNumber"
+              class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="Email" class="form-label fw-semibold"></label>
+        <input asp-for="Email"
+               type="email"
+               class="form-control form-control-custom"
+               placeholder="nv@cuahang.vn" />
+        <span asp-validation-for="Email"
+              class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <label asp-for="Position" class="form-label fw-semibold"></label>
+        <select asp-for="Position"
+                class="form-select form-select-custom">
+            <option value="@EmployeePosition.Sales">Tư vấn bán hàng</option>
+            <option value="@EmployeePosition.Cashier">Thu ngân</option>
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="EmploymentType" class="form-label fw-semibold"></label>
+        <select asp-for="EmploymentType"
+                class="form-select form-select-custom">
+            <option value="@EmploymentType.PartTime">Bán thời gian</option>
+            <option value="@EmploymentType.FullTime">Toàn thời gian</option>
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="Level" class="form-label fw-semibold"></label>
+        <select asp-for="Level"
+                class="form-select form-select-custom">
+            <option value="@EmployeeLevel.Level1">Level 1 - Nhân viên mới</option>
+            <option value="@EmployeeLevel.Level2">Level 2 - Làm độc lập</option>
+            <option value="@EmployeeLevel.Level3">Level 3 - Có kinh nghiệm</option>
+        </select>
+    </div>
+</div>

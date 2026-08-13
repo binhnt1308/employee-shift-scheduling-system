@@ -1,0 +1,363 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleEditViewModel
+@{
+    ViewData["Title"] = "Phân công ca - " + Model.PeriodName;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-calendar-week text-primary me-2"></i>@Model.PeriodName</h3>
+        <p class="text-muted small mb-0">
+            Tuần: @Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy") | 
+            Trạng thái: 
+            @if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+            {
+                <span class="badge bg-success">ĐÃ CÔNG BỐ</span>
+            }
+            else
+            {
+                <span class="badge bg-warning text-dark">BẢN NHÁP</span>
+            }
+            @if (Model.IsGeneratedByORTools)
+            {
+                <span class="badge bg-info text-dark ms-1"><i class="fa-solid fa-robot me-1"></i>Từ OR-Tools</span>
+            }
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Quay lại</a>
+        @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+        {
+            <form method="post" asp-action="SaveDraft" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu nháp</button>
+            </form>
+            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
+            <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "") onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
+                    <i class="fa-solid fa-paper-plane me-1"></i>Công bố lịch
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- BANNER KIỂM TRA RÀNG BUỘC -->
+<div class="row mb-4">
+    <div class="col-md-7">
+        @if (Model.ValidationResult.HardErrors.Any())
+        {
+            <div class="alert alert-danger border-0 shadow-sm mb-0">
+                <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-xmark me-2"></i>Vi phạm bắt buộc (Không được công bố): (@Model.ValidationResult.HardErrors.Count)</h6>
+                <ul class="mb-0 small ps-3">
+                    @foreach (var err in Model.ValidationResult.HardErrors)
+                    {
+                        <li>@err</li>
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-success border-0 shadow-sm mb-0">
+                <i class="fa-solid fa-circle-check me-2"></i><strong>Hợp lệ:</strong> Lịch làm việc thỏa mãn toàn bộ các ràng buộc bắt buộc và đã đủ điều kiện để công bố.
+            </div>
+        }
+    </div>
+    <div class="col-md-5">
+        @if (Model.ValidationResult.Warnings.Any())
+        {
+            <div class="alert alert-warning border-0 shadow-sm mb-0">
+                <h6 class="fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>Cảnh báo ưu tiên: (@Model.ValidationResult.Warnings.Count)</h6>
+                <ul class="mb-0 small ps-3">
+                    @foreach (var warn in Model.ValidationResult.Warnings)
+                    {
+                        <li>@warn</li>
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-light border shadow-sm mb-0">
+                <i class="fa-solid fa-info-circle me-2 text-info"></i>Không có cảnh báo chênh lệch khối lượng công việc.
+            </div>
+        }
+    </div>
+</div>
+
+<!-- BANG PHAN CONG 7x3 -->
+<div class="card card-custom border-0 shadow-sm mb-4">
+    <div class="card-header bg-light py-3 fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-table me-2"></i>Bảng phân công ca làm việc (7 ngày x 3 ca cố định)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0">
+                <thead class="table-light text-center">
+                    <tr>
+                        <th style="width: 180px;">Ngày</th>
+                        <th>Ca sáng (08:00 - 12:00)</th>
+                        <th>Ca chiều (12:00 - 16:00)</th>
+                        <th>Ca tối (16:00 - 20:00)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var day in Model.Days)
+                    {
+                        <tr>
+                            <td class="fw-semibold bg-light bg-opacity-50 ps-3">
+                                @day.DayOfWeekName
+                            </td>
+                            @foreach (var shift in day.Shifts)
+                            {
+                                <td class="align-top p-2" style="min-width: 240px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                                        <span class="badge bg-secondary">@shift.ShiftName</span>
+                                        <div>
+                                            <span class="badge @(shift.AssignedSales >= shift.RequiredSales ? "bg-success" : "bg-danger") me-1">Sales: @shift.AssignedSales/@shift.RequiredSales</span>
+                                            <span class="badge @(shift.AssignedCashier >= shift.RequiredCashier ? "bg-success" : "bg-danger") me-1">TN: @shift.AssignedCashier/@shift.RequiredCashier</span>
+                                            <span class="badge @(shift.HasLevel2Plus ? "bg-info text-dark" : "bg-dark")" title="Yêu cầu Level 2+">L2+: @(shift.HasLevel2Plus ? "Có" : "Thiếu")</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex flex-column gap-1 mb-2">
+                                        @foreach (var emp in shift.AssignedEmployees)
+                                        {
+                                            <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
+                                                <div>
+                                                    <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
+                                                    <span class="badge bg-secondary ms-1">@emp.Position</span>
+                                                </div>
+                                                @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId)" title="Xóa phân công">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+
+                                    @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                    {
+                                        <button type="button" class="btn btn-xs btn-outline-primary w-100 py-1" onclick="openAssignModal(@Model.SchedulePeriodId, '@shift.WorkDate.ToString("yyyy-MM-dd")', @shift.ShiftTypeId, '@day.DayOfWeekName - @shift.ShiftName')">
+                                            <i class="fa-solid fa-plus me-1"></i>Thêm nhân viên
+                                        </button>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM PHÂN CÔNG THỦ CÔNG -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="assignModalTitle">Phân công nhân viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="assignModalAlert" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Chọn nhân viên phù hợp</label>
+                    <select id="assignEmployeeSelect" class="form-select">
+                        <option value="">-- Đang tải nhân viên rảnh --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign()">Phân công</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL XEM TRƯỚC LỊCH ĐỀ XUẤT OR-TOOLS -->
+<div class="modal fade" id="orToolsModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-robot me-2"></i>Kết quả sinh lịch đề xuất tự động (Google OR-Tools)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="orToolsLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted fw-semibold">Google OR-Tools CP-SAT đang giải bài toán lập lịch...</p>
+                </div>
+                <div id="orToolsContent" class="d-none">
+                    <div id="orToolsStatusBanner" class="alert alert-success mb-3"></div>
+                    <div class="card card-custom mb-3">
+                        <div class="card-header bg-light py-2 fw-bold small">Danh sách lượt phân công đề xuất</div>
+                        <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Ca</th>
+                                        <th>Nhân viên</th>
+                                        <th>Vị trí</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orToolsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-none" id="orToolsFooter">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Bỏ đề xuất</button>
+                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal()"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let currentAssignContext = {};
+    let currentProposalData = null;
+
+    function openAssignModal(periodId, workDate, shiftTypeId, titleText) {
+        currentAssignContext = { periodId, workDate, shiftTypeId };
+        document.getElementById('assignModalTitle').innerText = 'Phân công ca: ' + titleText;
+        document.getElementById('assignModalAlert').classList.add('d-none');
+        
+        const select = document.getElementById('assignEmployeeSelect');
+        select.innerHTML = '<option value="">-- Đang tải nhân viên --</option>';
+
+        fetch(`/WorkSchedule/GetEligibleEmployees?schedulePeriodId=${periodId}&workDate=${workDate}&shiftTypeId=${shiftTypeId}`)
+            .then(res => res.json())
+            .then(data => {
+                select.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+                data.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.employeeId;
+                    opt.textContent = `${emp.employeeCode} - ${emp.fullName} (${emp.position}, Level ${emp.level})` + (emp.isEligible ? '' : ` [BỊ CHẶN: ${emp.ineligibilityReason}]`);
+                    if (!emp.isEligible) opt.disabled = true;
+                    select.appendChild(opt);
+                });
+                new bootstrap.Modal(document.getElementById('assignModal')).show();
+            });
+    }
+
+    function submitManualAssign() {
+        const empId = document.getElementById('assignEmployeeSelect').value;
+        if (!empId) return;
+
+        const formData = new FormData();
+        formData.append('SchedulePeriodId', currentAssignContext.periodId);
+        formData.append('WorkDate', currentAssignContext.workDate);
+        formData.append('ShiftTypeId', currentAssignContext.shiftTypeId);
+        formData.append('EmployeeId', empId);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch('/WorkSchedule/AssignManual', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    const alert = document.getElementById('assignModalAlert');
+                    alert.innerText = data.message;
+                    alert.classList.remove('d-none');
+                }
+            });
+    }
+
+    function removeEmployee(periodId, assignmentId) {
+        if (!confirm('Xác nhận xóa nhân viên khỏi ca làm việc này?')) return;
+        const formData = new FormData();
+        formData.append('SchedulePeriodId', periodId);
+        formData.append('ShiftAssignmentId', assignmentId);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch('/WorkSchedule/RemoveManual', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            });
+    }
+
+    function generateOrToolsProposal() {
+        const modalEl = document.getElementById('orToolsModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        document.getElementById('orToolsLoading').classList.remove('d-none');
+        document.getElementById('orToolsContent').classList.add('d-none');
+        document.getElementById('orToolsFooter').classList.add('d-none');
+
+        const formData = new FormData();
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch(`/WorkSchedule/GenerateOrToolsProposal/${@Model.SchedulePeriodId}`, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('orToolsLoading').classList.add('d-none');
+                document.getElementById('orToolsContent').classList.remove('d-none');
+
+                if (data.succeeded) {
+                    currentProposalData = data.proposedAssignments;
+                    document.getElementById('orToolsStatusBanner').className = 'alert alert-success mb-3';
+                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>${data.message} (Thời gian giải: ${data.solveTimeSeconds.toFixed(2)}s)`;
+                    document.getElementById('orToolsFooter').classList.remove('d-none');
+
+                    const tbody = document.getElementById('orToolsTableBody');
+                    tbody.innerHTML = '';
+                    data.proposedAssignments.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${item.workDate}</td><td>${item.shiftName}</td><td><strong>${item.employeeCode}</strong> - ${item.fullName}</td><td>${item.position}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    document.getElementById('orToolsStatusBanner').className = 'alert alert-danger mb-3';
+                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i>${data.message}`;
+                }
+            });
+    }
+
+    function adoptOrToolsProposal() {
+        if (!currentProposalData) return;
+        if (!confirm('Áp dụng đề xuất này sẽ GHI ĐÈ toàn bộ lịch nháp hiện tại. Xác nhận tiếp tục?')) return;
+
+        fetch(`/WorkSchedule/AdoptProposal/${@Model.SchedulePeriodId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify(currentProposalData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert(data.message);
+        });
+    }
+</script>
+}

@@ -1,0 +1,17 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Lỗi";
+}
+
+<div class="card card-custom p-4">
+    <h1 class="text-danger">Đã xảy ra lỗi.</h1>
+    <p>Vui lòng kiểm tra log hoặc thử lại thao tác.</p>
+
+    @if (Model.ShowRequestId)
+    {
+        <p>
+            <strong>Request ID:</strong>
+            <code>@Model.RequestId</code>
+        </p>
+    }
+</div>

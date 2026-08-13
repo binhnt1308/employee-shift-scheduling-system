@@ -1,0 +1,76 @@
+@model ShiftScheduling.Features.LeaveRequests.ViewModels.LeaveRequestCreateViewModel
+
+@{
+    ViewData["Title"] = "Gửi đơn xin nghỉ";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Gửi đơn xin nghỉ</h1>
+        <p class="page-subtitle">Chọn ngày hoặc ca cần nghỉ trong một kỳ lịch đã có.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary-custom">Quay lại</a>
+</div>
+
+<div class="card-custom">
+    <div class="card-header-custom">Thông tin đơn xin nghỉ</div>
+    <div class="p-4">
+        <form asp-action="Create" method="post" data-prevent-double-submit="true">
+            <div asp-validation-summary="ModelOnly" class="alert alert-custom alert-custom-danger"></div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label asp-for="SchedulePeriodId" class="form-label fw-semibold"></label>
+                    <select asp-for="SchedulePeriodId" class="form-select form-select-custom">
+                        <option value="0">-- Chọn kỳ lịch --</option>
+                        @foreach (var period in Model.Periods)
+                        {
+                            <option value="@period.SchedulePeriodId">
+                                @period.PeriodName (@period.WeekStartDate.ToString("dd/MM") -
+                                @period.WeekEndDate.ToString("dd/MM/yyyy"))
+                            </option>
+                        }
+                    </select>
+                    <span asp-validation-for="SchedulePeriodId" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="LeaveDate" class="form-label fw-semibold"></label>
+                    <input asp-for="LeaveDate" type="date" class="form-control form-control-custom" />
+                    <span asp-validation-for="LeaveDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ShiftTypeId" class="form-label fw-semibold"></label>
+                    <select asp-for="ShiftTypeId" class="form-select form-select-custom">
+                        <option value="">Cả ngày</option>
+                        @foreach (var shift in Model.ShiftTypes)
+                        {
+                            <option value="@shift.ShiftTypeId">
+                                @shift.ShiftName (@shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm"))
+                            </option>
+                        }
+                    </select>
+                    <span class="form-text">Chọn “Cả ngày” nếu đơn áp dụng cho toàn bộ ngày làm việc.</span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Reason" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Reason"
+                              rows="4"
+                              class="form-control form-control-custom"
+                              placeholder="Nhập lý do xin nghỉ..."></textarea>
+                    <span asp-validation-for="Reason" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a asp-action="Index" class="btn btn-secondary-custom">Hủy</a>
+                <button type="submit" class="btn btn-primary-custom">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Gửi đơn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

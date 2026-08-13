@@ -1,0 +1,81 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleIndexViewModel
+@{
+    ViewData["Title"] = "Quản lý lịch làm việc";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-calendar-days text-primary me-2"></i>Lập & Phân công lịch làm việc</h3>
+        <p class="text-muted small mb-0">Quản lý phân công ca thủ công (UC05), sinh lịch tự động bằng OR-Tools (UC06) và công bố lịch (UC07)</p>
+    </div>
+</div>
+
+<div class="card card-custom border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tên kỳ lịch</th>
+                        <th>Thời gian tuần</th>
+                        <th>Trạng thái đăng ký</th>
+                        <th>Trạng thái lịch</th>
+                        <th>Số phân công</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Periods.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Chưa có kỳ lịch nào.</td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.Periods)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.PeriodName</td>
+                            <td>@item.WeekStartDate.ToString("dd/MM/yyyy") - @item.WeekEndDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (item.RegistrationStatus == ShiftScheduling.Models.Enums.RegistrationStatus.Open)
+                                {
+                                    <span class="badge bg-success">Đang mở đăng ký</span>
+                                }
+                                else if (item.RegistrationStatus == ShiftScheduling.Models.Enums.RegistrationStatus.Preparing)
+                                {
+                                    <span class="badge bg-secondary">Đang chuẩn bị</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-dark">Đã đóng đăng ký</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                {
+                                    <span class="badge bg-primary">Đã công bố</span>
+                                }
+                                else if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Draft)
+                                {
+                                    <span class="badge bg-warning text-dark">Lịch nháp</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-outline-secondary border text-muted">Chưa tạo lịch</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark font-monospace">@item.TotalAssignmentsCount phân công</span>
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i>Phân công / Chỉnh sửa
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

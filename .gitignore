@@ -1,37 +1,16 @@
-# Visual Studio
+# Visual Studio & IDE
 .vs/
-[Bb]in/
-[Oo]bj/
-[Dd]ebug/
-[Rr]elease/
-
-# User-specific files
 *.user
 *.suo
-*.userosscache
-*.sln.docstates
 
-# NuGet
-packages/
-*.nupkg
+# Build outputs
+**/bin/
+**/obj/
 
-# Temporary files
-*.tmp
-*.temp
-*.log
-~$*
-Thumbs.db
-.DS_Store
-
-# Database files
-*.mdf
-*.ldf
-
-# Test and coverage
-TestResults/
-coverage/
-
-# Local settings and secrets
+# Environment files & Production config
 .env
+.env.*
+!.env.example
 appsettings.Development.json
-appsettings.Local.json
+appsettings.Production.json
+

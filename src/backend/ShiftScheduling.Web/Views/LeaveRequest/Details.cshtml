@@ -1,0 +1,78 @@
+@model ShiftScheduling.Features.LeaveRequests.ViewModels.LeaveRequestDetailsViewModel
+
+@{
+    ViewData["Title"] = "Chi tiết đơn xin nghỉ";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Chi tiết đơn xin nghỉ</h1>
+        <p class="page-subtitle">Thông tin mới nhất của đơn #@Model.LeaveRequestId.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-secondary-custom">Quay lại</a>
+</div>
+
+<div class="card-custom">
+    <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <span>@Model.EmployeeName (@Model.EmployeeCode)</span>
+        @if (Model.Status == LeaveRequestStatus.Pending)
+        {
+            <span class="badge badge-custom badge-pending">Chờ duyệt</span>
+        }
+        else if (Model.Status == LeaveRequestStatus.Approved)
+        {
+            <span class="badge badge-custom badge-active">Đã duyệt</span>
+        }
+        else
+        {
+            <span class="badge badge-custom badge-rejected">Từ chối</span>
+        }
+    </div>
+    <div class="p-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Kỳ lịch</dt>
+            <dd class="col-sm-9">@Model.PeriodName</dd>
+            <dt class="col-sm-3">Ngày nghỉ</dt>
+            <dd class="col-sm-9">@Model.LeaveDate.ToString("dd/MM/yyyy")</dd>
+            <dt class="col-sm-3">Ca</dt>
+            <dd class="col-sm-9">@Model.ShiftName</dd>
+            <dt class="col-sm-3">Lý do</dt>
+            <dd class="col-sm-9">@Model.Reason</dd>
+            <dt class="col-sm-3">Thời điểm gửi</dt>
+            <dd class="col-sm-9">@Model.SubmittedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+            <dt class="col-sm-3">Ghi chú Quản lý</dt>
+            <dd class="col-sm-9">@(Model.ManagerNote ?? "—")</dd>
+        </dl>
+
+        @if (Model.HasPublishedAssignment && Model.Status != LeaveRequestStatus.Rejected)
+        {
+            <div class="alert alert-custom alert-custom-warning mt-4 mb-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    @if (Model.Status == LeaveRequestStatus.Approved)
+                    {
+                        <span>
+                            Đơn đã duyệt ảnh hưởng đến lịch chính thức.
+                            Ca liên quan cần được Quản lý điều chỉnh.
+                        </span>
+                    }
+                    else
+                    {
+                        <span>Nếu duyệt đơn này, lịch chính thức hiện tại sẽ có ca cần được điều chỉnh.</span>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (Model.CanReview)
+        {
+            <div class="mt-4">
+                <a asp-action="Review"
+                   asp-route-id="@Model.LeaveRequestId"
+                   class="btn btn-primary-custom">
+                    Xử lý đơn
+                </a>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,69 @@
+@model SchedulePeriodCreateViewModel
+@{
+    ViewData["Title"] = "Tạo kỳ lịch mới";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Khởi tạo kỳ lịch làm việc</h1>
+        <p class="page-subtitle">Thiết lập ngày bắt đầu tuần và thời hạn đăng ký lịch rảnh.</p>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary-custom">
+            <i class="fa-solid fa-arrow-left me-1"></i>
+            Quay lại
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card card-custom">
+            <div class="card-header-custom">
+                <i class="fa-solid fa-calendar-plus text-primary me-2"></i>
+                Thông tin kỳ lịch 7 ngày
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-custom alert-custom-info py-2 px-3 small mb-3">
+                    <i class="fa-solid fa-circle-info me-1"></i>
+                    Mỗi kỳ lịch gồm <strong>7 ngày</strong>. Ngày kết thúc được hệ thống tự động tính từ ngày bắt đầu.
+                </div>
+
+                <form method="post" asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="PeriodName" class="form-label fw-semibold"></label>
+                        <input asp-for="PeriodName" class="form-control form-control-custom" placeholder="Ví dụ: Kỳ lịch tuần 33 (10/08 - 16/08)" />
+                        <span asp-validation-for="PeriodName" class="text-danger small"></span>
+                        <div class="form-text">Nếu để trống, hệ thống sẽ tự động tạo tên theo khoảng ngày.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="WeekStartDate" class="form-label fw-semibold"></label>
+                        <input asp-for="WeekStartDate" type="date" class="form-control form-control-custom" />
+                        <span asp-validation-for="WeekStartDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="AvailabilityDeadline" class="form-label fw-semibold"></label>
+                        <input asp-for="AvailabilityDeadline" type="datetime-local" class="form-control form-control-custom" />
+                        <span asp-validation-for="AvailabilityDeadline" class="text-danger small"></span>
+                        <div class="form-text">Thời hạn nhân viên đăng ký lịch rảnh (phải ở tương lai).</div>
+                    </div>
+
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1 justify-content-center">
+                            <i class="fa-solid fa-check me-1"></i>
+                            Tạo kỳ lịch
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary-custom">
+                            Hủy bỏ
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

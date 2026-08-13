@@ -1,0 +1,48 @@
+namespace ShiftScheduling.Models.Errors;
+
+public static class ErrorCodes
+{
+    public const string AccountNotFound = "ACCOUNT_NOT_FOUND";
+    public const string DuplicateUsername = "DUPLICATE_USERNAME";
+    public const string InvalidEmployeeLink = "INVALID_EMPLOYEE_LINK";
+    public const string LastActiveAdmin = "LAST_ACTIVE_ADMIN";
+    public const string SelfAccountChange = "SELF_ACCOUNT_CHANGE";
+    public const string EmployeeNotFound = "EMPLOYEE_NOT_FOUND";
+    public const string DuplicateEmployeeCode = "DUPLICATE_EMPLOYEE_CODE";
+    public const string DuplicateEmployeeEmail = "DUPLICATE_EMPLOYEE_EMAIL";
+    public const string InvalidEmployeeDate = "INVALID_EMPLOYEE_DATE";
+    public const string InvalidEnumValue = "INVALID_ENUM_VALUE";
+    public const string ShiftTypeNotFound = "SHIFT_TYPE_NOT_FOUND";
+    public const string ShiftTimeInvalid = "SHIFT_TIME_INVALID";
+    public const string ShiftTimeOverlap = "SHIFT_TIME_OVERLAP";
+    public const string DuplicateDisplayOrder = "DUPLICATE_DISPLAY_ORDER";
+    public const string FixedShiftRequired = "FIXED_SHIFT_REQUIRED";
+    public const string DataConflict = "DATA_CONFLICT";
+    public const string InvalidDateRange = "INVALID_DATE_RANGE";
+    public const string SchedulePeriodOverlap = "SCHEDULE_PERIOD_OVERLAP";
+    public const string SchedulePeriodNotFound = "SCHEDULE_PERIOD_NOT_FOUND";
+    public const string InvalidSchedulePeriodStatus = "INVALID_SCHEDULE_PERIOD_STATUS";
+    public const string InvalidStaffingRequirement = "INVALID_STAFFING_REQUIREMENT";
+    public const string RegistrationDeadlineExpired = "REGISTRATION_DEADLINE_EXPIRED";
+    public const string LeaveRequestNotFound = "LEAVE_REQUEST_NOT_FOUND";
+    public const string LeaveRequestDuplicate = "LEAVE_REQUEST_DUPLICATE";
+    public const string LeaveRequestInvalidDate = "LEAVE_REQUEST_INVALID_DATE";
+    public const string LeaveRequestShiftEnded = "LEAVE_REQUEST_SHIFT_ENDED";
+    public const string LeaveRequestAlreadyReviewed = "LEAVE_REQUEST_ALREADY_REVIEWED";
+    public const string ShiftTransferNotFound = "SHIFT_TRANSFER_NOT_FOUND";
+    public const string ShiftAssignmentNotFound = "SHIFT_ASSIGNMENT_NOT_FOUND";
+    public const string ShiftTransferDuplicate = "SHIFT_TRANSFER_DUPLICATE";
+    public const string ShiftTransferInvalidReceiver = "SHIFT_TRANSFER_INVALID_RECEIVER";
+    public const string ShiftTransferRuleViolation = "SHIFT_TRANSFER_RULE_VIOLATION";
+    public const string ShiftTransferAlreadyHandled = "SHIFT_TRANSFER_ALREADY_HANDLED";
+    public const string ShiftTransferNotAccepted = "SHIFT_TRANSFER_NOT_ACCEPTED";
+    public const string PublishedScheduleRequired = "PUBLISHED_SCHEDULE_REQUIRED";
+    public const string ShiftAlreadyStarted = "SHIFT_ALREADY_STARTED";
+    public const string EmployeeNotAvailable = "EMPLOYEE_NOT_AVAILABLE";
+    public const string EmployeeOnLeave = "EMPLOYEE_ON_LEAVE";
+    public const string ShiftAssignmentOverlap = "SHIFT_ASSIGNMENT_OVERLAP";
+    public const string InvalidShiftAssignment = "INVALID_SHIFT_ASSIGNMENT";
+    public const string InvalidScheduleStatus = "INVALID_SCHEDULE_STATUS";
+    public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
+    public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";
+}
