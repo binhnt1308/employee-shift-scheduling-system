@@ -54,7 +54,7 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
             PeriodName = sp.PeriodName,
             WeekStartDate = sp.WeekStartDate,
             WeekEndDate = sp.WeekEndDate,
-            AvailabilityDeadline = sp.AvailabilityDeadline,
+            AvailabilityDeadline = _clock.ToVietnamTime(sp.AvailabilityDeadline),
             RegistrationStatus = sp.RegistrationStatus,
             CreatedByUsername = sp.CreatedByAccount?.Username ?? string.Empty,
             TotalRequirementsCount = sp.StaffingRequirements?.Count(
@@ -102,10 +102,10 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
             PeriodName = period.PeriodName,
             WeekStartDate = period.WeekStartDate,
             WeekEndDate = period.WeekEndDate,
-            AvailabilityDeadline = period.AvailabilityDeadline,
+            AvailabilityDeadline = _clock.ToVietnamTime(period.AvailabilityDeadline),
             RegistrationStatus = period.RegistrationStatus,
             CreatedByUsername = period.CreatedByAccount?.Username ?? string.Empty,
-            CreatedAt = period.CreatedAt,
+            CreatedAt = _clock.ToVietnamTime(period.CreatedAt),
             Requirements = requirements,
             CanOpenRegistration = period.RegistrationStatus == RegistrationStatus.Preparing
                 && isDeadlineValid

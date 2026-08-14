@@ -216,7 +216,7 @@ public sealed partial class ShiftTransferService
             && employee.UserAccount is { IsLocked: false };
     }
 
-    private static ShiftTransferListItemViewModel MapListItem(
+    private ShiftTransferListItemViewModel MapListItem(
         ShiftTransferRequest request,
         bool receivedByCurrentEmployee,
         bool isManager)
@@ -231,7 +231,7 @@ public sealed partial class ShiftTransferService
             ShiftName = request.ShiftAssignment.ShiftType.ShiftName,
             ReceiverStatus = request.ReceiverStatus,
             ApprovalStatus = request.ApprovalStatus,
-            SubmittedAt = request.SubmittedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
             CanRespond = receivedByCurrentEmployee
                 && request.ReceiverStatus == ReceiverStatus.Pending
                 && request.ApprovalStatus == ApprovalStatus.Pending,
@@ -242,7 +242,7 @@ public sealed partial class ShiftTransferService
         };
     }
 
-    private static ShiftTransferDetailsViewModel MapDetails(
+    private ShiftTransferDetailsViewModel MapDetails(
         ShiftTransferRequest request,
         int? currentEmployeeId,
         bool isManager)
@@ -261,9 +261,13 @@ public sealed partial class ShiftTransferService
             Reason = request.Reason,
             ReceiverStatus = request.ReceiverStatus,
             ApprovalStatus = request.ApprovalStatus,
-            SubmittedAt = request.SubmittedAt,
-            ReceiverRespondedAt = request.ReceiverRespondedAt,
-            ReviewedAt = request.ReviewedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
+            ReceiverRespondedAt = request.ReceiverRespondedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReceiverRespondedAt.Value)
+                : null,
+            ReviewedAt = request.ReviewedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReviewedAt.Value)
+                : null,
             ManagerNote = request.ManagerNote,
             CanRespond = currentEmployeeId == request.ReceiverEmployeeId
                 && request.ReceiverStatus == ReceiverStatus.Pending

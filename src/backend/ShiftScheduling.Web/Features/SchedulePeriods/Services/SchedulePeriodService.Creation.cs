@@ -19,8 +19,9 @@ public sealed partial class SchedulePeriodService
         // BR03: Mỗi kỳ lịch tương ứng với đúng bảy ngày làm việc (7 ngày).
         var weekStartDate = model.WeekStartDate;
         var weekEndDate = weekStartDate.AddDays(6);
+        var availabilityDeadlineUtc = _clock.ToUtcFromVietnamTime(model.AvailabilityDeadline);
 
-        if (model.AvailabilityDeadline <= _clock.UtcNow)
+        if (availabilityDeadlineUtc <= _clock.UtcNow)
         {
             return ServiceResult.Failure(
             ErrorCodes.InvalidDateRange,
@@ -47,14 +48,15 @@ public sealed partial class SchedulePeriodService
                     + " Ca sáng (08-12), Ca chiều (12-16), Ca tối (16-20).");
         }
 
-        var period = CreateSchedulePeriodEntity(model, weekStartDate, weekEndDate, actorAccountId);
+        var period = CreateSchedulePeriodEntity(
+            model, weekStartDate, weekEndDate, availabilityDeadlineUtc, actorAccountId);
         _schedulePeriodRepository.Add(period);
 
         // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
         // Tạo đúng 21 combinations (7 ngày x 3 ca cố định).
         AddFixedStaffingRequirements(period, weekStartDate, fixedShifts);
 
-        LogAndAuditCreate(period.PeriodName, weekStartDate, weekEndDate, model.AvailabilityDeadline, actorAccountId);
+        LogAndAuditCreate(period.PeriodName, weekStartDate, weekEndDate, availabilityDeadlineUtc, actorAccountId);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -70,6 +72,7 @@ public sealed partial class SchedulePeriodService
         SchedulePeriodCreateViewModel model,
         DateOnly weekStartDate,
         DateOnly weekEndDate,
+        DateTime availabilityDeadlineUtc,
         int actorAccountId)
     {
         var periodName = string.IsNullOrWhiteSpace(model.PeriodName)
@@ -81,7 +84,7 @@ public sealed partial class SchedulePeriodService
             PeriodName = periodName,
             WeekStartDate = weekStartDate,
             WeekEndDate = weekEndDate,
-            AvailabilityDeadline = model.AvailabilityDeadline,
+            AvailabilityDeadline = availabilityDeadlineUtc,
             RegistrationStatus = RegistrationStatus.Preparing,
             CreatedByAccountId = actorAccountId,
             CreatedAt = _clock.UtcNow

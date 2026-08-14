@@ -26,6 +26,12 @@ internal sealed class FakeClock : IClock
     {
         return DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc).AddHours(7);
     }
+
+    public DateTime ToUtcFromVietnamTime(DateTime vietnamDateTime)
+    {
+        var unspecified = DateTime.SpecifyKind(vietnamDateTime, DateTimeKind.Unspecified);
+        return DateTime.SpecifyKind(unspecified.AddHours(-7), DateTimeKind.Utc);
+    }
 }
 
 internal sealed class FakeUnitOfWork : IUnitOfWork

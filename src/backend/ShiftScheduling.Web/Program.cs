@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Notifications;
@@ -28,6 +30,14 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
         "Chưa cấu hình ConnectionStrings:DefaultConnection bằng User Secrets hoặc biến môi trường.");
 }
+
+var vietnamCulture = new CultureInfo("vi-VN");
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(vietnamCulture);
+    options.SupportedCultures = new[] { vietnamCulture };
+    options.SupportedUICultures = new[] { vietnamCulture };
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddProblemDetails();
@@ -141,6 +151,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseRequestLocalization();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();

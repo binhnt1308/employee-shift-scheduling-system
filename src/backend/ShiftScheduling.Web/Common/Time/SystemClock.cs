@@ -21,6 +21,12 @@ public sealed class SystemClock : IClock
         return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtc, VietnamTimeZone);
     }
 
+    public DateTime ToUtcFromVietnamTime(DateTime vietnamDateTime)
+    {
+        var unspecified = DateTime.SpecifyKind(vietnamDateTime, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(unspecified, VietnamTimeZone);
+    }
+
     private static TimeZoneInfo GetVietnamTimeZone()
     {
         try

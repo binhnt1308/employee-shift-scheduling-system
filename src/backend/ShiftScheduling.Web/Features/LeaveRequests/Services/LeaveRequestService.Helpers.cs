@@ -92,7 +92,7 @@ public sealed partial class LeaveRequestService
                 ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
                 Reason = request.Reason,
                 Status = request.Status,
-                SubmittedAt = request.SubmittedAt,
+                SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
                 HasPublishedAssignment = affected,
                 RowVersion = Convert.ToBase64String(request.RowVersion)
             });
@@ -116,8 +116,10 @@ public sealed partial class LeaveRequestService
             ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
             Reason = request.Reason,
             Status = request.Status,
-            SubmittedAt = request.SubmittedAt,
-            ReviewedAt = request.ReviewedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
+            ReviewedAt = request.ReviewedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReviewedAt.Value)
+                : null,
             ManagerNote = request.ManagerNote,
             HasPublishedAssignment = await HasPublishedAssignmentAsync(request, cancellationToken),
             HasDraftAssignment = isManager

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShiftScheduling.Common.Security;
+using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.SchedulePeriods.Services;
 using ShiftScheduling.Features.SchedulePeriods.ViewModels;
 using ShiftScheduling.Models.Constants;
@@ -15,10 +16,14 @@ namespace ShiftScheduling.Features.SchedulePeriods.Controllers;
 public sealed class SchedulePeriodController : AuthorizedController
 {
     private readonly ISchedulePeriodService _schedulePeriodService;
+    private readonly IClock _clock;
 
-    public SchedulePeriodController(ISchedulePeriodService schedulePeriodService)
+    public SchedulePeriodController(
+        ISchedulePeriodService schedulePeriodService,
+        IClock clock)
     {
         _schedulePeriodService = schedulePeriodService;
+        _clock = clock;
     }
 
     /// <summary>
@@ -40,12 +45,13 @@ public sealed class SchedulePeriodController : AuthorizedController
     [HttpGet]
     public IActionResult Create()
     {
+        var todayInVietnam = _clock.TodayInVietnam.ToDateTime(TimeOnly.MinValue);
         var model = new SchedulePeriodCreateViewModel
         {
             // Next Monday
             WeekStartDate = DateOnly.FromDateTime(
-                DateTime.Today.AddDays(7 - (int)DateTime.Today.DayOfWeek + 1)),
-            AvailabilityDeadline = DateTime.Today.AddDays(5).AddHours(23).AddMinutes(59)
+                todayInVietnam.AddDays(7 - (int)todayInVietnam.DayOfWeek + 1)),
+            AvailabilityDeadline = todayInVietnam.AddDays(5).AddHours(23).AddMinutes(59)
         };
         return View(model);
     }
