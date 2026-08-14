@@ -75,7 +75,8 @@ public sealed partial class SchedulePeriodService
                     $"Ngày làm việc {item.WorkDate:dd/MM/yyyy} nằm ngoài kỳ lịch.");
             }
 
-            // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch. Từ chối ShiftType ngoài 3 ca cố định.
+            // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
+            // Từ chối ShiftType ngoài 3 ca cố định.
             if (!validFixedShiftIds.Contains(item.ShiftTypeId))
             {
                 return ServiceResult.Failure(

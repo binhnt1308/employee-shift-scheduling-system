@@ -11,7 +11,8 @@ public sealed class OrToolsSchedulingServiceTests
         new SchedulingValidationService(),
         NullLogger<OrToolsSchedulingService>.Instance);
 
-    [Fact(DisplayName = "TC06-01 - UC06 BR15 - OR-Tools CP-SAT sinh lịch đề xuất thành công khi đủ nhân sự và rảnh")]
+    [Fact(DisplayName = "TC06-01 - UC06 BR15 - OR-Tools CP-SAT sinh lịch đề xuất thành công" +
+        " khi đủ nhân sự và rảnh")]
     public void GenerateProposal_WhenSufficientEmployeesAndAvailabilities_ReturnsFeasibleProposal()
     {
         var period = new SchedulePeriod
@@ -70,13 +71,16 @@ public sealed class OrToolsSchedulingServiceTests
         };
 
         var result = _service.GenerateProposal(
-            period, employees, new List<Availability>(), new List<LeaveRequest>(), requirements, shiftTypes, 5);
+            period, employees,
+            new List<Availability>(), new List<LeaveRequest>(),
+            requirements, shiftTypes, 5);
 
         Assert.False(result.Succeeded);
         Assert.Equal("INFEASIBLE", result.Status.ToUpperInvariant());
     }
 
-    [Fact(DisplayName = "TC06-03 - UC06 BR15 - Sinh proposal chỉ trả về đề xuất, không tự động công bố")]
+    [Fact(DisplayName = "TC06-03 - UC06 BR15 - Sinh proposal chỉ trả về đề xuất," +
+        " không tự động công bố")]
     public void GenerateProposal_DoesNotAutoPublishSchedule()
     {
         var period = new SchedulePeriod
@@ -106,7 +110,9 @@ public sealed class OrToolsSchedulingServiceTests
         var (avails, _) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
 
         var result = _service.GenerateProposal(
-            period, employees, avails, new List<LeaveRequest>(), new List<StaffingRequirement>(), shiftTypes, 5);
+            period, employees, avails,
+            new List<LeaveRequest>(), new List<StaffingRequirement>(),
+            shiftTypes, 5);
 
         Assert.NotNull(result);
         Assert.True(result.Succeeded);

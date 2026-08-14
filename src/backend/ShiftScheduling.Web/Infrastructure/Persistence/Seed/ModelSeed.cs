@@ -9,6 +9,7 @@ public static class ModelSeed
     public static void Apply(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserAccount>().HasData(CreateAccounts());
+        modelBuilder.Entity<Employee>().HasData(CreateEmployees());
         modelBuilder.Entity<ShiftType>().HasData(CreateShiftTypes());
     }
 
@@ -34,6 +35,38 @@ public static class ModelSeed
                 IsLocked = false,
                 CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
                 CreatedByAccountId = 1
+            },
+            new UserAccount
+            {
+                UserAccountId = 3,
+                Username = "nhanvien",
+                PasswordHash = "100000.o2UkhUfzacTkDzOTs2NgPQ==.H/cGgTusNfv1PTAS9pTbBKEfNKMSw5IurN0GUEwEh90=",
+                Role = UserRole.Employee,
+                IsLocked = false,
+                CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+                CreatedByAccountId = 1
+            }
+        ];
+    }
+
+    private static Employee[] CreateEmployees()
+    {
+        return
+        [
+            new Employee
+            {
+                EmployeeId = 1,
+                UserAccountId = 3,
+                EmployeeCode = "EMP001",
+                FullName = "Nguyễn Văn Nhân Viên",
+                DateOfBirth = new DateOnly(2000, 1, 1),
+                PhoneNumber = "0901234567",
+                Email = "nhanvien@example.com",
+                Position = EmployeePosition.Sales,
+                EmploymentType = EmploymentType.FullTime,
+                Level = EmployeeLevel.Level2,
+                StartDate = new DateOnly(2026, 1, 1),
+                IsActive = true
             }
         ];
     }

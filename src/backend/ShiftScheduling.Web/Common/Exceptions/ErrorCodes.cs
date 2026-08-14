@@ -45,4 +45,5 @@ public static class ErrorCodes
     public const string InvalidScheduleStatus = "INVALID_SCHEDULE_STATUS";
     public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
     public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";
+    public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
 }

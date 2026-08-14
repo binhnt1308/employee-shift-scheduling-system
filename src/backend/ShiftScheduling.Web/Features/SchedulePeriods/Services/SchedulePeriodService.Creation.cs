@@ -22,7 +22,9 @@ public sealed partial class SchedulePeriodService
 
         if (model.AvailabilityDeadline <= _clock.UtcNow)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidDateRange, "Hạn đăng ký lịch rảnh phải ở tương lai.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidDateRange,
+            "Hạn đăng ký lịch rảnh phải ở tương lai.");
         }
 
         if (await _schedulePeriodRepository.HasOverlappingPeriodAsync(
@@ -41,13 +43,15 @@ public sealed partial class SchedulePeriodService
         {
             return ServiceResult.Failure(
                 ErrorCodes.ShiftTypeNotFound,
-                "Hệ thống phải có đủ 3 ca cố định active: Ca sáng (08-12), Ca chiều (12-16), Ca tối (16-20).");
+                "Hệ thống phải có đủ 3 ca cố định active:"
+                    + " Ca sáng (08-12), Ca chiều (12-16), Ca tối (16-20).");
         }
 
         var period = CreateSchedulePeriodEntity(model, weekStartDate, weekEndDate, actorAccountId);
         _schedulePeriodRepository.Add(period);
 
-        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch. Tạo đúng 21 combinations (7 ngày x 3 ca cố định).
+        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
+        // Tạo đúng 21 combinations (7 ngày x 3 ca cố định).
         AddFixedStaffingRequirements(period, weekStartDate, fixedShifts);
 
         LogAndAuditCreate(period.PeriodName, weekStartDate, weekEndDate, model.AvailabilityDeadline, actorAccountId);
@@ -89,7 +93,8 @@ public sealed partial class SchedulePeriodService
         DateOnly weekStartDate,
         List<ShiftType> fixedShifts)
     {
-        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch. Tạo đúng 21 combinations (7 ngày x 3 ca cố định).
+        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
+        // Tạo đúng 21 combinations (7 ngày x 3 ca cố định).
         for (var day = 0; day < 7; day++)
         {
             var workDate = weekStartDate.AddDays(day);

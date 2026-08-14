@@ -141,7 +141,8 @@ public sealed class WorkScheduleController : AuthorizedController
         [FromBody] List<ProposedAssignmentItemViewModel> proposedAssignments,
         CancellationToken cancellationToken)
     {
-        var result = await _workScheduleService.AdoptProposalToDraftAsync(id, proposedAssignments, CurrentAccountId, cancellationToken);
+        var result = await _workScheduleService.AdoptProposalToDraftAsync(
+            id, proposedAssignments, CurrentAccountId, cancellationToken);
         if (!result.Succeeded)
         {
             return Json(new { success = false, message = result.ErrorMessage });

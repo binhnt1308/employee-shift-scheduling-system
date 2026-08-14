@@ -15,6 +15,7 @@ public class LeaveRequest
     public int? ApprovedByAccountId { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? ManagerNote { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public Employee Employee { get; set; } = null!;
     public SchedulePeriod SchedulePeriod { get; set; } = null!;

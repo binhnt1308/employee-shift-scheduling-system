@@ -82,12 +82,15 @@ public sealed class WorkReportServiceTests
         var bytes = await service.GenerateReportCsvAsync(1);
         var text = System.Text.Encoding.UTF8.GetString(bytes);
 
-        Assert.Contains("STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo", text);
+        Assert.Contains(
+            "STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo",
+            text);
         Assert.Contains("NV001", text);
         Assert.Contains("Nguyễn Văn A", text);
     }
 
-    [Fact(DisplayName = "TC11-03 - UC11 - Tính tổng giờ theo DurationHours thực tế (decimal) thay vì giả định 4 giờ")]
+    [Fact(DisplayName = "TC11-03 - UC11 - Tính tổng giờ theo DurationHours thực tế (decimal)" +
+        " thay vì giả định 4 giờ")]
     public async Task GetManagerReportOverviewAsync_WithNonStandardShiftDurations_SumsActualDurationHoursDecimal()
     {
         var workRepo = new FakeWorkScheduleRepository();
@@ -303,5 +306,22 @@ public sealed class WorkReportServiceTests
             DateTime publishedAt,
             CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task<HashSet<int>> GetPublishedPeriodIdsAsync(
+            IEnumerable<int> periodIds,
+            CancellationToken cancellationToken = default)
+        {
+            var ids = periodIds.ToHashSet();
+            var set = PublishedSchedule is not null
+                && PublishedSchedule.Status == ScheduleStatus.Published
+                && ids.Contains(PublishedSchedule.SchedulePeriodId)
+                ? new HashSet<int> { PublishedSchedule.SchedulePeriodId }
+                : new HashSet<int>();
+            return Task.FromResult(set);
+        }
+
+        public Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(PublishedSchedule);
     }
 }

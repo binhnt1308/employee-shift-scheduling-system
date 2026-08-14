@@ -107,7 +107,8 @@ public sealed class WorkScheduleIntegrationTests
         return (period, emp, morning);
     }
 
-    [Fact(DisplayName = "TC07-INT-01 - UC07 BR21 - PublishScheduleAsync có vi phạm BR21 -> Chặn công bố & Giữ Draft")]
+    [Fact(DisplayName = "TC07-INT-01 - UC07 BR21 - PublishScheduleAsync có vi phạm BR21" +
+        " -> Chặn công bố & Giữ Draft")]
     public async Task PublishScheduleAsync_WhenScheduleViolatesBR21_BlocksPublishingAndRemainsDraft()
     {
         var period = CreateStandardPeriod();
@@ -153,7 +154,8 @@ public sealed class WorkScheduleIntegrationTests
         Assert.Equal(ScheduleStatus.Draft, draft.Status);
     }
 
-    [Fact(DisplayName = "TC06-INT-01 - UC06 BR15 - GenerateOrToolsProposalAsync chỉ sinh proposal, không auto-publish")]
+    [Fact(DisplayName = "TC06-INT-01 - UC06 BR15 - GenerateOrToolsProposalAsync" +
+        " chỉ sinh proposal, không auto-publish")]
     public async Task GenerateOrToolsProposalAsync_BR15_ReturnsProposalWithoutAutoPublishingOrSaving()
     {
         var period = CreateStandardPeriod();

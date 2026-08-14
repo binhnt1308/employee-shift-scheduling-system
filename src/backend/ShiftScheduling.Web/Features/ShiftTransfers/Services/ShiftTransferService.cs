@@ -9,6 +9,7 @@ using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.Errors;
 using ShiftScheduling.Models.Results;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.Services;
 
@@ -42,17 +43,31 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         int actorAccountId,
         bool isManager,
         ShiftTransferStatusFilter? managerStatus,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var normalizedPage = Math.Max(1, page);
+        var normalizedPageSize = Math.Clamp(pageSize, 5, 50);
+
         if (isManager)
         {
-            var managerRequests = await _repository.GetManagerRequestsAsync(cancellationToken);
-            var filtered = FilterManagerRequests(managerRequests, managerStatus);
+            var pagedManagerRequests = await _repository.GetPagedManagerRequestsAsync(
+                managerStatus,
+                normalizedPage,
+                normalizedPageSize,
+                cancellationToken);
+
+            var items = pagedManagerRequests.Items.Select(request => MapListItem(request, false, true)).ToArray();
             return new ShiftTransferIndexViewModel
             {
                 IsManager = true,
                 ManagerStatus = managerStatus,
-                ManagerRequests = filtered.Select(request => MapListItem(request, false, true)).ToArray()
+                ManagerRequests = new PagedResult<ShiftTransferListItemViewModel>(
+                    items,
+                    pagedManagerRequests.Page,
+                    pagedManagerRequests.PageSize,
+                    pagedManagerRequests.TotalItems)
             };
         }
 
@@ -62,12 +77,27 @@ public sealed partial class ShiftTransferService : IShiftTransferService
             return new ShiftTransferIndexViewModel();
         }
 
-        var sent = await _repository.GetSentRequestsAsync(employee.EmployeeId, cancellationToken);
-        var received = await _repository.GetReceivedRequestsAsync(employee.EmployeeId, cancellationToken);
+        var pagedSent = await _repository.GetPagedSentRequestsAsync(
+            employee.EmployeeId,
+            normalizedPage,
+            normalizedPageSize,
+            cancellationToken);
+
+        var pagedReceived = await _repository.GetPagedReceivedRequestsAsync(
+            employee.EmployeeId,
+            normalizedPage,
+            normalizedPageSize,
+            cancellationToken);
+
+        var sentItems = pagedSent.Items.Select(request => MapListItem(request, false, false)).ToArray();
+        var receivedItems = pagedReceived.Items.Select(request => MapListItem(request, true, false)).ToArray();
+
         return new ShiftTransferIndexViewModel
         {
-            SentRequests = sent.Select(request => MapListItem(request, false, false)).ToArray(),
-            ReceivedRequests = received.Select(request => MapListItem(request, true, false)).ToArray()
+            SentRequests = new PagedResult<ShiftTransferListItemViewModel>(
+                sentItems, pagedSent.Page, pagedSent.PageSize, pagedSent.TotalItems),
+            ReceivedRequests = new PagedResult<ShiftTransferListItemViewModel>(
+                receivedItems, pagedReceived.Page, pagedReceived.PageSize, pagedReceived.TotalItems)
         };
     }
 
@@ -104,7 +134,9 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         var sender = await GetCurrentEmployeeAsync(actorAccountId, true, cancellationToken);
         if (sender is null)
         {
-            return ServiceResult.Failure(ErrorCodes.EmployeeNotFound, "Không tìm thấy hồ sơ nhân viên của tài khoản.");
+            return ServiceResult.Failure(
+            ErrorCodes.EmployeeNotFound,
+            "Không tìm thấy hồ sơ nhân viên của tài khoản.");
         }
 
         var assignment = await _repository.GetAssignmentByIdAsync(model.ShiftAssignmentId, true, cancellationToken);
@@ -156,6 +188,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         int shiftTransferRequestId,
         bool accept,
         int actorAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default)
     {
         var employee = await GetCurrentEmployeeAsync(actorAccountId, false, cancellationToken);
@@ -166,8 +199,25 @@ public sealed partial class ShiftTransferService : IShiftTransferService
             return validation;
         }
 
-        // UC10: Người nhận chỉ phản hồi đồng ý hoặc từ chối.
-        // BR16 được áp dụng ở bước Quản lý kiểm tra và ngay trước khi cập nhật lịch chính thức.
+        byte[] expectedRowVersion;
+        try
+        {
+            expectedRowVersion = string.IsNullOrWhiteSpace(rowVersion)
+                ? []
+                : Convert.FromBase64String(rowVersion);
+        }
+        catch (FormatException)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ConcurrencyConflict,
+                "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.");
+        }
+
+        if (expectedRowVersion.Length > 0)
+        {
+            _repository.SetOriginalRowVersion(request!, expectedRowVersion);
+        }
+
         var previousValues = BuildAuditValues(request!);
         ApplyReceiverResponse(request!, accept);
         AddAuditLog(
@@ -196,6 +246,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         return new ShiftTransferReviewViewModel
         {
             ShiftTransferRequestId = request.ShiftTransferRequestId,
+            RowVersion = Convert.ToBase64String(request.RowVersion),
             ManagerNote = request.ManagerNote,
             Details = MapDetails(request, null, true),
             BlockingErrors = validation.BlockingErrors,
@@ -209,6 +260,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         bool approve,
         string? managerNote,
         int managerAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default)
     {
         var request = await _repository.GetRequestByIdAsync(shiftTransferRequestId, false, cancellationToken);
@@ -216,6 +268,25 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         if (!stateValidation.Succeeded)
         {
             return stateValidation;
+        }
+
+        byte[] expectedRowVersion;
+        try
+        {
+            expectedRowVersion = string.IsNullOrWhiteSpace(rowVersion)
+                ? []
+                : Convert.FromBase64String(rowVersion);
+        }
+        catch (FormatException)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ConcurrencyConflict,
+                "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.");
+        }
+
+        if (expectedRowVersion.Length > 0)
+        {
+            _repository.SetOriginalRowVersion(request!, expectedRowVersion);
         }
 
         if (approve)

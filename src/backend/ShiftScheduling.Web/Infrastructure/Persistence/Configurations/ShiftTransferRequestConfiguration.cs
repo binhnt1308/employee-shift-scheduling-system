@@ -12,6 +12,7 @@ public sealed class ShiftTransferRequestConfiguration : IEntityTypeConfiguration
         entity.HasKey(x => x.ShiftTransferRequestId);
         entity.Property(x => x.Reason).HasMaxLength(1000).IsRequired();
         entity.Property(x => x.ManagerNote).HasMaxLength(1000);
+        entity.Property(x => x.RowVersion).IsRowVersion();
 
         entity.HasOne(x => x.ShiftAssignment)
             .WithMany(x => x.ShiftTransferRequests)

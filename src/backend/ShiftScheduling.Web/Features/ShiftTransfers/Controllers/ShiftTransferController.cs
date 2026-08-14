@@ -26,12 +26,16 @@ public sealed class ShiftTransferController : AuthorizedController
     [HttpGet]
     public async Task<IActionResult> Index(
         ShiftTransferStatusFilter? status,
-        CancellationToken cancellationToken)
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         var model = await _shiftTransferService.GetIndexAsync(
             CurrentAccountId,
             User.IsInRole(RoleNames.Manager),
             status,
+            page,
+            pageSize,
             cancellationToken);
         return View(model);
     }
@@ -107,11 +111,18 @@ public sealed class ShiftTransferController : AuthorizedController
     public async Task<IActionResult> Respond(
         int id,
         bool accept,
+        string rowVersion,
         CancellationToken cancellationToken)
     {
-        var result = await _shiftTransferService.RespondAsync(id, accept, CurrentAccountId, cancellationToken);
+        var result = await _shiftTransferService.RespondAsync(
+            id,
+            accept,
+            CurrentAccountId,
+            rowVersion,
+            cancellationToken);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
-            ? accept ? "Đã đồng ý nhận ca. Yêu cầu đang chờ Quản lý duyệt." : "Đã từ chối nhận ca."
+            ? accept ? "Đã đồng ý nhận ca. Yêu cầu đang chờ Quản lý duyệt."
+            : "Đã từ chối nhận ca."
             : result.ErrorMessage;
         return RedirectToAction(nameof(Index));
     }
@@ -161,6 +172,7 @@ public sealed class ShiftTransferController : AuthorizedController
             approve,
             model.ManagerNote,
             CurrentAccountId,
+            model.RowVersion,
             cancellationToken);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
             ? approve ? "Đã duyệt và cập nhật lịch chính thức." : "Đã từ chối yêu cầu đổi ca."

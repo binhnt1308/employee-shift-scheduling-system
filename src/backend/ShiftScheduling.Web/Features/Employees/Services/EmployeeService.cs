@@ -169,7 +169,9 @@ public sealed class EmployeeService : IEmployeeService
             || !Enum.IsDefined(typeof(EmploymentType), model.EmploymentType)
             || !Enum.IsDefined(typeof(EmployeeLevel), model.Level))
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEnumValue, "Thông tin phân loại nhân viên không hợp lệ.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEnumValue,
+            "Thông tin phân loại nhân viên không hợp lệ.");
         }
 
         var dateValidation = ValidateDates(model);
@@ -181,7 +183,9 @@ public sealed class EmployeeService : IEmployeeService
         var employeeCode = NormalizeEmployeeCode(model.EmployeeCode);
         if (await _employeeRepository.EmployeeCodeExistsAsync(employeeCode, excludedEmployeeId, cancellationToken))
         {
-            return ServiceResult.Failure(ErrorCodes.DuplicateEmployeeCode, "Mã nhân viên đã được sử dụng.");
+            return ServiceResult.Failure(
+            ErrorCodes.DuplicateEmployeeCode,
+            "Mã nhân viên đã được sử dụng.");
         }
 
         var email = NormalizeEmail(model.Email);
@@ -201,14 +205,18 @@ public sealed class EmployeeService : IEmployeeService
     {
         if (model.DateOfBirth is null || model.StartDate is null)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEmployeeDate, "Ngày sinh và ngày vào làm là bắt buộc.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEmployeeDate,
+            "Ngày sinh và ngày vào làm là bắt buộc.");
         }
 
         var dateOfBirth = model.DateOfBirth.Value;
         var startDate = model.StartDate.Value;
         if (dateOfBirth >= _clock.TodayInVietnam)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEmployeeDate, "Ngày sinh phải nhỏ hơn ngày hiện tại.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEmployeeDate,
+            "Ngày sinh phải nhỏ hơn ngày hiện tại.");
         }
 
         if (startDate > _clock.TodayInVietnam || startDate < dateOfBirth)

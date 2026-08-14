@@ -84,7 +84,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Requests.Count == 0)
+                @if (Model.Requests.Items.Count == 0)
                 {
                     <tr>
                         <td colspan="@(Model.IsManager ? 6 : 5)" class="text-center text-muted py-5">
@@ -94,7 +94,7 @@
                 }
                 else
                 {
-                    @foreach (var item in Model.Requests)
+                    @foreach (var item in Model.Requests.Items)
                     {
                         <tr>
                             @if (Model.IsManager)

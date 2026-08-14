@@ -1,4 +1,5 @@
-@model IReadOnlyList<ShiftScheduling.Features.ShiftTransfers.ViewModels.ShiftTransferListItemViewModel>
+@using ShiftScheduling.Models.ViewModels
+@model PagedResult<ShiftScheduling.Features.ShiftTransfers.ViewModels.ShiftTransferListItemViewModel>
 
 <div class="card-custom">
     <div class="card-header-custom">Danh sách yêu cầu đổi ca</div>
@@ -15,7 +16,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Count == 0)
+                @if (Model.Items.Count == 0)
                 {
                     <tr>
                         <td colspan="6" class="text-center text-muted py-5">
@@ -25,7 +26,7 @@
                 }
                 else
                 {
-                    @foreach (var item in Model)
+                    @foreach (var item in Model.Items)
                     {
                         <tr>
                             <td>@item.SenderName</td>

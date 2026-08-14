@@ -69,6 +69,7 @@
                   method="post"
                   data-prevent-double-submit="true">
                 <input asp-for="LeaveRequestId" type="hidden" />
+                <input asp-for="RowVersion" type="hidden" />
                 <div class="mb-4">
                     <label asp-for="ManagerNote" class="form-label fw-semibold"></label>
                     <textarea asp-for="ManagerNote"

@@ -168,8 +168,8 @@ public sealed class ShiftTransferWorkflowTests
             true,
             ShiftScheduling.Features.ShiftTransfers.ViewModels.ShiftTransferStatusFilter.Rejected);
 
-        Assert.Equal(4, all.ManagerRequests.Count);
-        var item = Assert.Single(rejected.ManagerRequests);
+        Assert.Equal(4, all.ManagerRequests.TotalItems);
+        var item = Assert.Single(rejected.ManagerRequests.Items);
         Assert.Equal(4, item.ShiftTransferRequestId);
     }
 }

@@ -167,13 +167,15 @@ public sealed class ShiftTransferRuleTests
         Assert.Contains("định mức", result.ErrorMessage ?? string.Empty);
     }
 
-    [Fact(DisplayName = "TC10-R11 - UC10 BR21 - Người nhận ca vi phạm 24h nghỉ liên tục trong kỳ -> chặn")]
+    [Fact(DisplayName = "TC10-R11 - UC10 BR21 - Người nhận ca vi phạm 24h nghỉ liên tục trong kỳ" +
+        " -> chặn")]
     public async Task SubmitAsync_WhenReceiverWouldViolateWeekly24hRest_ReturnsRuleViolation()
     {
         var context = ShiftTransferTestContext.Create();
         context.Receiver.EmploymentType = EmploymentType.PartTime;
 
-        // Phân ca cho người nhận tất cả các ngày còn lại từ Thứ 3 đến Chủ Nhật (ca Sáng 08:00-12:00)
+        // Phân ca cho người nhận tất cả các ngày còn lại
+        // từ Thứ 3 đến Chủ Nhật (ca Sáng 08:00-12:00)
         var id = 10;
         for (var day = 1; day <= 6; day++)
         {
@@ -188,7 +190,8 @@ public sealed class ShiftTransferRuleTests
             });
         }
 
-        // Nhận ca Thứ 2 (08:00-12:00) -> người nhận sẽ có ca cả 7 ngày -> tất cả gap < 24h -> vi phạm BR21
+        // Nhận ca Thứ 2 (08:00-12:00) -> người nhận sẽ có ca cả 7 ngày
+        // -> tất cả gap < 24h -> vi phạm BR21
         var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
 
         Assert.False(result.Succeeded);

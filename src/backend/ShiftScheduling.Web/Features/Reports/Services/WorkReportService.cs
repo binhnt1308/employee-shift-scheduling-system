@@ -198,22 +198,23 @@ public sealed class WorkReportService : IWorkReportService
         CancellationToken cancellationToken)
     {
         var paged = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
-        var list = new List<ReportPeriodOptionViewModel>();
-
-        foreach (var p in paged.Items)
+        if (!paged.Items.Any())
         {
-            var sch = await _workScheduleRepository.GetPublishedByPeriodIdAsync(p.SchedulePeriodId, cancellationToken);
-            if (sch is not null)
-            {
-                list.Add(new ReportPeriodOptionViewModel
-                {
-                    SchedulePeriodId = p.SchedulePeriodId,
-                    PeriodName = p.PeriodName
-                });
-            }
+            return new List<ReportPeriodOptionViewModel>();
         }
 
-        return list;
+        var periodIds = paged.Items.Select(p => p.SchedulePeriodId).ToList();
+        var publishedSet = await _workScheduleRepository.GetPublishedPeriodIdsAsync(
+            periodIds, cancellationToken);
+
+        return paged.Items
+            .Where(p => publishedSet.Contains(p.SchedulePeriodId))
+            .Select(p => new ReportPeriodOptionViewModel
+            {
+                SchedulePeriodId = p.SchedulePeriodId,
+                PeriodName = p.PeriodName
+            })
+            .ToList();
     }
 
     private static List<WorkReportRowItemViewModel> BuildReportRows(

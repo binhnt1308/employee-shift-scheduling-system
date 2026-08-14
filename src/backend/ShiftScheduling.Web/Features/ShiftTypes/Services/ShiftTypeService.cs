@@ -71,17 +71,23 @@ public sealed class ShiftTypeService : IShiftTypeService
         {
             return ServiceResult.Failure(
                 ErrorCodes.ShiftTimeInvalid,
-                "BR03 quy định 3 ca cố định: Ca sáng (08:00-12:00), Ca chiều (12:00-16:00), Ca tối (16:00-20:00). Không được thay đổi khung giờ.");
+                "BR03 quy định 3 ca cố định: Ca sáng (08:00-12:00),"
+                    + " Ca chiều (12:00-16:00), Ca tối (16:00-20:00)."
+                    + " Không được thay đổi khung giờ.");
         }
 
         if (model.EndTime <= model.StartTime)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftTimeInvalid,
+                "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
         }
 
         if (!model.IsActive)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Không được ngưng hoạt động ca cố định của hệ thống.");
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftTimeInvalid,
+                "Không được ngưng hoạt động ca cố định của hệ thống.");
         }
 
         var validation = await ValidateUniqueValuesAsync(shiftTypeId, model, cancellationToken);
@@ -132,7 +138,9 @@ public sealed class ShiftTypeService : IShiftTypeService
                 shiftTypeId,
                 cancellationToken))
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTimeOverlap, "Khung giờ bị trùng với ca đang hoạt động.");
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftTimeOverlap,
+                "Khung giờ bị trùng với ca đang hoạt động.");
         }
 
         return ServiceResult.Success();

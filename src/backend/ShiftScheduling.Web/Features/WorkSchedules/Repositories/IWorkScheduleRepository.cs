@@ -32,4 +32,11 @@ public interface IWorkScheduleRepository
         int publishedByAccountId,
         DateTime publishedAt,
         CancellationToken cancellationToken = default);
+
+    Task<HashSet<int>> GetPublishedPeriodIdsAsync(
+        IEnumerable<int> periodIds,
+        CancellationToken cancellationToken = default);
+
+    Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
+        CancellationToken cancellationToken = default);
 }

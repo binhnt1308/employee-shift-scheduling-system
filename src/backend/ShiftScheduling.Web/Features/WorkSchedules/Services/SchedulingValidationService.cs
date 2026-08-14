@@ -44,7 +44,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         ValidateStaffingRequirements(
             staffingRequirements, fixedShiftIds, validAssignments, empMap, hardErrors);
 
-        // 2. Kiểm tra phân công, khối lượng công việc và nghỉ tối thiểu (BR02, BR05, BR06, BR09-BR11, BR18, BR20, BR21)
+        // 2. Kiểm tra phân công, khối lượng công việc và nghỉ tối thiểu
+        // (BR02, BR05, BR06, BR09-BR11, BR18, BR20, BR21)
         var summaries = ValidateEmployeesAndBuildSummaries(
             period, activeEmployees, validAssignments, availSet, leaveLookup, shiftTypeMap, hardErrors);
 
@@ -108,7 +109,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
     }
 
     /// <summary>
-    /// Kiểm tra quy tắc cá nhân (BR02, BR05, BR06, BR09-BR11, BR20, BR21) và xây dựng tóm tắt công việc (BR18).
+    /// Kiểm tra quy tắc cá nhân (BR02, BR05, BR06, BR09-BR11, BR20, BR21)
+    /// và xây dựng tóm tắt công việc (BR18).
     /// </summary>
     private static List<EmployeeSummaryItemViewModel> ValidateEmployeesAndBuildSummaries(
         SchedulePeriod period,
@@ -157,7 +159,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
 
         if (!emp.IsActive && userAssigns.Count > 0)
         {
-            hardErrors.Add($"Nhân viên {emp.FullName} ({emp.EmployeeCode}) đã ngưng hoạt động nhưng vẫn có ca.");
+            hardErrors.Add($"Nhân viên {emp.FullName} ({emp.EmployeeCode})"
+                + " đã ngưng hoạt động nhưng vẫn có ca.");
         }
 
         ValidateEmployeeAssignmentDetails(emp, userAssigns, availSet, leaveLookup, shiftTypeMap, hardErrors);
@@ -281,7 +284,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
             if (!isMorningAfternoon && !isAfternoonEvening)
             {
                 hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode}) " +
-                    $"ngày {group.Key:dd/MM} không đạt tổ hợp 2 ca liên tiếp (Sáng-Chiều hoặc Chiều-Tối).");
+                    $"ngày {group.Key:dd/MM} không đạt tổ hợp 2 ca liên tiếp"
+                        + " (Sáng-Chiều hoặc Chiều-Tối).");
             }
         }
     }
@@ -321,7 +325,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
             var minPt = ptSummaries.Min(s => s.TotalShifts);
             if (maxPt - minPt > 2)
             {
-                warnings.Add($"Chênh lệch số ca làm việc giữa các nhân viên PT lớn ({minPt} ca đến {maxPt} ca).");
+                warnings.Add($"Chênh lệch số ca làm việc giữa các nhân viên PT lớn"
+                    + " ({minPt} ca đến {maxPt} ca).");
             }
         }
 
@@ -332,7 +337,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
             var minFt = ftSummaries.Min(s => s.TotalWorkDays);
             if (maxFt - minFt > 1)
             {
-                warnings.Add($"Chênh lệch số ngày làm việc giữa các nhân viên FT lớn ({minFt} ngày đến {maxFt} ngày).");
+                warnings.Add($"Chênh lệch số ngày làm việc giữa các nhân viên FT lớn"
+                    + " ({minFt} ngày đến {maxFt} ngày).");
             }
         }
     }

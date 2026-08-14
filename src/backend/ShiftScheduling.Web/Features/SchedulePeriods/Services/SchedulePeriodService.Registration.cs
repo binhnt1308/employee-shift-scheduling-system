@@ -19,7 +19,9 @@ public sealed partial class SchedulePeriodService
             schedulePeriodId, false, true, cancellationToken);
         if (period is null)
         {
-            return ServiceResult.Failure(ErrorCodes.SchedulePeriodNotFound, "Không tìm thấy kỳ lịch.");
+            return ServiceResult.Failure(
+                ErrorCodes.SchedulePeriodNotFound,
+                "Không tìm thấy kỳ lịch.");
         }
 
         var statusResult = ValidateRegistrationPreconditions(period);
@@ -88,7 +90,8 @@ public sealed partial class SchedulePeriodService
         SchedulePeriod period,
         HashSet<int> validFixedShiftIds)
     {
-        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch. Revalidate exact 21 combinations (7 days x 3 shifts).
+        // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
+        // Revalidate exact 21 combinations (7 days x 3 shifts).
         var requirements = period.StaffingRequirements.ToList();
         var validFixedRequirements = requirements.Where(r => validFixedShiftIds.Contains(r.ShiftTypeId)).ToList();
 
@@ -155,7 +158,8 @@ public sealed partial class SchedulePeriodService
         {
             return ServiceResult.Failure(
                 ErrorCodes.InvalidStaffingRequirement,
-                "Mỗi ca làm việc phải yêu cầu ít nhất 1 nhân viên kinh nghiệm (từ Level 2 trở lên).");
+                "Mỗi ca làm việc phải yêu cầu ít nhất 1 nhân viên kinh nghiệm"
+                    + " (từ Level 2 trở lên).");
         }
 
         return ServiceResult.Success();

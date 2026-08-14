@@ -11,6 +11,7 @@ public sealed class WorkScheduleConfiguration : IEntityTypeConfiguration<WorkSch
         entity.ToTable("WorkSchedules");
         entity.HasKey(x => x.WorkScheduleId);
         entity.Property(x => x.ScheduleName).HasMaxLength(150).IsRequired();
+        entity.Property(x => x.RowVersion).IsRowVersion();
 
         entity.HasOne(x => x.SchedulePeriod)
             .WithMany(x => x.WorkSchedules)

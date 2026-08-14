@@ -66,7 +66,9 @@ public partial class WorkScheduleService
 
         if (schedule is null || schedule.Status == ScheduleStatus.Published)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidScheduleStatus, "Lịch đã công bố không thể ghi đè.");
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidScheduleStatus,
+                "Lịch đã công bố không thể ghi đè.");
         }
 
         var newAssignments = proposedAssignments.Select(p => (
@@ -94,7 +96,8 @@ public partial class WorkScheduleService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Adopted OR-Tools proposal into Draft. ActorAccountId: {ActorAccountId}; PeriodId: {PeriodId}; Count: {Count}",
+            "Adopted OR-Tools proposal into Draft. ActorAccountId: {ActorAccountId};"
+                + " PeriodId: {PeriodId}; Count: {Count}",
             accountId, schedulePeriodId, newAssignments.Count);
 
         return ServiceResult.Success();

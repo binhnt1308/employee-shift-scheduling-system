@@ -195,12 +195,16 @@ public sealed class AvailabilityService : IAvailabilityService
         var now = _clock.UtcNow;
         if (period.RegistrationStatus != RegistrationStatus.Open)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidSchedulePeriodStatus, "Kỳ lịch hiện không mở đăng ký lịch rảnh.");
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidSchedulePeriodStatus,
+                "Kỳ lịch hiện không mở đăng ký lịch rảnh.");
         }
 
         if (period.AvailabilityDeadline <= now)
         {
-            return ServiceResult.Failure(ErrorCodes.RegistrationDeadlineExpired, "Đã hết thời hạn đăng ký lịch rảnh.");
+            return ServiceResult.Failure(
+            ErrorCodes.RegistrationDeadlineExpired,
+            "Đã hết thời hạn đăng ký lịch rảnh.");
         }
 
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
@@ -210,7 +214,9 @@ public sealed class AvailabilityService : IAvailabilityService
         foreach (var key in selectedShiftKeys ?? new List<string>())
         {
             var parts = key.Split('_');
-            if (parts.Length == 2 && DateOnly.TryParse(parts[0], out var date) && int.TryParse(parts[1], out var shiftId))
+            if (parts.Length == 2
+            && DateOnly.TryParse(parts[0], out var date)
+            && int.TryParse(parts[1], out var shiftId))
             {
                 // BR03: Chỉ đăng ký theo 3 ca cố định và thuộc tuần kỳ lịch
                 if (date >= period.WeekStartDate && date <= period.WeekEndDate && validShiftIds.Contains(shiftId))
@@ -300,7 +306,9 @@ public sealed class AvailabilityService : IAvailabilityService
 
             foreach (var shift in fixedShifts)
             {
-                if (shiftTypeIdFilter.HasValue && shiftTypeIdFilter.Value > 0 && shift.ShiftTypeId != shiftTypeIdFilter.Value)
+                if (shiftTypeIdFilter.HasValue
+                    && shiftTypeIdFilter.Value > 0
+                    && shift.ShiftTypeId != shiftTypeIdFilter.Value)
                 {
                     continue;
                 }

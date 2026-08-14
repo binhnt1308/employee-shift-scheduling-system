@@ -100,6 +100,28 @@ internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<HashSet<int>> GetPublishedPeriodIdsAsync(
+        IEnumerable<int> periodIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = periodIds.ToHashSet();
+        var publishedIds = Schedules
+            .Where(s => ids.Contains(s.SchedulePeriodId) && s.Status == ScheduleStatus.Published)
+            .Select(s => s.SchedulePeriodId)
+            .ToHashSet();
+        return Task.FromResult(publishedIds);
+    }
+
+    public Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Schedules
+            .Where(s => s.Status == ScheduleStatus.Published)
+            .OrderByDescending(s => s.PublishedAt)
+            .ThenByDescending(s => s.WorkScheduleId)
+            .FirstOrDefault());
+    }
 }
 
 internal sealed class FakeAvailabilityRepository : IAvailabilityRepository

@@ -19,7 +19,8 @@ public interface ISchedulingValidationService
     /// <param name="assignments">Danh sách ca làm việc đã được phân công.</param>
     /// <param name="shiftTypes">Danh sách các loại ca làm việc trong hệ thống.</param>
     /// <returns>
-    /// Kết quả kiểm tra gồm danh sách lỗi bắt buộc, cảnh báo và tóm tắt công việc của từng nhân viên.
+    /// Kết quả kiểm tra gồm danh sách lỗi bắt buộc, cảnh báo
+    /// và tóm tắt công việc của từng nhân viên.
     /// </returns>
     ScheduleValidationResultViewModel ValidateSchedule(
         SchedulePeriod period,

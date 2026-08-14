@@ -28,7 +28,8 @@ public sealed class SchedulingRestRuleEvaluatorTests
         IsActive = true
     };
 
-    [Fact(DisplayName = "TC-BR20-01 - BR20 - Nghỉ đúng 12 giờ giữa ca cuối ngày D và ca đầu ngày D+1 -> Pass")]
+    [Fact(DisplayName = "TC-BR20-01 - BR20 - Nghỉ đúng 12 giờ giữa ca cuối ngày D" +
+        " và ca đầu ngày D+1 -> Pass")]
     public void Evaluate_BR20_Exact12HoursRest_ReturnsNoErrors()
     {
         var emp = CreateEmployee(1, EmploymentType.PartTime);
@@ -49,7 +50,8 @@ public sealed class SchedulingRestRuleEvaluatorTests
         Assert.DoesNotContain(errors, e => e.Contains("BR20"));
     }
 
-    [Fact(DisplayName = "TC-BR20-02 - BR20 - Nghỉ lớn hơn 12 giờ (16 giờ) giữa hai ngày liên tiếp -> Pass")]
+    [Fact(DisplayName = "TC-BR20-02 - BR20 - Nghỉ lớn hơn 12 giờ (16 giờ)" +
+        " giữa hai ngày liên tiếp -> Pass")]
     public void Evaluate_BR20_MoreThan12HoursRest_ReturnsNoErrors()
     {
         var emp = CreateEmployee(1, EmploymentType.PartTime);
@@ -70,7 +72,8 @@ public sealed class SchedulingRestRuleEvaluatorTests
         Assert.DoesNotContain(errors, e => e.Contains("BR20"));
     }
 
-    [Fact(DisplayName = "TC-BR20-03 - BR20 - Nghỉ nhỏ hơn 12 giờ (11 giờ) giữa hai ngày (Synthetic Shift) -> Fail")]
+    [Fact(DisplayName = "TC-BR20-03 - BR20 - Nghỉ nhỏ hơn 12 giờ (11 giờ)" +
+        " giữa hai ngày (Synthetic Shift) -> Fail")]
     public void Evaluate_BR20_LessThan12HoursRest_ReturnsHardError()
     {
         var emp = CreateEmployee(1, EmploymentType.PartTime);

@@ -42,7 +42,9 @@ public sealed class SchedulePeriodController : AuthorizedController
     {
         var model = new SchedulePeriodCreateViewModel
         {
-            WeekStartDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7 - (int)DateTime.Today.DayOfWeek + 1)), // Next Monday
+            // Next Monday
+            WeekStartDate = DateOnly.FromDateTime(
+                DateTime.Today.AddDays(7 - (int)DateTime.Today.DayOfWeek + 1)),
             AvailabilityDeadline = DateTime.Today.AddDays(5).AddHours(23).AddMinutes(59)
         };
         return View(model);

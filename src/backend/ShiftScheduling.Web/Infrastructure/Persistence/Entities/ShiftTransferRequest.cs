@@ -16,6 +16,7 @@ public class ShiftTransferRequest
     public int? ApprovedByAccountId { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? ManagerNote { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public ShiftAssignment ShiftAssignment { get; set; } = null!;
     public Employee SenderEmployee { get; set; } = null!;

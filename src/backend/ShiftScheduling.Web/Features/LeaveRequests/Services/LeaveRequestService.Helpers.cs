@@ -57,7 +57,9 @@ public sealed partial class LeaveRequestService
     {
         if (leaveDate < _clock.TodayInVietnam)
         {
-            return ServiceResult.Failure(ErrorCodes.LeaveRequestShiftEnded, "Ngày hoặc ca xin nghỉ đã kết thúc.");
+            return ServiceResult.Failure(
+            ErrorCodes.LeaveRequestShiftEnded,
+            "Ngày hoặc ca xin nghỉ đã kết thúc.");
         }
 
         if (leaveDate > _clock.TodayInVietnam)
@@ -91,7 +93,8 @@ public sealed partial class LeaveRequestService
                 Reason = request.Reason,
                 Status = request.Status,
                 SubmittedAt = request.SubmittedAt,
-                HasPublishedAssignment = affected
+                HasPublishedAssignment = affected,
+                RowVersion = Convert.ToBase64String(request.RowVersion)
             });
         }
 
@@ -124,7 +127,8 @@ public sealed partial class LeaveRequestService
                     request.LeaveDate,
                     request.ShiftTypeId,
                     cancellationToken),
-            CanReview = isManager && request.Status == LeaveRequestStatus.Pending
+            CanReview = isManager && request.Status == LeaveRequestStatus.Pending,
+            RowVersion = Convert.ToBase64String(request.RowVersion)
         };
     }
 

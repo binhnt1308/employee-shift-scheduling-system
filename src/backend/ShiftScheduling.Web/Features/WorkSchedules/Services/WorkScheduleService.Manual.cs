@@ -100,7 +100,10 @@ public partial class WorkScheduleService
         CancellationToken cancellationToken = default)
     {
         var period = await _periodRepository.GetByIdAsync(model.SchedulePeriodId, true, true, cancellationToken);
-        if (period is null) return ServiceResult.Failure(ErrorCodes.SchedulePeriodNotFound, "Không tìm thấy kỳ lịch.");
+        if (period is null)
+            return ServiceResult.Failure(
+                ErrorCodes.SchedulePeriodNotFound,
+                "Không tìm thấy kỳ lịch.");
 
         var draftState = await EnsureValidDraftStateAsync(model.SchedulePeriodId, accountId, cancellationToken);
         if (!draftState.Succeeded) return draftState.Result!;
@@ -307,7 +310,8 @@ public partial class WorkScheduleService
         {
             if (group.Count() > 1)
             {
-                hardErrors.Add($"Nhân viên PT {emp.FullName} ({emp.EmployeeCode}) chỉ được phân tối đa 1 ca/ngày.");
+                hardErrors.Add($"Nhân viên PT {emp.FullName} ({emp.EmployeeCode})"
+                    + " chỉ được phân tối đa 1 ca/ngày.");
             }
         }
     }
@@ -320,7 +324,8 @@ public partial class WorkScheduleService
     {
         if (dayGroups.Count > 6)
         {
-            hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode}) bị vượt quá 6 ngày làm việc trong tuần.");
+            hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode})"
+                + " bị vượt quá 6 ngày làm việc trong tuần.");
         }
 
         var shiftCodeMap = shiftTypes.ToDictionary(s => s.ShiftTypeId, s => s.ShiftCode);

@@ -8,7 +8,8 @@ public sealed class SchedulingValidationServiceTests
 {
     private readonly SchedulingValidationService _service = new();
 
-    [Fact(DisplayName = "TC05-01 - UC05 BR12 BR13 - Ca thiếu định mức Sales và thiếu Level 2+ -> Trả về HardErrors")]
+    [Fact(DisplayName = "TC05-01 - UC05 BR12 BR13 - Ca thiếu định mức Sales" +
+        " và thiếu Level 2+ -> Trả về HardErrors")]
     public void ValidateSchedule_WhenUnderstaffedAndNoLevel2Plus_ReturnsHardErrors()
     {
         var period = CreateTestPeriod();
@@ -53,7 +54,8 @@ public sealed class SchedulingValidationServiceTests
         Assert.Contains(result.HardErrors, e => e.Contains("Chưa có nhân viên kinh nghiệm"));
     }
 
-    [Fact(DisplayName = "TC05-02 - UC05 BR05 - Phân công nhân viên chưa đăng ký rảnh -> Trả về HardError")]
+    [Fact(DisplayName = "TC05-02 - UC05 BR05 - Phân công nhân viên chưa đăng ký rảnh" +
+        " -> Trả về HardError")]
     public void ValidateSchedule_WhenEmployeeNotAvailable_ReturnsHardError()
     {
         var period = CreateTestPeriod();
@@ -98,7 +100,8 @@ public sealed class SchedulingValidationServiceTests
         Assert.Contains(result.HardErrors, e => e.Contains("chưa đăng ký rảnh"));
     }
 
-    [Fact(DisplayName = "TC05-03 - UC05 BR06 - Phân công nhân viên có đơn nghỉ đã duyệt -> Trả về HardError")]
+    [Fact(DisplayName = "TC05-03 - UC05 BR06 - Phân công nhân viên có đơn nghỉ đã duyệt" +
+        " -> Trả về HardError")]
     public void ValidateSchedule_WhenEmployeeHasApprovedLeave_ReturnsHardError()
     {
         var period = CreateTestPeriod();
@@ -208,7 +211,8 @@ public sealed class SchedulingValidationServiceTests
         Assert.Contains(result.HardErrors, e => e.Contains("tối đa 1 ca/ngày") || e.Contains("2 ca trong ngày"));
     }
 
-    [Fact(DisplayName = "TC05-05 - UC05 BR10 - Nhân viên FT bị phân tổ hợp Sáng + Tối -> Trả về HardError")]
+    [Fact(DisplayName = "TC05-05 - UC05 BR10 - Nhân viên FT bị phân tổ hợp Sáng + Tối" +
+        " -> Trả về HardError")]
     public void ValidateSchedule_WhenFullTimeHasMorningAndEvening_ReturnsHardError()
     {
         var period = CreateTestPeriod();

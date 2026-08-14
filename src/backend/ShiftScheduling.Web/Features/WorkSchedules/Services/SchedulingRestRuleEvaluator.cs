@@ -132,12 +132,14 @@ public static class SchedulingRestRuleEvaluator
         {
             errors.Add(
                 $"BR21: Nhân viên {employee.FullName} ({employee.EmployeeCode}) không có ít nhất " +
-                $"{SchedulingRuleConstants.MinimumWeeklyContinuousRestHours} giờ nghỉ liên tục trong kỳ lịch.");
+                $"{SchedulingRuleConstants.MinimumWeeklyContinuousRestHours}"
+                    + " giờ nghỉ liên tục trong kỳ lịch.");
         }
     }
 
     /// <summary>
-    /// Tính toán các khoảng nghỉ giữa các ca và biên kỳ để kiểm tra có khoảng nghỉ >= 24h hay không.
+    /// Tính toán các khoảng nghỉ giữa các ca và biên kỳ
+    /// để kiểm tra có khoảng nghỉ >= 24h hay không.
     /// </summary>
     private static bool HasSufficientContinuousRestGap(
         DateTime periodStart,

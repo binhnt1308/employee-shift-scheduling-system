@@ -9,6 +9,7 @@ using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.Errors;
 using ShiftScheduling.Models.Results;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.Services;
 
@@ -43,29 +44,40 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
         bool isManager,
         int? schedulePeriodId,
         LeaveRequestStatus? status,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var normalizedPage = Math.Max(1, page);
+        var normalizedPageSize = Math.Clamp(pageSize, 5, 50);
+
         var periods = await _leaveRequestRepository.GetPeriodsAsync(cancellationToken);
-        IReadOnlyList<LeaveRequest> requests;
+        PagedResult<LeaveRequest> pagedRequests;
 
         if (isManager)
         {
-            requests = await _leaveRequestRepository.GetForManagerAsync(
+            pagedRequests = await _leaveRequestRepository.GetPagedForManagerAsync(
                 schedulePeriodId,
                 status,
+                normalizedPage,
+                normalizedPageSize,
                 cancellationToken);
         }
         else
         {
             var employee = await GetCurrentEmployeeAsync(actorAccountId, true, cancellationToken);
-            requests = employee is null
-                ? []
-                : await _leaveRequestRepository.GetForEmployeeAsync(
+            pagedRequests = employee is null
+                ? new PagedResult<LeaveRequest>([], normalizedPage, normalizedPageSize, 0)
+                : await _leaveRequestRepository.GetPagedForEmployeeAsync(
                     employee.EmployeeId,
                     schedulePeriodId,
                     status,
+                    normalizedPage,
+                    normalizedPageSize,
                     cancellationToken);
         }
+
+        var listItems = await MapListItemsAsync(pagedRequests.Items, cancellationToken);
 
         return new LeaveRequestIndexViewModel
         {
@@ -73,7 +85,11 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
             SchedulePeriodId = schedulePeriodId,
             Status = status,
             Periods = periods.Select(MapPeriodOption).ToArray(),
-            Requests = await MapListItemsAsync(requests, cancellationToken)
+            Requests = new PagedResult<LeaveRequestListItemViewModel>(
+                listItems,
+                pagedRequests.Page,
+                pagedRequests.PageSize,
+                pagedRequests.TotalItems)
         };
     }
 
@@ -109,7 +125,9 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
         var employee = await GetCurrentEmployeeAsync(actorAccountId, true, cancellationToken);
         if (employee is null)
         {
-            return ServiceResult.Failure(ErrorCodes.EmployeeNotFound, "Không tìm thấy hồ sơ nhân viên của tài khoản.");
+            return ServiceResult.Failure(
+            ErrorCodes.EmployeeNotFound,
+            "Không tìm thấy hồ sơ nhân viên của tài khoản.");
         }
 
         var validation = await ValidateSubmissionAsync(employee, model, cancellationToken);
@@ -169,6 +187,7 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
         return new LeaveRequestReviewViewModel
         {
             LeaveRequestId = request.LeaveRequestId,
+            RowVersion = Convert.ToBase64String(request.RowVersion),
             ManagerNote = request.ManagerNote,
             Details = await MapDetailsAsync(request, true, cancellationToken)
         };
@@ -180,6 +199,7 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
         bool approve,
         string? managerNote,
         int managerAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default)
     {
         var request = await _leaveRequestRepository.GetByIdAsync(leaveRequestId, false, cancellationToken);
@@ -194,6 +214,25 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
             return ServiceResult.Failure(
                 ErrorCodes.LeaveRequestAlreadyReviewed,
                 "Đơn xin nghỉ đã được xử lý hoặc trạng thái đã thay đổi.");
+        }
+
+        byte[] expectedRowVersion;
+        try
+        {
+            expectedRowVersion = string.IsNullOrWhiteSpace(rowVersion)
+                ? []
+                : Convert.FromBase64String(rowVersion);
+        }
+        catch (FormatException)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ConcurrencyConflict,
+                "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.");
+        }
+
+        if (expectedRowVersion.Length > 0)
+        {
+            _leaveRequestRepository.SetOriginalRowVersion(request, expectedRowVersion);
         }
 
         var previousValues = BuildAuditValues(request);
