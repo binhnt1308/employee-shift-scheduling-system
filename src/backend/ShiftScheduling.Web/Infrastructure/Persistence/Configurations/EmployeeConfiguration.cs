@@ -11,7 +11,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         entity.ToTable("Employees");
         entity.HasKey(x => x.EmployeeId);
         entity.Property(x => x.EmployeeCode).HasMaxLength(30).IsRequired();
-        entity.Property(x => x.FullName).HasMaxLength(150).IsRequired();
+        entity.Property(x => x.FullName).HasMaxLength(150).IsRequired().UseCollation("Vietnamese_100_CI_AI");
         entity.Property(x => x.PhoneNumber).HasMaxLength(20);
         entity.Property(x => x.Email).HasMaxLength(150);
         entity.HasIndex(x => x.EmployeeCode).IsUnique();

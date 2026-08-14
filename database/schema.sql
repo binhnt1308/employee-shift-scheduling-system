@@ -1,4 +1,17 @@
-﻿CREATE TABLE [ShiftTypes] (
+﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+BEGIN
+    CREATE TABLE [__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+CREATE TABLE [ShiftTypes] (
     [ShiftTypeId] int NOT NULL IDENTITY,
     [ShiftCode] nvarchar(30) NOT NULL,
     [ShiftName] nvarchar(100) NOT NULL,
@@ -10,7 +23,6 @@
     CONSTRAINT [PK_ShiftTypes] PRIMARY KEY ([ShiftTypeId])
 );
 GO
-
 
 CREATE TABLE [UserAccounts] (
     [UserAccountId] int NOT NULL IDENTITY,
@@ -24,22 +36,6 @@ CREATE TABLE [UserAccounts] (
     CONSTRAINT [FK_UserAccounts_UserAccounts_CreatedByAccountId] FOREIGN KEY ([CreatedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
 );
 GO
-
-
-CREATE TABLE [AuditLogs] (
-    [AuditLogId] bigint NOT NULL IDENTITY,
-    [ActorAccountId] int NOT NULL,
-    [Action] nvarchar(100) NOT NULL,
-    [EntityName] nvarchar(100) NOT NULL,
-    [EntityId] nvarchar(100) NOT NULL,
-    [PreviousValues] nvarchar(max) NULL,
-    [NewValues] nvarchar(max) NULL,
-    [CreatedAtUtc] datetime2 NOT NULL,
-    CONSTRAINT [PK_AuditLogs] PRIMARY KEY ([AuditLogId]),
-    CONSTRAINT [FK_AuditLogs_UserAccounts_ActorAccountId] FOREIGN KEY ([ActorAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
-);
-GO
-
 
 CREATE TABLE [Employees] (
     [EmployeeId] int NOT NULL IDENTITY,
@@ -59,7 +55,6 @@ CREATE TABLE [Employees] (
 );
 GO
 
-
 CREATE TABLE [Notifications] (
     [NotificationId] int NOT NULL IDENTITY,
     [ReceiverAccountId] int NOT NULL,
@@ -75,7 +70,6 @@ CREATE TABLE [Notifications] (
 );
 GO
 
-
 CREATE TABLE [SchedulePeriods] (
     [SchedulePeriodId] int NOT NULL IDENTITY,
     [PeriodName] nvarchar(150) NOT NULL,
@@ -89,7 +83,6 @@ CREATE TABLE [SchedulePeriods] (
     CONSTRAINT [FK_SchedulePeriods_UserAccounts_CreatedByAccountId] FOREIGN KEY ([CreatedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
 );
 GO
-
 
 CREATE TABLE [Availabilities] (
     [AvailabilityId] int NOT NULL IDENTITY,
@@ -106,7 +99,6 @@ CREATE TABLE [Availabilities] (
 );
 GO
 
-
 CREATE TABLE [LeaveRequests] (
     [LeaveRequestId] int NOT NULL IDENTITY,
     [EmployeeId] int NOT NULL,
@@ -119,7 +111,6 @@ CREATE TABLE [LeaveRequests] (
     [ApprovedByAccountId] int NULL,
     [ReviewedAt] datetime2 NULL,
     [ManagerNote] nvarchar(1000) NULL,
-    [RowVersion] rowversion NOT NULL,
     CONSTRAINT [PK_LeaveRequests] PRIMARY KEY ([LeaveRequestId]),
     CONSTRAINT [FK_LeaveRequests_Employees_EmployeeId] FOREIGN KEY ([EmployeeId]) REFERENCES [Employees] ([EmployeeId]) ON DELETE NO ACTION,
     CONSTRAINT [FK_LeaveRequests_SchedulePeriods_SchedulePeriodId] FOREIGN KEY ([SchedulePeriodId]) REFERENCES [SchedulePeriods] ([SchedulePeriodId]) ON DELETE NO ACTION,
@@ -127,7 +118,6 @@ CREATE TABLE [LeaveRequests] (
     CONSTRAINT [FK_LeaveRequests_UserAccounts_ApprovedByAccountId] FOREIGN KEY ([ApprovedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
 );
 GO
-
 
 CREATE TABLE [StaffingRequirements] (
     [StaffingRequirementId] int NOT NULL IDENTITY,
@@ -144,7 +134,6 @@ CREATE TABLE [StaffingRequirements] (
 );
 GO
 
-
 CREATE TABLE [WorkSchedules] (
     [WorkScheduleId] int NOT NULL IDENTITY,
     [SchedulePeriodId] int NOT NULL,
@@ -156,14 +145,12 @@ CREATE TABLE [WorkSchedules] (
     [UpdatedAt] datetime2 NULL,
     [PublishedByAccountId] int NULL,
     [PublishedAt] datetime2 NULL,
-    [RowVersion] rowversion NOT NULL,
     CONSTRAINT [PK_WorkSchedules] PRIMARY KEY ([WorkScheduleId]),
     CONSTRAINT [FK_WorkSchedules_SchedulePeriods_SchedulePeriodId] FOREIGN KEY ([SchedulePeriodId]) REFERENCES [SchedulePeriods] ([SchedulePeriodId]) ON DELETE NO ACTION,
     CONSTRAINT [FK_WorkSchedules_UserAccounts_CreatedByAccountId] FOREIGN KEY ([CreatedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION,
     CONSTRAINT [FK_WorkSchedules_UserAccounts_PublishedByAccountId] FOREIGN KEY ([PublishedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
 );
 GO
-
 
 CREATE TABLE [ShiftAssignments] (
     [ShiftAssignmentId] int NOT NULL IDENTITY,
@@ -181,7 +168,6 @@ CREATE TABLE [ShiftAssignments] (
 );
 GO
 
-
 CREATE TABLE [ShiftTransferRequests] (
     [ShiftTransferRequestId] int NOT NULL IDENTITY,
     [ShiftAssignmentId] int NOT NULL,
@@ -195,7 +181,6 @@ CREATE TABLE [ShiftTransferRequests] (
     [ApprovedByAccountId] int NULL,
     [ReviewedAt] datetime2 NULL,
     [ManagerNote] nvarchar(1000) NULL,
-    [RowVersion] rowversion NOT NULL,
     CONSTRAINT [PK_ShiftTransferRequests] PRIMARY KEY ([ShiftTransferRequestId]),
     CONSTRAINT [FK_ShiftTransferRequests_Employees_ReceiverEmployeeId] FOREIGN KEY ([ReceiverEmployeeId]) REFERENCES [Employees] ([EmployeeId]) ON DELETE NO ACTION,
     CONSTRAINT [FK_ShiftTransferRequests_Employees_SenderEmployeeId] FOREIGN KEY ([SenderEmployeeId]) REFERENCES [Employees] ([EmployeeId]) ON DELETE NO ACTION,
@@ -203,7 +188,6 @@ CREATE TABLE [ShiftTransferRequests] (
     CONSTRAINT [FK_ShiftTransferRequests_UserAccounts_ApprovedByAccountId] FOREIGN KEY ([ApprovedByAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
 );
 GO
-
 
 IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'ShiftTypeId', N'DisplayOrder', N'DurationHours', N'EndTime', N'IsActive', N'ShiftCode', N'ShiftName', N'StartTime') AND [object_id] = OBJECT_ID(N'[ShiftTypes]'))
     SET IDENTITY_INSERT [ShiftTypes] ON;
@@ -215,7 +199,6 @@ IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'ShiftTypeId
     SET IDENTITY_INSERT [ShiftTypes] OFF;
 GO
 
-
 IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'UserAccountId', N'CreatedAt', N'CreatedByAccountId', N'IsLocked', N'PasswordHash', N'Role', N'Username') AND [object_id] = OBJECT_ID(N'[UserAccounts]'))
     SET IDENTITY_INSERT [UserAccounts] ON;
 INSERT INTO [UserAccounts] ([UserAccountId], [CreatedAt], [CreatedByAccountId], [IsLocked], [PasswordHash], [Role], [Username])
@@ -225,128 +208,200 @@ IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'UserAccount
     SET IDENTITY_INSERT [UserAccounts] OFF;
 GO
 
-
-CREATE INDEX [IX_AuditLogs_ActorAccountId_CreatedAtUtc] ON [AuditLogs] ([ActorAccountId], [CreatedAtUtc]);
-GO
-
-
-CREATE INDEX [IX_AuditLogs_EntityName_EntityId_CreatedAtUtc] ON [AuditLogs] ([EntityName], [EntityId], [CreatedAtUtc]);
-GO
-
-
 CREATE UNIQUE INDEX [IX_Availabilities_EmployeeId_SchedulePeriodId_WorkDate_ShiftTypeId] ON [Availabilities] ([EmployeeId], [SchedulePeriodId], [WorkDate], [ShiftTypeId]);
 GO
-
 
 CREATE INDEX [IX_Availabilities_SchedulePeriodId] ON [Availabilities] ([SchedulePeriodId]);
 GO
 
-
 CREATE INDEX [IX_Availabilities_ShiftTypeId] ON [Availabilities] ([ShiftTypeId]);
 GO
-
-
-CREATE UNIQUE INDEX [IX_Employees_Email] ON [Employees] ([Email]) WHERE [Email] IS NOT NULL;
-GO
-
 
 CREATE UNIQUE INDEX [IX_Employees_EmployeeCode] ON [Employees] ([EmployeeCode]);
 GO
 
-
 CREATE UNIQUE INDEX [IX_Employees_UserAccountId] ON [Employees] ([UserAccountId]) WHERE [UserAccountId] IS NOT NULL;
 GO
-
 
 CREATE INDEX [IX_LeaveRequests_ApprovedByAccountId] ON [LeaveRequests] ([ApprovedByAccountId]);
 GO
 
-
 CREATE INDEX [IX_LeaveRequests_EmployeeId_SchedulePeriodId_LeaveDate_ShiftTypeId] ON [LeaveRequests] ([EmployeeId], [SchedulePeriodId], [LeaveDate], [ShiftTypeId]);
 GO
-
 
 CREATE INDEX [IX_LeaveRequests_SchedulePeriodId] ON [LeaveRequests] ([SchedulePeriodId]);
 GO
 
-
 CREATE INDEX [IX_LeaveRequests_ShiftTypeId] ON [LeaveRequests] ([ShiftTypeId]);
 GO
-
 
 CREATE INDEX [IX_Notifications_ReceiverAccountId_IsRead_CreatedAt] ON [Notifications] ([ReceiverAccountId], [IsRead], [CreatedAt]);
 GO
 
-
 CREATE INDEX [IX_SchedulePeriods_CreatedByAccountId] ON [SchedulePeriods] ([CreatedByAccountId]);
 GO
-
 
 CREATE UNIQUE INDEX [IX_SchedulePeriods_WeekStartDate] ON [SchedulePeriods] ([WeekStartDate]);
 GO
 
-
 CREATE INDEX [IX_ShiftAssignments_EmployeeId] ON [ShiftAssignments] ([EmployeeId]);
 GO
-
 
 CREATE INDEX [IX_ShiftAssignments_ShiftTypeId] ON [ShiftAssignments] ([ShiftTypeId]);
 GO
 
-
 CREATE UNIQUE INDEX [IX_ShiftAssignments_WorkScheduleId_EmployeeId_WorkDate_ShiftTypeId] ON [ShiftAssignments] ([WorkScheduleId], [EmployeeId], [WorkDate], [ShiftTypeId]);
 GO
-
 
 CREATE INDEX [IX_ShiftTransferRequests_ApprovedByAccountId] ON [ShiftTransferRequests] ([ApprovedByAccountId]);
 GO
 
-
 CREATE INDEX [IX_ShiftTransferRequests_ReceiverEmployeeId] ON [ShiftTransferRequests] ([ReceiverEmployeeId]);
 GO
-
 
 CREATE INDEX [IX_ShiftTransferRequests_SenderEmployeeId] ON [ShiftTransferRequests] ([SenderEmployeeId]);
 GO
 
-
 CREATE INDEX [IX_ShiftTransferRequests_ShiftAssignmentId] ON [ShiftTransferRequests] ([ShiftAssignmentId]);
 GO
-
 
 CREATE UNIQUE INDEX [IX_ShiftTypes_DisplayOrder] ON [ShiftTypes] ([DisplayOrder]);
 GO
 
-
 CREATE UNIQUE INDEX [IX_ShiftTypes_ShiftCode] ON [ShiftTypes] ([ShiftCode]);
 GO
-
 
 CREATE UNIQUE INDEX [IX_StaffingRequirements_SchedulePeriodId_WorkDate_ShiftTypeId] ON [StaffingRequirements] ([SchedulePeriodId], [WorkDate], [ShiftTypeId]);
 GO
 
-
 CREATE INDEX [IX_StaffingRequirements_ShiftTypeId] ON [StaffingRequirements] ([ShiftTypeId]);
 GO
-
 
 CREATE INDEX [IX_UserAccounts_CreatedByAccountId] ON [UserAccounts] ([CreatedByAccountId]);
 GO
 
-
 CREATE UNIQUE INDEX [IX_UserAccounts_Username] ON [UserAccounts] ([Username]);
 GO
-
 
 CREATE INDEX [IX_WorkSchedules_CreatedByAccountId] ON [WorkSchedules] ([CreatedByAccountId]);
 GO
 
-
 CREATE INDEX [IX_WorkSchedules_PublishedByAccountId] ON [WorkSchedules] ([PublishedByAccountId]);
 GO
-
 
 CREATE INDEX [IX_WorkSchedules_SchedulePeriodId] ON [WorkSchedules] ([SchedulePeriodId]);
 GO
 
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260731234711_InitialCreate', N'8.0.8');
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+CREATE TABLE [AuditLogs] (
+    [AuditLogId] bigint NOT NULL IDENTITY,
+    [ActorAccountId] int NOT NULL,
+    [Action] nvarchar(100) NOT NULL,
+    [EntityName] nvarchar(100) NOT NULL,
+    [EntityId] nvarchar(100) NOT NULL,
+    [PreviousValues] nvarchar(max) NULL,
+    [NewValues] nvarchar(max) NULL,
+    [CreatedAtUtc] datetime2 NOT NULL,
+    CONSTRAINT [PK_AuditLogs] PRIMARY KEY ([AuditLogId]),
+    CONSTRAINT [FK_AuditLogs_UserAccounts_ActorAccountId] FOREIGN KEY ([ActorAccountId]) REFERENCES [UserAccounts] ([UserAccountId]) ON DELETE NO ACTION
+);
+GO
+
+CREATE INDEX [IX_AuditLogs_ActorAccountId_CreatedAtUtc] ON [AuditLogs] ([ActorAccountId], [CreatedAtUtc]);
+GO
+
+CREATE INDEX [IX_AuditLogs_EntityName_EntityId_CreatedAtUtc] ON [AuditLogs] ([EntityName], [EntityId], [CreatedAtUtc]);
+GO
+
+CREATE UNIQUE INDEX [IX_Employees_Email] ON [Employees] ([Email]) WHERE [Email] IS NOT NULL;
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260806050000_Week05ArchitectureAndAudit', N'8.0.8');
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+ALTER TABLE [WorkSchedules] ADD [RowVersion] rowversion NOT NULL;
+GO
+
+ALTER TABLE [ShiftTransferRequests] ADD [RowVersion] rowversion NOT NULL;
+GO
+
+ALTER TABLE [LeaveRequests] ADD [RowVersion] rowversion NOT NULL;
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260814162954_AddOptimisticConcurrencyTokens', N'8.0.8');
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'UserAccountId', N'CreatedAt', N'CreatedByAccountId', N'IsLocked', N'PasswordHash', N'Role', N'Username') AND [object_id] = OBJECT_ID(N'[UserAccounts]'))
+    SET IDENTITY_INSERT [UserAccounts] ON;
+INSERT INTO [UserAccounts] ([UserAccountId], [CreatedAt], [CreatedByAccountId], [IsLocked], [PasswordHash], [Role], [Username])
+VALUES (3, '2026-08-01T00:00:00.0000000Z', 1, CAST(0 AS bit), N'100000.o2UkhUfzacTkDzOTs2NgPQ==.H/cGgTusNfv1PTAS9pTbBKEfNKMSw5IurN0GUEwEh90=', 3, N'nhanvien');
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'UserAccountId', N'CreatedAt', N'CreatedByAccountId', N'IsLocked', N'PasswordHash', N'Role', N'Username') AND [object_id] = OBJECT_ID(N'[UserAccounts]'))
+    SET IDENTITY_INSERT [UserAccounts] OFF;
+GO
+
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'EmployeeId', N'DateOfBirth', N'Email', N'EmployeeCode', N'EmploymentType', N'FullName', N'IsActive', N'Level', N'PhoneNumber', N'Position', N'StartDate', N'UserAccountId') AND [object_id] = OBJECT_ID(N'[Employees]'))
+    SET IDENTITY_INSERT [Employees] ON;
+INSERT INTO [Employees] ([EmployeeId], [DateOfBirth], [Email], [EmployeeCode], [EmploymentType], [FullName], [IsActive], [Level], [PhoneNumber], [Position], [StartDate], [UserAccountId])
+VALUES (1, '2000-01-01', N'nhanvien@example.com', N'EMP001', 2, N'Nguyễn Văn Nhân Viên', CAST(1 AS bit), 2, N'0901234567', 1, '2026-01-01', 3);
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'EmployeeId', N'DateOfBirth', N'Email', N'EmployeeCode', N'EmploymentType', N'FullName', N'IsActive', N'Level', N'PhoneNumber', N'Position', N'StartDate', N'UserAccountId') AND [object_id] = OBJECT_ID(N'[Employees]'))
+    SET IDENTITY_INSERT [Employees] OFF;
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260814164319_AddDemoEmployeeSeed', N'8.0.8');
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+DECLARE @var0 sysname;
+SELECT @var0 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[ShiftTypes]') AND [c].[name] = N'ShiftName');
+IF @var0 IS NOT NULL EXEC(N'ALTER TABLE [ShiftTypes] DROP CONSTRAINT [' + @var0 + '];');
+ALTER TABLE [ShiftTypes] ALTER COLUMN [ShiftName] nvarchar(100) COLLATE Vietnamese_100_CI_AI NOT NULL;
+GO
+
+DECLARE @var1 sysname;
+SELECT @var1 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Employees]') AND [c].[name] = N'FullName');
+IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [Employees] DROP CONSTRAINT [' + @var1 + '];');
+ALTER TABLE [Employees] ALTER COLUMN [FullName] nvarchar(150) COLLATE Vietnamese_100_CI_AI NOT NULL;
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260814172421_ConfigureVietnameseTextCollation', N'8.0.8');
+GO
+
+COMMIT;
+GO
 

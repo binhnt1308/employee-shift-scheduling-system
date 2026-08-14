@@ -130,7 +130,8 @@ namespace ShiftScheduling.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(150)")
+                        .UseCollation("Vietnamese_100_CI_AI");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -461,7 +462,8 @@ namespace ShiftScheduling.Migrations
                     b.Property<string>("ShiftName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Vietnamese_100_CI_AI");
 
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time");

@@ -11,7 +11,7 @@ public sealed class ShiftTypeConfiguration : IEntityTypeConfiguration<ShiftType>
         entity.ToTable("ShiftTypes");
         entity.HasKey(x => x.ShiftTypeId);
         entity.Property(x => x.ShiftCode).HasMaxLength(30).IsRequired();
-        entity.Property(x => x.ShiftName).HasMaxLength(100).IsRequired();
+        entity.Property(x => x.ShiftName).HasMaxLength(100).IsRequired().UseCollation("Vietnamese_100_CI_AI");
         entity.Property(x => x.DurationHours).HasPrecision(4, 2);
         entity.HasIndex(x => x.ShiftCode).IsUnique();
         entity.HasIndex(x => x.DisplayOrder).IsUnique();
