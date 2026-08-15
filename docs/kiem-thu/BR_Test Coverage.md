@@ -24,6 +24,8 @@ và một test vi phạm.
 | BR17 | Đổi ca theo hình thức một chiều và đúng quy trình                        | Có        | Có       | Đã đủ test                                                                                                 |
 | BR18 | Part-time khoảng 5 ca và Full-time khoảng 6 ngày là cảnh báo mềm         | Chưa có   | Chưa có  | Cần bổ sung test đạt mức thì không cảnh báo và chưa đạt mức thì chỉ cảnh báo, không phát sinh lỗi bắt buộc |
 | BR19 | Cân bằng khối lượng làm việc là mục tiêu mềm                             | Chưa có   | Chưa có  | Cần bổ sung test kiểm tra mức độ cân bằng số ca hoặc số giờ giữa các nhân viên cùng loại hình làm việc     |
+| BR20 | Nhân viên phải có ít nhất 12 giờ nghỉ liên tục giữa ca cuối của ngày trước và ca đầu của ngày kế tiếp | Có | Có | Đã có test đúng 12 giờ được chấp nhận và test dưới 12 giờ bị từ chối |
+| BR21 | Trong mỗi kỳ 7 ngày, nhân viên phải có ít nhất một khoảng nghỉ liên tục từ 24 giờ trở lên | Có | Có | Đã có test khoảng nghỉ đủ 24 giờ được chấp nhận và test làm liên tục không có đủ 24 giờ nghỉ bị từ chối |
 
 ## Kết luận rà soát
 
@@ -34,6 +36,8 @@ Các Business Rule đã đủ cả test hợp lệ và test vi phạm:
 - BR04
 - BR16
 - BR17
+- BR20
+- BR21
 
 Các Business Rule cần bổ sung hoặc xác minh thêm test:
 
