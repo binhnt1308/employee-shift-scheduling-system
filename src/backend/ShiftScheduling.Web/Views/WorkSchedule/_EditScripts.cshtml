@@ -19,7 +19,9 @@
                 data.forEach(emp => {
                     const opt = document.createElement('option');
                     opt.value = emp.employeeId;
-                    opt.textContent = `${emp.employeeCode} - ${emp.fullName} (${emp.position}, Level ${emp.level})` + (emp.isEligible ? '' : ` [BỊ CHẶN: ${emp.ineligibilityReason}]`);
+                    const typeLabel = emp.employmentTypeLabel || (emp.employmentType === 2 ? 'FT' : 'PT');
+                    const levelNumber = typeof emp.level === 'number' ? emp.level : (emp.level || '').replace(/\D/g, '');
+                    opt.textContent = `${emp.employeeCode} - ${emp.fullName} (${typeLabel}, Level ${levelNumber})` + (emp.isEligible ? '' : ` [BỊ CHẶN: ${emp.ineligibilityReason}]`);
                     if (!emp.isEligible) opt.disabled = true;
                     select.appendChild(opt);
                 });

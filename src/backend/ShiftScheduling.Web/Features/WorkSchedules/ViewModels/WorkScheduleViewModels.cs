@@ -81,6 +81,7 @@ public sealed class EligibleEmployeeOptionViewModel
     public EmployeePosition Position { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public EmployeeLevel Level { get; set; }
+    public string EmploymentTypeLabel => EmploymentType == EmploymentType.FullTime ? "FT" : "PT";
     public bool HasAvailability { get; set; }
     public bool HasApprovedLeave { get; set; }
     public bool HasOverlappingShift { get; set; }

@@ -331,6 +331,19 @@ public partial class WorkScheduleService
         var shiftCodeMap = shiftTypes.ToDictionary(s => s.ShiftTypeId, s => s.ShiftCode);
         foreach (var group in dayGroups)
         {
+            var count = group.Count();
+            if (count > 2)
+            {
+                hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode}) " +
+                    "chỉ được phân tối đa 2 ca/ngày.");
+                continue;
+            }
+
+            if (count == 1)
+            {
+                continue;
+            }
+
             var codes = group.Select(a => shiftCodeMap.TryGetValue(a.ShiftTypeId, out var sc) ? sc : "").ToHashSet();
             var isMorningAfternoon = codes.Contains(ShiftTypeConstants.MorningCode)
                 && codes.Contains(ShiftTypeConstants.AfternoonCode) && codes.Count == 2;
