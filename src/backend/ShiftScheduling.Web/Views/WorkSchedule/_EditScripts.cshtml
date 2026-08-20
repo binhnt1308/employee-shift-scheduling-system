@@ -6,8 +6,10 @@
 
     function openAssignModal(periodId, workDate, shiftTypeId, titleText) {
         currentAssignContext = { periodId, workDate, shiftTypeId };
-        document.getElementById('assignModalTitle').innerText = 'Phân công ca: ' + titleText;
-        document.getElementById('assignModalAlert').classList.add('d-none');
+        document.getElementById('assignModalTitle').textContent = 'Phân công ca: ' + titleText;
+        const alertEl = document.getElementById('assignModalAlert');
+        alertEl.textContent = '';
+        alertEl.classList.add('d-none');
         
         const select = document.getElementById('assignEmployeeSelect');
         select.innerHTML = '<option value="">-- Đang tải nhân viên --</option>';
@@ -30,9 +32,12 @@
             });
     }
 
-    function submitManualAssign() {
+    function submitManualAssign(btn) {
+        if (btn && btn.disabled) return;
         const empId = document.getElementById('assignEmployeeSelect').value;
         if (!empId) return;
+
+        if (btn) btn.disabled = true;
 
         const formData = new FormData();
         formData.append('SchedulePeriodId', currentAssignContext.periodId);
@@ -47,15 +52,25 @@
                 if (data.success) {
                     location.reload();
                 } else {
-                    const alert = document.getElementById('assignModalAlert');
-                    alert.innerText = data.message;
-                    alert.classList.remove('d-none');
+                    if (btn) btn.disabled = false;
+                    const alertEl = document.getElementById('assignModalAlert');
+                    alertEl.textContent = data.message || 'Không thể thực hiện phân công.';
+                    alertEl.classList.remove('d-none');
                 }
+            })
+            .catch(() => {
+                if (btn) btn.disabled = false;
+                const alertEl = document.getElementById('assignModalAlert');
+                alertEl.textContent = 'Có lỗi xảy ra khi kết nối máy chủ.';
+                alertEl.classList.remove('d-none');
             });
     }
 
-    function removeEmployee(periodId, assignmentId) {
+    function removeEmployee(periodId, assignmentId, btn) {
+        if (btn && btn.disabled) return;
         if (!confirm('Xác nhận xóa nhân viên khỏi ca làm việc này?')) return;
+        if (btn) btn.disabled = true;
+
         const formData = new FormData();
         formData.append('SchedulePeriodId', periodId);
         formData.append('ShiftAssignmentId', assignmentId);
@@ -64,12 +79,23 @@
         fetch('/WorkSchedule/RemoveManual', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
-                if (data.success) location.reload();
-                else alert(data.message);
+                if (data.success) {
+                    location.reload();
+                } else {
+                    if (btn) btn.disabled = false;
+                    alert(data.message);
+                }
+            })
+            .catch(() => {
+                if (btn) btn.disabled = false;
+                alert('Có lỗi xảy ra khi kết nối máy chủ.');
             });
     }
 
-    function generateOrToolsProposal() {
+    function generateOrToolsProposal(btn) {
+        if (btn && btn.disabled) return;
+        if (btn) btn.disabled = true;
+
         const modalEl = document.getElementById('orToolsModal');
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
@@ -87,30 +113,74 @@
                 document.getElementById('orToolsLoading').classList.add('d-none');
                 document.getElementById('orToolsContent').classList.remove('d-none');
 
+                const bannerEl = document.getElementById('orToolsStatusBanner');
+                bannerEl.textContent = '';
+
+                const icon = document.createElement('i');
+                icon.className = data.succeeded ? 'fa-solid fa-circle-check me-2' : 'fa-solid fa-circle-xmark me-2';
+                bannerEl.appendChild(icon);
+
                 if (data.succeeded) {
                     currentProposalData = data.proposedAssignments;
-                    document.getElementById('orToolsStatusBanner').className = 'alert alert-success mb-3';
-                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>${data.message} (Thời gian giải: ${data.solveTimeSeconds.toFixed(2)}s)`;
+                    bannerEl.className = 'alert alert-success mb-3';
+                    const solveTime = typeof data.solveTimeSeconds === 'number' ? data.solveTimeSeconds.toFixed(2) : data.solveTimeSeconds;
+                    bannerEl.appendChild(document.createTextNode(`${data.message} (Thời gian giải: ${solveTime}s)`));
                     document.getElementById('orToolsFooter').classList.remove('d-none');
 
                     const tbody = document.getElementById('orToolsTableBody');
-                    tbody.innerHTML = '';
+                    tbody.textContent = '';
                     data.proposedAssignments.forEach(item => {
                         const tr = document.createElement('tr');
                         const formattedWorkDate = item.workDate && item.workDate.includes('-') ? item.workDate.split('-').reverse().join('/') : item.workDate;
-                        tr.innerHTML = `<td>${formattedWorkDate}</td><td>${item.shiftName}</td><td><strong>${item.employeeCode}</strong> - ${item.fullName}</td><td>${item.position}</td>`;
+
+                        const tdDate = document.createElement('td');
+                        tdDate.textContent = formattedWorkDate;
+
+                        const tdShift = document.createElement('td');
+                        tdShift.textContent = item.shiftName;
+
+                        const tdEmp = document.createElement('td');
+                        const strongCode = document.createElement('strong');
+                        strongCode.textContent = item.employeeCode;
+                        tdEmp.appendChild(strongCode);
+                        tdEmp.appendChild(document.createTextNode(` - ${item.fullName}`));
+
+                        const tdPos = document.createElement('td');
+                        tdPos.textContent = item.position;
+
+                        tr.appendChild(tdDate);
+                        tr.appendChild(tdShift);
+                        tr.appendChild(tdEmp);
+                        tr.appendChild(tdPos);
+
                         tbody.appendChild(tr);
                     });
                 } else {
-                    document.getElementById('orToolsStatusBanner').className = 'alert alert-danger mb-3';
-                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i>${data.message}`;
+                    bannerEl.className = 'alert alert-danger mb-3';
+                    bannerEl.appendChild(document.createTextNode(data.message || ''));
                 }
+            })
+            .catch(() => {
+                document.getElementById('orToolsLoading').classList.add('d-none');
+                document.getElementById('orToolsContent').classList.remove('d-none');
+                const bannerEl = document.getElementById('orToolsStatusBanner');
+                bannerEl.className = 'alert alert-danger mb-3';
+                bannerEl.textContent = '';
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-circle-xmark me-2';
+                bannerEl.appendChild(icon);
+                bannerEl.appendChild(document.createTextNode('Có lỗi xảy ra khi kết nối máy chủ.'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
             });
     }
 
-    function adoptOrToolsProposal() {
+    function adoptOrToolsProposal(btn) {
         if (!currentProposalData) return;
+        if (btn && btn.disabled) return;
         if (!confirm('Áp dụng đề xuất này sẽ GHI ĐÈ toàn bộ lịch nháp hiện tại. Xác nhận tiếp tục?')) return;
+        if (btn) btn.disabled = true;
 
         fetch(`/WorkSchedule/AdoptProposal/${@Model.SchedulePeriodId}`, {
             method: 'POST',
@@ -122,8 +192,16 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) location.reload();
-            else alert(data.message);
+            if (data.success) {
+                location.reload();
+            } else {
+                if (btn) btn.disabled = false;
+                alert(data.message);
+            }
+        })
+        .catch(() => {
+            if (btn) btn.disabled = false;
+            alert('Có lỗi xảy ra khi kết nối máy chủ.');
         });
     }
 </script>

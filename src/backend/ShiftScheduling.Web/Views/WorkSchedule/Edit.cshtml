@@ -31,7 +31,7 @@
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu nháp</button>
             </form>
-            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
+            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
             <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "") onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
@@ -146,7 +146,7 @@
                                                 </div>
                                                 @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
                                                 {
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId)" title="Xóa phân công">
+                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId, this)" title="Xóa phân công">
                                                         <i class="fa-solid fa-xmark"></i>
                                                     </button>
                                                 }
@@ -189,7 +189,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign()">Phân công</button>
+                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign(this)">Phân công</button>
             </div>
         </div>
     </div>
@@ -230,7 +230,7 @@
             </div>
             <div class="modal-footer d-none" id="orToolsFooter">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Bỏ đề xuất</button>
-                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal()"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
+                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal(this)"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
             </div>
         </div>
     </div>
