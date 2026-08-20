@@ -3,11 +3,11 @@ name: CI
 on:
   push:
     branches:
-      - tuan-06
+      - "tuan-*"
   pull_request:
     branches:
       - main
-      - tuan-06
+      - "tuan-*"
   workflow_dispatch:
 
 jobs:
