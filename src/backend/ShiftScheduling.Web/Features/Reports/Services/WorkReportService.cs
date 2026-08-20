@@ -162,7 +162,7 @@ public sealed class WorkReportService : IWorkReportService
             schedulePeriodId, employeeIdFilter, positionFilter, employmentTypeFilter, cancellationToken);
 
         var builder = new StringBuilder();
-        builder.AppendLine("STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo");
+        builder.AppendLine("STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo / Mức dự kiến");
 
         if (overview is not null)
         {
@@ -172,10 +172,11 @@ public sealed class WorkReportService : IWorkReportService
                 var typeStr = row.EmploymentType == EmploymentType.PartTime ? "PT" : "FT";
                 var code = EscapeCsv(row.EmployeeCode);
                 var name = EscapeCsv(row.FullName);
+                var hoursStr = row.TotalHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
                 var warn = EscapeCsv(row.Warning);
                 builder.AppendLine(
                     $"{row.Index},{code},{name},{posStr},{typeStr}," +
-                    $"{row.TotalShifts},{row.TotalWorkDays},{row.TotalHours},{warn}");
+                    $"{row.TotalShifts},{row.TotalWorkDays},{hoursStr},{warn}");
             }
         }
 

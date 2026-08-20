@@ -83,10 +83,96 @@ public sealed class WorkReportServiceTests
         var text = System.Text.Encoding.UTF8.GetString(bytes);
 
         Assert.Contains(
-            "STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo",
+            "STT,Mã NV,Họ tên,Vị trí,Hình thức,Số ca,Số ngày,Tổng giờ,Cảnh báo / Mức dự kiến",
             text);
         Assert.Contains("NV001", text);
         Assert.Contains("Nguyễn Văn A", text);
+    }
+
+    [Fact(DisplayName = "TC-REPORT-CONSISTENCY-01 - Manager and Employee report calculate identical TotalHours for same employee")]
+    public async Task ReportOverview_ManagerAndEmployee_HaveIdenticalTotalHours()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ lịch 33");
+        periodRepo.Add(period);
+
+        var (emp1, emp2) = CreateTwoEmployees();
+        empRepo.Add(emp1);
+        empRepo.Add(emp2);
+
+        var (shift1, shift2) = CreateStandardFourHourShifts();
+        var publishedSchedule = BuildScheduleForTwoEmployees(period, emp1, emp2, shift1, shift2);
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = new WorkReportService(workRepo, periodRepo, empRepo);
+
+        var managerReport = await service.GetManagerReportOverviewAsync(1);
+        var employeeReport = await service.GetEmployeeOwnReportAsync(accountId: emp1.UserAccountId ?? 1, schedulePeriodId: 1);
+
+        Assert.NotNull(managerReport);
+        Assert.NotNull(employeeReport);
+        Assert.NotNull(employeeReport!.Summary);
+
+        var managerRow = managerReport!.Rows.First(r => r.EmployeeId == emp1.EmployeeId);
+        Assert.Equal(managerRow.TotalHours, employeeReport.Summary!.TotalHours);
+    }
+
+    [Fact(DisplayName = "TC-REPORT-CONSISTENCY-02 - Manager and Employee report calculate identical ShiftCount for same employee")]
+    public async Task ReportOverview_ManagerAndEmployee_HaveIdenticalShiftCount()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ lịch 33");
+        periodRepo.Add(period);
+
+        var (emp1, emp2) = CreateTwoEmployees();
+        empRepo.Add(emp1);
+        empRepo.Add(emp2);
+
+        var (shift1, shift2) = CreateStandardFourHourShifts();
+        var publishedSchedule = BuildScheduleForTwoEmployees(period, emp1, emp2, shift1, shift2);
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = new WorkReportService(workRepo, periodRepo, empRepo);
+
+        var managerReport = await service.GetManagerReportOverviewAsync(1);
+        var employeeReport = await service.GetEmployeeOwnReportAsync(accountId: emp1.UserAccountId ?? 1, schedulePeriodId: 1);
+
+        var managerRow = managerReport!.Rows.First(r => r.EmployeeId == emp1.EmployeeId);
+        Assert.Equal(managerRow.TotalShifts, employeeReport!.Summary!.TotalShifts);
+    }
+
+    [Fact(DisplayName = "TC-REPORT-CONSISTENCY-03 - Manager and Employee report produce identical WorkloadStatus warning for same employee")]
+    public async Task ReportOverview_ManagerAndEmployee_HaveIdenticalWorkloadStatus()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ lịch 33");
+        periodRepo.Add(period);
+
+        var (emp1, emp2) = CreateTwoEmployees();
+        empRepo.Add(emp1);
+        empRepo.Add(emp2);
+
+        var (shift1, shift2) = CreateStandardFourHourShifts();
+        var publishedSchedule = BuildScheduleForTwoEmployees(period, emp1, emp2, shift1, shift2);
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = new WorkReportService(workRepo, periodRepo, empRepo);
+
+        var managerReport = await service.GetManagerReportOverviewAsync(1);
+        var employeeReport = await service.GetEmployeeOwnReportAsync(accountId: emp1.UserAccountId ?? 1, schedulePeriodId: 1);
+
+        var managerRow = managerReport!.Rows.First(r => r.EmployeeId == emp1.EmployeeId);
+        Assert.Equal(managerRow.Warning, employeeReport!.Summary!.Warning);
+        Assert.Equal(managerRow.IsTargetMet, employeeReport.Summary.IsTargetMet);
     }
 
     [Fact(DisplayName = "TC11-03 - UC11 - Tính tổng giờ theo DurationHours thực tế (decimal)" +
@@ -130,6 +216,7 @@ public sealed class WorkReportServiceTests
         var emp1 = new Employee
         {
             EmployeeId = 1,
+            UserAccountId = 1,
             EmployeeCode = "NV001",
             FullName = "Nguyễn Văn A",
             Position = EmployeePosition.Sales,
@@ -139,6 +226,7 @@ public sealed class WorkReportServiceTests
         var emp2 = new Employee
         {
             EmployeeId = 2,
+            UserAccountId = 2,
             EmployeeCode = "NV002",
             FullName = "Trần Thị B",
             Position = EmployeePosition.Cashier,
