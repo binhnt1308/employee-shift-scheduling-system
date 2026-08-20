@@ -34,7 +34,15 @@ public sealed class AuthenticationService : IAuthenticationService
         }
 
         return _passwordHashService.VerifyPassword(password, account.PasswordHash)
-            ? new AuthenticatedAccount(account.UserAccountId, account.Username, account.Role)
+            ? new AuthenticatedAccount(
+                account.UserAccountId,
+                account.Username,
+                account.Role,
+                account.Employee?.FullName,
+                account.Employee?.EmployeeCode,
+                account.Employee?.EmploymentType,
+                account.Employee?.Position,
+                account.Employee?.Level)
             : null;
     }
 }

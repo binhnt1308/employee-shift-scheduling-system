@@ -275,8 +275,8 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         Assert.Contains("tối đa 1 ca/ngày", result.ErrorMessage);
     }
 
-    [Fact(DisplayName = "TC-DISPLAY-01 - GetEligibleEmployeesForShiftAsync returns clear FT/PT label")]
-    public async Task GetEligibleEmployeesForShiftAsync_ReturnsEmploymentTypeLabel()
+    [Fact(DisplayName = "TC-DISPLAY-01 - GetEligibleEmployeesForShiftAsync returns clear FT/PT and Position labels")]
+    public async Task GetEligibleEmployeesForShiftAsync_ReturnsEmploymentTypeAndPositionLabels()
     {
         var (period, empFt, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
 
@@ -286,6 +286,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         var option = options.FirstOrDefault(o => o.EmployeeId == empFt.EmployeeId);
         Assert.NotNull(option);
         Assert.Equal("FT", option!.EmploymentTypeLabel);
+        Assert.Equal("Tư vấn", option.PositionLabel);
         Assert.True(option.IsEligible);
     }
 

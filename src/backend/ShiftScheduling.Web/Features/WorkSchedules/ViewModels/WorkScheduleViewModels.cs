@@ -82,6 +82,12 @@ public sealed class EligibleEmployeeOptionViewModel
     public EmploymentType EmploymentType { get; set; }
     public EmployeeLevel Level { get; set; }
     public string EmploymentTypeLabel => EmploymentType == EmploymentType.FullTime ? "FT" : "PT";
+    public string PositionLabel => Position switch
+    {
+        EmployeePosition.Sales => "Tư vấn",
+        EmployeePosition.Cashier => "Thu ngân",
+        _ => Position.ToString()
+    };
     public bool HasAvailability { get; set; }
     public bool HasApprovedLeave { get; set; }
     public bool HasOverlappingShift { get; set; }
