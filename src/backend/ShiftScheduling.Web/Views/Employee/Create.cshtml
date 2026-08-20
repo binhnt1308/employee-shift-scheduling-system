@@ -26,7 +26,7 @@
                 Hồ sơ nhân viên
             </div>
             <div class="card-body p-4">
-                <form method="post" asp-action="Create">
+                <form method="post" asp-action="Create" data-prevent-double-submit="true">
                     <partial name="_EmployeeForm" model="Model" />
 
                     <div class="d-flex gap-2 pt-2 border-top">

@@ -180,7 +180,8 @@
                                 <form asp-action="SetStatus"
                                       asp-route-id="@employee.EmployeeId"
                                       method="post"
-                                      class="d-inline">
+                                      class="d-inline"
+                                      data-prevent-double-submit="true">
 
                                     <input type="hidden"
                                            name="isActive"

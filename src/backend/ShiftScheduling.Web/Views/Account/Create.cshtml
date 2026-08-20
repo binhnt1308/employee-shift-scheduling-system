@@ -23,7 +23,7 @@
                 Thông tin tài khoản mới
             </div>
             <div class="card-body p-4">
-                <form method="post" asp-action="Create">
+                <form method="post" asp-action="Create" data-prevent-double-submit="true">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                     <div class="row g-3 mb-3">

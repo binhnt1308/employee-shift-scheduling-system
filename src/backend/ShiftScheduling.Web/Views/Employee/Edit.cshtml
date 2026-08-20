@@ -26,7 +26,8 @@
             <div class="card-body p-4">
                 <form method="post"
                       asp-action="Edit"
-                      asp-route-id="@Model.EmployeeId">
+                      asp-route-id="@Model.EmployeeId"
+                      data-prevent-double-submit="true">
                     <input asp-for="EmployeeId" type="hidden" />
                     <partial name="_EmployeeForm" model="Model" />
 

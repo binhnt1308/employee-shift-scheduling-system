@@ -139,7 +139,8 @@
                             <form asp-action="SetLock"
                                   asp-route-id="@account.UserAccountId"
                                   method="post"
-                                  class="d-inline">
+                                  class="d-inline"
+                                  data-prevent-double-submit="true">
                                 <input type="hidden"
                                        name="isLocked"
                                        value="@(!account.IsLocked).ToString().ToLowerInvariant()" />
