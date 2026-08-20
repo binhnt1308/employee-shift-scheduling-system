@@ -309,4 +309,28 @@ public sealed partial class SchedulePeriodServiceTests
         Assert.Equal(ErrorCodes.InvalidStaffingRequirement, result.ErrorCode);
         Assert.Equal(RegistrationStatus.Preparing, period.RegistrationStatus);
     }
+
+    [Fact(DisplayName = "TC03-E01 - UC03 - WeekStartDate mặc định -> từ chối tạo kỳ lịch")]
+    public async Task CreateAsync_WhenWeekStartDateIsDefault_ReturnsInvalidDateRangeError()
+    {
+        // Sap xep
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var service = CreateService(periodRepo, shiftTypeRepo);
+        var model = new SchedulePeriodCreateViewModel
+        {
+            PeriodName = "Kỳ lịch mặc định",
+            WeekStartDate = default,
+            AvailabilityDeadline = new DateTime(2026, 8, 8, 23, 59, 0, DateTimeKind.Utc)
+        };
+
+        // Thuc hien
+        var result = await service.CreateAsync(model, 1);
+
+        // Kiem tra
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidDateRange, result.ErrorCode);
+        Assert.Empty(periodRepo.SchedulePeriods);
+        Assert.Empty(periodRepo.Requirements);
+    }
 }

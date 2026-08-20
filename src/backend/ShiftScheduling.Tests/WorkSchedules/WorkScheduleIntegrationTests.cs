@@ -154,6 +154,41 @@ public sealed class WorkScheduleIntegrationTests
         Assert.Equal(ScheduleStatus.Draft, draft.Status);
     }
 
+    [Fact(DisplayName = "TC07-INT-02 - UC07 BR02 - Employee inactive sau khi được xếp Draft -> chặn Publish")]
+    public async Task PublishScheduleAsync_WhenDraftContainsInactiveEmployee_BlocksPublishingAndRemainsDraft()
+    {
+        var period = CreateStandardPeriod();
+        _periodRepo.SchedulePeriods.Add(period);
+
+        var emp = CreateEmployee(1, EmploymentType.PartTime);
+        _employeeRepo.Employees.Add(emp);
+
+        var morning = CreateShiftType(1, "MORNING", "Ca Sáng", 8, 12);
+        _shiftTypeRepo.ShiftTypes.Add(morning);
+
+        var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
+        draft.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 1,
+            WorkScheduleId = draft.WorkScheduleId,
+            EmployeeId = emp.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId,
+            Source = AssignmentSource.Manual,
+            WorkSchedule = draft
+        });
+
+        emp.IsActive = false;
+
+        var result = await _scheduleService.PublishScheduleAsync(period.SchedulePeriodId, 2);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidSchedulePublish, result.ErrorCode);
+        Assert.Contains("BR02", result.ErrorMessage);
+        Assert.Equal(0, _workScheduleRepo.PublishScheduleCount);
+        Assert.Equal(ScheduleStatus.Draft, draft.Status);
+    }
+
     [Fact(DisplayName = "TC06-INT-01 - UC06 BR15 - GenerateOrToolsProposalAsync" +
         " chỉ sinh proposal, không auto-publish")]
     public async Task GenerateOrToolsProposalAsync_BR15_ReturnsProposalWithoutAutoPublishingOrSaving()

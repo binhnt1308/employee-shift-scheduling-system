@@ -42,6 +42,15 @@ public partial class WorkScheduleService
         // BR16: Tải dữ liệu mới nhất từ DB và kiểm tra lại toàn bộ các ràng buộc
         // ngay trước khi công bố
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
+
+        // BR02: Khong cong bo lich neu con phan cong cho nhan vien da ngung hoat dong.
+        var activeEmployeeIds = activeEmployees.Select(e => e.EmployeeId).ToHashSet();
+        if (schedule.ShiftAssignments.Any(a => !activeEmployeeIds.Contains(a.EmployeeId)))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidSchedulePublish,
+                "Lịch làm việc vẫn còn phân công cho nhân viên đã ngừng hoạt động (BR02).");
+        }
         var availabilities = await _availabilityRepository.GetByPeriodWithDetailsAsync(
             schedulePeriodId, null, null, null, null, cancellationToken);
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(

@@ -16,6 +16,13 @@ public sealed partial class SchedulePeriodService
         int actorAccountId,
         CancellationToken cancellationToken = default)
     {
+        if (model.WeekStartDate == default)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidDateRange,
+                "Ngày bắt đầu tuần không hợp lệ.");
+        }
+
         // BR03: Mỗi kỳ lịch tương ứng với đúng bảy ngày làm việc (7 ngày).
         var weekStartDate = model.WeekStartDate;
         var weekEndDate = weekStartDate.AddDays(6);
