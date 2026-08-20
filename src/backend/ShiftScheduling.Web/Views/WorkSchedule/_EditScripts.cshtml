@@ -94,7 +94,8 @@
                     tbody.innerHTML = '';
                     data.proposedAssignments.forEach(item => {
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `<td>${item.workDate}</td><td>${item.shiftName}</td><td><strong>${item.employeeCode}</strong> - ${item.fullName}</td><td>${item.position}</td>`;
+                        const formattedWorkDate = item.workDate && item.workDate.includes('-') ? item.workDate.split('-').reverse().join('/') : item.workDate;
+                        tr.innerHTML = `<td>${formattedWorkDate}</td><td>${item.shiftName}</td><td><strong>${item.employeeCode}</strong> - ${item.fullName}</td><td>${item.position}</td>`;
                         tbody.appendChild(tr);
                     });
                 } else {
