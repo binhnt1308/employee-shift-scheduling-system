@@ -6,58 +6,66 @@
     var role = User.FindFirstValue(ClaimTypes.Role);
     var isAdmin = role == RoleNames.Admin;
     var isStoreManager = role == RoleNames.Manager;
+    var isEmployee = role == RoleNames.Employee;
     var canManageEmployees = isAdmin || isStoreManager;
 }
 
 <div class="page-header">
     <div>
-        <h1 class="page-title">Tổng quan hệ thống</h1>
+        <h1 class="page-title">
+            @(isEmployee ? "Tổng quan" : "Tổng quan hệ thống")
+        </h1>
 
         <p class="page-subtitle">
-            Quản lý tài khoản, hồ sơ nhân viên và cấu hình ca làm việc.
+            @(isEmployee
+                ? "Theo dõi lịch làm việc và các thông tin cá nhân của bạn."
+                : "Quản lý tài khoản, hồ sơ nhân viên và cấu hình ca làm việc.")
         </p>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
 
-    <div class="col-md-6 col-xl-3">
-        <div class="stat-card stat-card-indigo h-100">
-            <div class="small opacity-75">
-                Tài khoản
-            </div>
+    @if (!isEmployee)
+    {
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card stat-card-indigo h-100">
+                <div class="small opacity-75">
+                    Tài khoản
+                </div>
 
-            <div class="display-6 fw-bold">
-                @Model.AccountCount
-            </div>
+                <div class="display-6 fw-bold">
+                    @Model.AccountCount
+                </div>
 
-            <div>
-                tài khoản hệ thống
-            </div>
+                <div>
+                    tài khoản hệ thống
+                </div>
 
-            <i class="fa-solid fa-user-shield stat-icon"></i>
+                <i class="fa-solid fa-user-shield stat-icon"></i>
+            </div>
         </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-        <div class="stat-card stat-card-teal h-100">
-            <div class="small opacity-75">
-                Nhân viên
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card stat-card-teal h-100">
+                <div class="small opacity-75">
+                    Nhân viên
+                </div>
+
+                <div class="display-6 fw-bold">
+                    @Model.EmployeeCount
+                </div>
+
+                <div>
+                    hồ sơ nhân sự
+                </div>
+
+                <i class="fa-solid fa-users stat-icon"></i>
             </div>
-
-            <div class="display-6 fw-bold">
-                @Model.EmployeeCount
-            </div>
-
-            <div>
-                hồ sơ nhân sự
-            </div>
-
-            <i class="fa-solid fa-users stat-icon"></i>
         </div>
-    </div>
+    }
 
-    <div class="col-md-6 col-xl-3">
+    <div class="@(isEmployee ? "col-md-6" : "col-md-6 col-xl-3")">
         <div class="stat-card stat-card-amber h-100">
             <div class="small opacity-75">
                 Ca làm
@@ -75,18 +83,22 @@
         </div>
     </div>
 
-    <div class="col-md-6 col-xl-3">
+    <div class="@(isEmployee ? "col-md-6" : "col-md-6 col-xl-3")">
         <div class="stat-card stat-card-rose h-100">
             <div class="small opacity-75">
-                Lịch làm việc
+                @(isEmployee ? "Lịch của tôi" : "Lịch làm việc")
             </div>
 
             <div class="display-6 fw-bold">
-                Chưa có
+                @(isEmployee
+                    ? (Model.HasMySchedule ? "Đã có" : "Chưa có")
+                    : (Model.HasSchedule ? "Đã có" : "Chưa có"))
             </div>
 
             <div>
-                chưa phân công
+                @(isEmployee
+                    ? (Model.HasMySchedule ? "đã được phân công" : "chưa được phân công")
+                    : (Model.HasSchedule ? "đã công bố" : "chưa phân công"))
             </div>
 
             <i class="fa-solid fa-calendar-days stat-icon"></i>
@@ -211,19 +223,24 @@
                     </a>
                 }
 
-                <span class="btn btn-secondary-custom opacity-50
-                             w-100 justify-content-center">
+                @if (isEmployee)
+                {
+                    <a asp-controller="WorkSchedule"
+                       asp-action="MySchedule"
+                       class="btn btn-primary-custom w-100 justify-content-center">
 
-                    <i class="fa-solid fa-calendar-days"></i>
-                    Lịch làm việc
-                </span>
+                        <i class="fa-solid fa-calendar-days"></i>
+                        Lịch của tôi
+                    </a>
 
-                <span class="btn btn-secondary-custom opacity-50
-                             w-100 justify-content-center">
+                    <a asp-controller="LeaveRequest"
+                       asp-action="Index"
+                       class="btn btn-secondary-custom w-100 justify-content-center">
 
-                    <i class="fa-solid fa-calendar-check"></i>
-                    Đơn xin nghỉ
-                </span>
+                        <i class="fa-solid fa-calendar-check"></i>
+                        Đơn xin nghỉ
+                    </a>
+                }
 
             </div>
         </div>

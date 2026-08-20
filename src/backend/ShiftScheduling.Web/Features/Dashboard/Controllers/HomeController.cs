@@ -1,8 +1,9 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ShiftScheduling.Models;
 using ShiftScheduling.Features.Dashboard.Services;
+using ShiftScheduling.Models;
 
 namespace ShiftScheduling.Features.Dashboard.Controllers;
 
@@ -25,7 +26,14 @@ public sealed class HomeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var viewModel = await _dashboardService.GetDashboardAsync(cancellationToken);
+        int? userAccountId = null;
+        var nameId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(nameId, out var id))
+        {
+            userAccountId = id;
+        }
+
+        var viewModel = await _dashboardService.GetDashboardAsync(userAccountId, cancellationToken);
         return View(viewModel);
     }
 
