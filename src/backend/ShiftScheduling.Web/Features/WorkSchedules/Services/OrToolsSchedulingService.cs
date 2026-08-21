@@ -107,7 +107,7 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
         AddAvailabilityAndLeaveConstraints(model, x, activeEmployees, period, fixedShifts, availSet, leaveSet);
         AddStaffingRequirementsConstraints(model, x, activeEmployees, period, fixedShifts, reqMap);
         AddEmploymentWorkloadConstraints(model, x, activeEmployees, morningIdx, afternoonIdx, eveningIdx);
-        
+
         // BR21: Bao dam moi nhan vien co it nhat 24 gio nghi lien tuc trong ky lich 7 ngay.
         AddWeeklyContinuousRestConstraints(model, x, activeEmployees, period, fixedShifts);
 
