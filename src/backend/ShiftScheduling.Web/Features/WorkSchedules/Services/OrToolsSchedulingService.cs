@@ -107,6 +107,10 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
         AddAvailabilityAndLeaveConstraints(model, x, activeEmployees, period, fixedShifts, availSet, leaveSet);
         AddStaffingRequirementsConstraints(model, x, activeEmployees, period, fixedShifts, reqMap);
         AddEmploymentWorkloadConstraints(model, x, activeEmployees, morningIdx, afternoonIdx, eveningIdx);
+        
+        // BR21: Bao dam moi nhan vien co it nhat 24 gio nghi lien tuc trong ky lich 7 ngay.
+        AddWeeklyContinuousRestConstraints(model, x, activeEmployees, period, fixedShifts);
+
         AddWorkloadObjective(model, x, activeEmployees);
 
         return (model, x);
@@ -236,6 +240,82 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
                 }
                 model.Add(LinearExpr.Sum(ftDayVars) <= 6);
             }
+        }
+    }
+
+    private static void AddWeeklyContinuousRestConstraints(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        SchedulePeriod period,
+        List<ShiftType> fixedShifts)
+    {
+        var minRestHours = SchedulingRuleConstants.MinimumWeeklyContinuousRestHours;
+        var periodStart = period.WeekStartDate.ToDateTime(TimeOnly.MinValue);
+        var periodEnd = periodStart.AddDays(7);
+
+        var candidateStarts = new HashSet<DateTime> { periodStart };
+        for (int d = 0; d < 7; d++)
+        {
+            var workDate = period.WeekStartDate.AddDays(d);
+            foreach (var shift in fixedShifts)
+            {
+                var shiftEnd = workDate.ToDateTime(shift.EndTime);
+                if (shift.EndTime <= shift.StartTime)
+                {
+                    shiftEnd = shiftEnd.AddDays(1);
+                }
+                candidateStarts.Add(shiftEnd);
+            }
+        }
+
+        var candidateWindows = new List<(DateTime Start, DateTime End)>();
+        foreach (var start in candidateStarts.OrderBy(t => t))
+        {
+            var end = start.AddHours(minRestHours);
+            if (end <= periodEnd)
+            {
+                candidateWindows.Add((start, end));
+            }
+        }
+
+        if (candidateWindows.Count == 0)
+        {
+            return;
+        }
+
+        int empCount = activeEmployees.Count;
+        for (int e = 0; e < empCount; e++)
+        {
+            var windowVars = new List<BoolVar>();
+            for (int k = 0; k < candidateWindows.Count; k++)
+            {
+                var (winStart, winEnd) = candidateWindows[k];
+                var winVar = model.NewBoolVar($"rest_win_{e}_{k}");
+                windowVars.Add(winVar);
+
+                for (int d = 0; d < 7; d++)
+                {
+                    var workDate = period.WeekStartDate.AddDays(d);
+                    for (int s = 0; s < 3; s++)
+                    {
+                        var shift = fixedShifts[s];
+                        var shiftStart = workDate.ToDateTime(shift.StartTime);
+                        var shiftEnd = workDate.ToDateTime(shift.EndTime);
+                        if (shiftEnd <= shiftStart)
+                        {
+                            shiftEnd = shiftEnd.AddDays(1);
+                        }
+
+                        if (shiftStart < winEnd && shiftEnd > winStart)
+                        {
+                            model.Add(x[e, d, s] == 0).OnlyEnforceIf(winVar);
+                        }
+                    }
+                }
+            }
+
+            model.AddBoolOr(windowVars);
         }
     }
 
