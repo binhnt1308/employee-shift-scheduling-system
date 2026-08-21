@@ -143,7 +143,7 @@
                                   data-prevent-double-submit="true">
                                 <input type="hidden"
                                        name="isLocked"
-                                       value="@(!account.IsLocked).ToString().ToLowerInvariant()" />
+                                       value="@(account.IsLocked ? "false" : "true")" />
                                 <button type="submit"
                                         class="btn btn-sm
                                         @(account.IsLocked ? "btn-outline-success" : "btn-outline-danger")"
