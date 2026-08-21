@@ -411,5 +411,11 @@ public sealed class WorkReportServiceTests
         public Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
             CancellationToken cancellationToken = default) =>
             Task.FromResult(PublishedSchedule);
+
+        public Task<bool> HasFuturePublishedAssignmentAsync(
+            int employeeId,
+            DateOnly fromDate,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
     }
 }

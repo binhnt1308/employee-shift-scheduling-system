@@ -8,6 +8,7 @@ public static class ErrorCodes
     public const string LastActiveAdmin = "LAST_ACTIVE_ADMIN";
     public const string SelfAccountChange = "SELF_ACCOUNT_CHANGE";
     public const string EmployeeNotFound = "EMPLOYEE_NOT_FOUND";
+    public const string EmployeeHasFutureAssignments = "EMPLOYEE_HAS_FUTURE_ASSIGNMENTS";
     public const string DuplicateEmployeeCode = "DUPLICATE_EMPLOYEE_CODE";
     public const string DuplicateEmployeeEmail = "DUPLICATE_EMPLOYEE_EMAIL";
     public const string InvalidEmployeeDate = "INVALID_EMPLOYEE_DATE";

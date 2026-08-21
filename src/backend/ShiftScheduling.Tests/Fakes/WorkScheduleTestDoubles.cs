@@ -122,6 +122,19 @@ internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
             .ThenByDescending(s => s.WorkScheduleId)
             .FirstOrDefault());
     }
+
+    public Task<bool> HasFuturePublishedAssignmentAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var hasFuture = Schedules
+            .Where(ws => ws.Status == ScheduleStatus.Published)
+            .SelectMany(ws => ws.ShiftAssignments)
+            .Any(sa => sa.EmployeeId == employeeId && sa.WorkDate >= fromDate);
+
+        return Task.FromResult(hasFuture);
+    }
 }
 
 internal sealed class FakeAvailabilityRepository : IAvailabilityRepository

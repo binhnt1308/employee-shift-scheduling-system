@@ -39,4 +39,9 @@ public interface IWorkScheduleRepository
 
     Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
         CancellationToken cancellationToken = default);
+
+    Task<bool> HasFuturePublishedAssignmentAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default);
 }

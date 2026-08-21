@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.Employees.Repositories;
+using ShiftScheduling.Features.WorkSchedules.Repositories;
 using ShiftScheduling.Infrastructure.Persistence;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
@@ -17,6 +18,7 @@ public sealed class EmployeeService : IEmployeeService
     private const int MaxPageSize = 50;
 
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IWorkScheduleRepository _workScheduleRepository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -27,12 +29,14 @@ public sealed class EmployeeService : IEmployeeService
     /// </summary>
     public EmployeeService(
         IEmployeeRepository employeeRepository,
+        IWorkScheduleRepository workScheduleRepository,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<EmployeeService> logger)
     {
         _employeeRepository = employeeRepository;
+        _workScheduleRepository = workScheduleRepository;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -140,6 +144,21 @@ public sealed class EmployeeService : IEmployeeService
         if (employee is null)
         {
             return ServiceResult.Failure(ErrorCodes.EmployeeNotFound, "Không tìm thấy nhân viên.");
+        }
+
+        if (!isActive)
+        {
+            var hasFuturePublished = await _workScheduleRepository.HasFuturePublishedAssignmentAsync(
+                employeeId,
+                _clock.TodayInVietnam,
+                cancellationToken);
+
+            if (hasFuturePublished)
+            {
+                return ServiceResult.Failure(
+                    ErrorCodes.EmployeeHasFutureAssignments,
+                    "Không thể ngừng hoạt động nhân viên vì vẫn còn ca làm từ hôm nay trở đi trong lịch đã công bố. Vui lòng điều chỉnh lịch trước.");
+            }
         }
 
         // BR02: Khong xoa ho so da co lich su, chi thay doi trang thai hoat dong.

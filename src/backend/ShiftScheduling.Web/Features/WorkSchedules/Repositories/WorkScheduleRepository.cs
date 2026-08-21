@@ -163,4 +163,17 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
             .ThenByDescending(ws => ws.WorkScheduleId)
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public Task<bool> HasFuturePublishedAssignmentAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.ShiftAssignments
+            .AsNoTracking()
+            .AnyAsync(sa => sa.EmployeeId == employeeId
+                && sa.WorkDate >= fromDate
+                && sa.WorkSchedule.Status == ScheduleStatus.Published,
+                cancellationToken);
+    }
 }
