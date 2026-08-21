@@ -245,15 +245,23 @@ public sealed class OrToolsSchedulingServiceTests
 
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = morning.ShiftTypeId, ShiftType = morning,
-                RequiredSalesStaff = 1, RequiredCashiers = 0,
-                RequiredExperiencedStaff = 1, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = morning.ShiftTypeId,
+                ShiftType = morning,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 1,
+                MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = evening.ShiftTypeId, ShiftType = evening,
-                RequiredSalesStaff = 1, RequiredCashiers = 0,
-                RequiredExperiencedStaff = 1, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = evening.ShiftTypeId,
+                ShiftType = evening,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 1,
+                MinimumLevel = EmployeeLevel.Level2
             });
         }
 
@@ -275,11 +283,17 @@ public sealed class OrToolsSchedulingServiceTests
 
             validAlternativeAssignments.Add(new ShiftAssignment
             {
-                EmployeeId = 1, WorkDate = date, ShiftTypeId = emp1Shift.ShiftTypeId, Source = AssignmentSource.Manual
+                EmployeeId = 1,
+                WorkDate = date,
+                ShiftTypeId = emp1Shift.ShiftTypeId,
+                Source = AssignmentSource.Manual
             });
             validAlternativeAssignments.Add(new ShiftAssignment
             {
-                EmployeeId = 2, WorkDate = date, ShiftTypeId = emp2Shift.ShiftTypeId, Source = AssignmentSource.Manual
+                EmployeeId = 2,
+                WorkDate = date,
+                ShiftTypeId = emp2Shift.ShiftTypeId,
+                Source = AssignmentSource.Manual
             });
         }
 
