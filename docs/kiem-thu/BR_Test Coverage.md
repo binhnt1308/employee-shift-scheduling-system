@@ -1,3 +1,8 @@
+# Business Rule Test Coverage - Tuần 7
+
+Mục tiêu: theo dõi mức độ bao phủ kiểm thử của các Business Rule hiện hành,
+đồng thời truy vết từ Business Rule đến testcase tài liệu và automated test tương ứng.
+
 ### Quy ước hai hệ mã BR
 
 Project hiện có mã BR nội bộ trong source/test và mã BRD gốc ở một số quy tắc không trùng số.
@@ -70,5 +75,4 @@ không được chỉ dựa vào tên automated test để tuyên bố BR đã �
 ## 4. Quan hệ với ma trận truy vết
 
 - File này trả lời: **mỗi BR đã được kiểm bằng testcase nào và test tự động nào?**
-- `matran-truyvet.md` trả lời rộng hơn: **mỗi FR/BR trong SRS được testcase nào phủ và kết quả lần chạy gần nhất là gì?**
-
+- `matrantruyvet.md` trả lời rộng hơn: **mỗi FR/BR trong SRS được testcase nào phủ và kết quả lần chạy gần nhất là gì?**
