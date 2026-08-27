@@ -230,13 +230,21 @@ Các luồng chính đã được kiểm tra:
 
 ## Cài đặt và chạy
 
+> **Lưu ý cấu hình:** File `src/backend/ShiftScheduling.Web/appsettings.Example.json` chỉ là mẫu tham khảo và không được ASP.NET Core tự động nạp. Hãy cấu hình chuỗi kết nối bằng User Secrets trước khi chạy migration và khởi động ứng dụng.
+
 ### 1. Restore package
 
 ```powershell
 dotnet restore src/backend/ShiftScheduling.sln
 ```
 
-### 2. Build
+### 2. Cấu hình chuỗi kết nối
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
+```
+
+### 3. Build
 
 ```powershell
 dotnet build src/backend/ShiftScheduling.sln `
@@ -244,7 +252,7 @@ dotnet build src/backend/ShiftScheduling.sln `
   --warnaserror
 ```
 
-### 3. Cập nhật database
+### 4. Cập nhật database
 
 ```powershell
 dotnet ef database update `
@@ -257,7 +265,7 @@ Nếu chưa có Entity Framework CLI:
 dotnet tool install --global dotnet-ef
 ```
 
-### 4. Chạy ứng dụng
+### 5. Chạy ứng dụng
 
 ```powershell
 dotnet run `
