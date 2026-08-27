@@ -135,14 +135,14 @@ public sealed class WorkScheduleManualAuditTests
         int employeeId,
         DateOnly workDate,
         int shiftTypeId) => new()
-    {
-        ShiftAssignmentId = assignmentId,
-        WorkScheduleId = workScheduleId,
-        EmployeeId = employeeId,
-        WorkDate = workDate,
-        ShiftTypeId = shiftTypeId,
-        Source = AssignmentSource.Manual
-    };
+        {
+            ShiftAssignmentId = assignmentId,
+            WorkScheduleId = workScheduleId,
+            EmployeeId = employeeId,
+            WorkDate = workDate,
+            ShiftTypeId = shiftTypeId,
+            Source = AssignmentSource.Manual
+        };
 
     private static ManualRemoveRequestViewModel CreateRemoveModel(int schedulePeriodId, int assignmentId) => new()
     {
