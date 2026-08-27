@@ -15,6 +15,7 @@ using ShiftScheduling.Features.Employees.Repositories;
 using ShiftScheduling.Features.Employees.Services;
 using ShiftScheduling.Features.LeaveRequests.Repositories;
 using ShiftScheduling.Features.LeaveRequests.Services;
+using ShiftScheduling.Features.Notifications.Services;
 using ShiftScheduling.Features.ShiftTransfers.Repositories;
 using ShiftScheduling.Features.ShiftTransfers.Services;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
@@ -95,6 +96,7 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     ShiftScheduling.Features.Reports.Services.IWorkReportService,
     ShiftScheduling.Features.Reports.Services.WorkReportService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 
 builder.Services

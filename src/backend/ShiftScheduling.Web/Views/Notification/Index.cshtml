@@ -1,0 +1,113 @@
+@model ShiftScheduling.Features.Notifications.ViewModels.NotificationIndexViewModel
+
+@{
+    ViewData["Title"] = "Thông báo của tôi";
+}
+
+<div class="container-fluid py-3 px-lg-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="fa-solid fa-bell text-primary me-2"></i>Thông báo của tôi
+            </h1>
+            <p class="text-muted mb-0">
+                Theo dõi các thông báo về ca làm việc, lịch công bố, đơn xin nghỉ và yêu cầu đổi ca.
+            </p>
+        </div>
+        @if (Model.UnreadCount > 0)
+        {
+            <form asp-controller="Notification" asp-action="MarkAllAsRead" method="post">
+                <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-check-double me-1"></i> Đánh dấu tất cả đã đọc
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (Model.Notifications.Items.Count == 0)
+    {
+        <div class="card shadow-sm border-0 py-5 text-center my-4">
+            <div class="card-body">
+                <div class="text-muted mb-3">
+                    <i class="fa-regular fa-bell-slash fa-4x text-black-50"></i>
+                </div>
+                <h5 class="fw-semibold text-secondary">Bạn chưa có thông báo nào</h5>
+                <p class="text-muted mb-0">Khi có cập nhật mới về lịch hoặc đơn từ, thông báo sẽ hiển thị tại đây.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="list-group list-group-flush">
+                @foreach (var item in Model.Notifications.Items)
+                {
+                    <div class="list-group-item p-3 @(item.IsRead ? "bg-white" : "bg-light bg-opacity-50 border-start border-primary border-3")">
+                        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="mb-0 fw-bold @(item.IsRead ? "text-dark" : "text-primary")">
+                                        @item.Title
+                                    </h6>
+                                    @if (!item.IsRead)
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.7rem;">Mới</span>
+                                    }
+                                </div>
+                                <p class="mb-2 text-secondary" style="font-size: 0.95rem;">
+                                    @item.Content
+                                </p>
+                                <div class="d-flex align-items-center gap-3 text-muted small">
+                                    <span><i class="fa-regular fa-clock me-1"></i>@item.CreatedAtFormatted</span>
+                                    @if (item.TargetController != "Notification")
+                                    {
+                                        <a asp-controller="@item.TargetController"
+                                           asp-action="@item.TargetAction"
+                                           asp-route-id="@item.TargetId"
+                                           class="text-decoration-none fw-medium text-primary">
+                                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Xem chi tiết
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            @if (!item.IsRead)
+                            {
+                                <form asp-controller="Notification" asp-action="MarkAsRead" method="post" class="ms-auto">
+                                    <input type="hidden" name="notificationId" value="@item.NotificationId" />
+                                    <input type="hidden" name="page" value="@Model.Notifications.Page" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Đánh dấu đã đọc">
+                                        <i class="fa-solid fa-check me-1"></i> Đã đọc
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (Model.Notifications.TotalPages > 1)
+        {
+            <nav aria-label="Phân trang thông báo" class="d-flex justify-content-center mt-3">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item @(Model.Notifications.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" asp-controller="Notification" asp-action="Index" asp-route-page="@(Model.Notifications.Page - 1)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    @for (var p = 1; p <= Model.Notifications.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Notifications.Page ? "active" : "")">
+                            <a class="page-link" asp-controller="Notification" asp-action="Index" asp-route-page="@p">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Notifications.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" asp-controller="Notification" asp-action="Index" asp-route-page="@(Model.Notifications.Page + 1)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>

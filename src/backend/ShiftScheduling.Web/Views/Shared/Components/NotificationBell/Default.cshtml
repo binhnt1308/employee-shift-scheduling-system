@@ -1,0 +1,21 @@
+@model int
+
+@{
+    var unreadCount = Model;
+    var badgeText = unreadCount > 99 ? "99+" : unreadCount.ToString();
+}
+
+<a class="nav-link nav-link-custom position-relative px-2 d-flex align-items-center"
+   asp-controller="Notification"
+   asp-action="Index"
+   title="Thông báo">
+    <i class="fa-solid fa-bell fs-5"></i>
+    @if (unreadCount > 0)
+    {
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light"
+              style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+            @badgeText
+            <span class="visually-hidden">thông báo chưa đọc</span>
+        </span>
+    }
+</a>

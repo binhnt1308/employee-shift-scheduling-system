@@ -47,4 +47,5 @@ public static class ErrorCodes
     public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
     public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
+    public const string NotificationNotFound = "NOTIFICATION_NOT_FOUND";
 }

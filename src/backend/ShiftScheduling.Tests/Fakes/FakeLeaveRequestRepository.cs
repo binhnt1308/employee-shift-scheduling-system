@@ -10,9 +10,17 @@ internal sealed class FakeNotificationRepository : INotificationRepository
 {
     public List<Notification> Items { get; } = [];
     public List<int> ManagerAccountIds { get; } = [];
+    public int GetUnreadCountCallCount { get; private set; }
 
     public void Add(Notification notification)
     {
+        if (notification.NotificationId == 0)
+        {
+            notification.NotificationId = Items.Count == 0
+                ? 1
+                : Items.Max(item => item.NotificationId) + 1;
+        }
+
         Items.Add(notification);
     }
 
@@ -20,6 +28,56 @@ internal sealed class FakeNotificationRepository : INotificationRepository
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IReadOnlyList<int>>(ManagerAccountIds);
+    }
+
+    public Task<PagedResult<Notification>> GetPagedByReceiverAccountIdAsync(
+        int receiverAccountId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var filtered = Items
+            .Where(n => n.ReceiverAccountId == receiverAccountId)
+            .OrderByDescending(n => n.CreatedAt)
+            .ThenByDescending(n => n.NotificationId)
+            .ToList();
+
+        var totalItems = filtered.Count;
+        var pagedItems = filtered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<Notification>(pagedItems, page, pageSize, totalItems));
+    }
+
+    public Task<int> GetUnreadCountByReceiverAccountIdAsync(
+        int receiverAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        GetUnreadCountCallCount++;
+        var count = Items.Count(n => n.ReceiverAccountId == receiverAccountId && !n.IsRead);
+        return Task.FromResult(count);
+    }
+
+    public Task<Notification?> GetByIdAndReceiverAccountIdAsync(
+        int notificationId,
+        int receiverAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        var item = Items.FirstOrDefault(
+            n => n.NotificationId == notificationId && n.ReceiverAccountId == receiverAccountId);
+        return Task.FromResult(item);
+    }
+
+    public Task<IReadOnlyList<Notification>> GetUnreadByReceiverAccountIdAsync(
+        int receiverAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        var unread = Items
+            .Where(n => n.ReceiverAccountId == receiverAccountId && !n.IsRead)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<Notification>>(unread);
     }
 }
 
