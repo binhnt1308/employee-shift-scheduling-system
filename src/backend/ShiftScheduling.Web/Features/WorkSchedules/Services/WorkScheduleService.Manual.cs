@@ -262,8 +262,27 @@ public partial class WorkScheduleService
         var newList = schedule.ShiftAssignments.Where(a => a.ShiftAssignmentId != model.ShiftAssignmentId)
             .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId, a.Source)).ToList();
 
+        var now = _clock.UtcNow;
         await _workScheduleRepository.SaveAssignmentsAsync(
-            schedule.WorkScheduleId, newList, _clock.UtcNow, cancellationToken);
+            schedule.WorkScheduleId, newList, now, cancellationToken);
+        _auditLogRepository.Add(AuditLogFactory.Create(
+            accountId,
+            "MANUAL_REMOVE_EMPLOYEE",
+            nameof(ShiftAssignment),
+            assignment.ShiftAssignmentId.ToString(),
+            new
+            {
+                schedule.SchedulePeriodId,
+                schedule.WorkScheduleId,
+                assignment.ShiftAssignmentId,
+                assignment.EmployeeId,
+                assignment.WorkDate,
+                assignment.ShiftTypeId,
+                assignment.Source
+            },
+            null,
+            now));
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Success();
     }
