@@ -251,13 +251,20 @@ public sealed partial class ShiftTransferService
             AddFullTimeRuleErrors(projectedAssignments, errors);
         }
 
-        // BR20, BR21: Kiểm tra quy tắc nghỉ tối thiểu 12h giữa ca cuối ngày D và ca đầu ngày D+1,
-        // và 24h liên tục trong kỳ lịch.
         var shiftTypeMap = projectedAssignments
             .Where(a => a.ShiftType is not null)
             .GroupBy(a => a.ShiftTypeId)
             .ToDictionary(g => g.Key, g => g.First().ShiftType);
         var weekStartDate = target.WorkSchedule.SchedulePeriod.WeekStartDate;
+        var weekEndDate = target.WorkSchedule.SchedulePeriod.WeekEndDate;
+
+        // BR-05: Tổng giờ làm trong tuần không được vượt trần theo loại hợp đồng.
+        var hoursErrors = WeeklyWorkHoursRuleEvaluator.EvaluateWeeklyWorkHours(
+            receiver, projectedAssignments, shiftTypeMap, weekStartDate, weekEndDate);
+        errors.AddRange(hoursErrors);
+
+        // BR20, BR21: Kiểm tra quy tắc nghỉ tối thiểu 12h giữa ca cuối ngày D và ca đầu ngày D+1,
+        // và 24h liên tục trong kỳ lịch.
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             receiver, projectedAssignments, shiftTypeMap, weekStartDate);
         errors.AddRange(restErrors);

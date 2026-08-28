@@ -226,6 +226,7 @@ internal sealed class ShiftTransferTestContext
             ShiftName = name,
             StartTime = new TimeOnly(startHour, 0),
             EndTime = new TimeOnly(endHour, 0),
+            DurationHours = endHour >= startHour ? (endHour - startHour) : (endHour + 24 - startHour),
             DisplayOrder = id,
             IsActive = true
         };

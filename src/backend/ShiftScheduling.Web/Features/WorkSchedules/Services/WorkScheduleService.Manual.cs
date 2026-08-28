@@ -210,6 +210,13 @@ public partial class WorkScheduleService
             return (false, ServiceResult.Failure(ErrorCodes.InvalidShiftAssignment, empValidationErrors.First()));
 
         var shiftTypeMap = allShifts.ToDictionary(s => s.ShiftTypeId);
+
+        // BR-05: Tổng giờ làm trong tuần không được vượt trần theo loại hợp đồng.
+        var hoursErrors = WeeklyWorkHoursRuleEvaluator.EvaluateWeeklyWorkHours(
+            employee, userAssigns, shiftTypeMap, period.WeekStartDate, period.WeekEndDate);
+        if (hoursErrors.Count > 0)
+            return (false, ServiceResult.Failure(ErrorCodes.InvalidShiftAssignment, hoursErrors.First()));
+
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             employee, userAssigns, shiftTypeMap, period.WeekStartDate);
         if (restErrors.Count > 0)
