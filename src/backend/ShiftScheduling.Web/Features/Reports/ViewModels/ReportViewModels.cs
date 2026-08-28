@@ -20,6 +20,30 @@ public sealed class WorkReportRowItemViewModel
     public bool IsTargetMet { get; set; }
 }
 
+public sealed class ShiftCoverageSummaryViewModel
+{
+    public int TotalRequiredSlots { get; set; }
+    public int TotalCoveredSlots { get; set; }
+
+    public int RequiredSalesSlots { get; set; }
+    public int CoveredSalesSlots { get; set; }
+
+    public int RequiredCashierSlots { get; set; }
+    public int CoveredCashierSlots { get; set; }
+
+    public decimal? CoverageRate { get; set; }
+
+    public bool HasRequirements => TotalRequiredSlots > 0;
+
+    public bool IsFullyCovered =>
+        HasRequirements && TotalCoveredSlots == TotalRequiredSlots;
+
+    public string FormattedCoverageRate =>
+        CoverageRate.HasValue
+            ? $"{CoverageRate.Value:0.#}%"
+            : "Không áp dụng";
+}
+
 public sealed class ManagerWorkReportOverviewViewModel
 {
     public int SchedulePeriodId { get; set; }
@@ -32,6 +56,7 @@ public sealed class ManagerWorkReportOverviewViewModel
     public List<ReportPeriodOptionViewModel> PeriodOptions { get; set; } = new();
     public List<ReportEmployeeOptionViewModel> EmployeeOptions { get; set; } = new();
     public List<WorkReportRowItemViewModel> Rows { get; set; } = new();
+    public ShiftCoverageSummaryViewModel? CoverageSummary { get; set; }
 }
 
 public sealed class EmployeeWorkReportOverviewViewModel

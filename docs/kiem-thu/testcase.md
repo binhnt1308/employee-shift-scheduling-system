@@ -179,6 +179,21 @@ HTTP method, URL và HTTP status **không tạo thành cột mới**; chúng đ�
 | **TC-ROLE-EMPLOYEE-001** | Employee – endpoint ngoài quyền | Employee không vào module quản lý. | Employee đăng nhập. | GET `/Employee` hoặc `/SchedulePeriod`. | 1. Login Employee. 2. Gọi URL. 3. Ghi response. | **HTTP 302** tới AccessDenied; không lộ dữ liệu quản trị. | HTTP 302; Location=/Account/AccessDenied?ReturnUrl=%2FEmployee; Employee bị chặn truy cập danh sách nhân viên. | Pass — 15/08/2026 — commit 779e73d |
 | **TC-ROLE-EMPLOYEE-002** | Employee – IDOR record khác | Employee A không xem LeaveRequest của B. | A đăng nhập; có LeaveRequestId thuộc B. | GET `/LeaveRequest/Details/<id-cua-B>`. | 1. A login. 2. Đổi id sang request B. 3. Ghi HTTP/body. | **HTTP 404 Not Found**; không hiển thị tên/lý do/ngày/ca/trạng thái của B. | HTTP 404 Not Found; Employee không thể xem chi tiết đơn xin nghỉ của nhân viên khác. | Pass — 15/08/2026 — commit 779e73d |
 
+### 2.4. Test case chỉ số tổng hợp tỷ lệ phủ ca — NC-08
+
+| Mã TC | Chức năng / UC | Mục tiêu | Tiền điều kiện | Dữ liệu đầu vào | Các bước thực hiện | Kết quả mong đợi | Kết quả thực tế | Trạng thái |
+|---|---|---|---|---|---|---|---|---|
+| **TC-NC08-001** | NC-08 / UC11 – Tỷ lệ phủ ca | Đạt 100% khi phủ đủ 42/42 slot định biên trong tuần. | Manager đăng nhập; kỳ lịch có 42 slot định biên; lịch Published đủ 42 phân công đúng vị trí. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Chọn kỳ lịch 1. 3. Kiểm tra thẻ tỷ lệ phủ ca. | **HTTP 200**; `CoverageSummary` có `TotalRequiredSlots=42`, `TotalCoveredSlots=42`, `CoverageRate=100%`, `IsFullyCovered=true`, progress bar màu xanh `bg-success`. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-002** | NC-08 / UC11 – Tỷ lệ phủ ca | Đạt 50% khi phủ được 21/42 slot định biên (chỉ đủ Tư vấn, thiếu toàn bộ Thu ngân). | Manager đăng nhập; kỳ lịch 42 slot; chỉ phân công 21 Tư vấn. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Chọn kỳ lịch 1. 3. Xem tổng quan độ phủ. | **HTTP 200**; `TotalRequiredSlots=42`, `TotalCoveredSlots=21`, `CoveredSalesSlots=21`, `CoveredCashierSlots=0`, `CoverageRate=50%`, `IsFullyCovered=false`, progress bar màu vàng `bg-warning`. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-003** | NC-08 / UC11 – Chặn trần 100% | Phân công dư nhân sự ở một ca không làm tỷ lệ vượt quá 100%. | Manager đăng nhập; ca yêu cầu 1 Tư vấn, 0 Thu ngân; xếp 3 Tư vấn cùng ca. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Xem tỷ lệ phủ. | **HTTP 200**; `TotalRequiredSlots=1`, `TotalCoveredSlots=1`, `CoveredSalesSlots=1`, `CoverageRate=100%`, `IsFullyCovered=true`, không vượt quá 100%. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-004** | NC-08 / UC11 – Chống bù chéo vị trí | Dư nhân viên Tư vấn không bù cho vị trí Thu ngân bị thiếu cùng ca. | Manager đăng nhập; ca cần 1 Tư vấn + 1 Thu ngân; xếp 2 Tư vấn + 0 Thu ngân. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Kiểm tra slot từng vị trí. | **HTTP 200**; `CoveredSalesSlots=1`, `CoveredCashierSlots=0`, `TotalCoveredSlots=1/2`, `CoverageRate=50%`. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-005** | NC-08 / UC11 – Chống bù chéo ca | Dư nhân viên ở Ca 1 không bù cho Ca 2 bị thiếu nhân sự. | Manager đăng nhập; Ca 1 cần 1 Tư vấn xếp 2; Ca 2 cần 1 Tư vấn xếp 0. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Kiểm tra tổng slot phủ. | **HTTP 200**; `TotalCoveredSlots=1/2`, `CoverageRate=50%` (không tính 2/2 = 100%). | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-006** | NC-08 / UC11 – Không có định biên | Kỳ lịch không có yêu cầu định biên hiển thị 'Không áp dụng'. | Manager đăng nhập; kỳ lịch có `StaffingRequirements` rỗng (0 slot). | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Kiểm tra tỷ lệ. | **HTTP 200**; `CoverageRate=null`, `HasRequirements=false`, hiển thị text 'Không áp dụng' và badge `bg-secondary`. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-007** | NC-08 / UC11 – Chưa công bố lịch | Chưa có lịch Published thì không tính và không hiển thị thẻ coverage. | Manager đăng nhập; kỳ lịch chỉ có Draft/Preparing, chưa có Published schedule. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Kiểm tra giao diện. | **HTTP 200**; `CoverageSummary=null`, giữ nguyên empty state báo cáo chưa có lịch công bố. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-008** | NC-08 / UC11 – Tính độc lập bộ lọc | Bộ lọc nhân viên/vị trí trên bảng không làm thay đổi tỷ lệ phủ toàn kỳ. | Manager đăng nhập; kỳ lịch có 42 slot; lọc theo EmployeeId hoặc Position=Cashier. | GET `/Report/Index?schedulePeriodId=1&employeeId=2`. | 1. Áp dụng bộ lọc nhân viên. 2. Đối chiếu `CoverageSummary`. | **HTTP 200**; Bảng nhân viên hiển thị 1 dòng lọc; thẻ `CoverageSummary` giữ nguyên 100% của toàn kỳ lịch. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-009** | NC-08 / UC11 – Đổi ca (Shift Transfer) | Ca được chuyển nhượng thành công vẫn chỉ tính đúng 1 slot đã phủ. | Manager đăng nhập; ca có assignment nguồn gốc `ShiftTransfer`. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Xem số slot phủ. | **HTTP 200**; `TotalCoveredSlots` tăng đúng 1 slot, không đếm trùng người gửi và người nhận. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+| **TC-NC08-010** | NC-08 / UC11 – Phạm vi ngày-ca | Chỉ assignment thuộc đúng ngày-ca trong kỳ lịch mới được tính vào độ phủ. | Manager đăng nhập; có assignment nằm ngoài khoảng ngày của kỳ lịch. | GET `/Report/Index?schedulePeriodId=1`. | 1. Mở báo cáo Manager. 2. Xem tổng slot phủ. | **HTTP 200**; Assignment ngoài khoảng ngày không được tính vào `TotalCoveredSlots`. | Chưa chạy — cập nhật sau commit | Chưa chạy — cập nhật sau commit |
+
 ## 3. Tổng hợp
 
 | Nội dung | Kết quả |
@@ -186,13 +201,15 @@ HTTP method, URL và HTTP status **không tạo thành cột mới**; chúng đ�
 | Test case chính UC / BR / regression | 60 |
 | Test case âm TC-11 | 84 |
 | Test case phân quyền TC-12 | 6 |
-| **Tổng số test case tài liệu** | **150** |
+| Test case tỷ lệ phủ ca NC-08 | 10 |
+| **Tổng số test case tài liệu** | **160** |
 | Pass | 145 |
 | Fail | 0 |
 | Blocked | 5 |
+| Chưa chạy (NC-08) | 10 |
 
 ## 4. Kết luận
 
-Bộ test case đã được nâng cấp theo yêu cầu Tuần 6. Các kết quả mong đợi đều nêu HTTP status, trạng thái dữ liệu hoặc hành vi có thể kiểm tra. BR20 và BR21 đã được bổ sung vào các luồng phân công, công bố và chuyển ca phù hợp. Các regression liên quan OR-Tools Proposal-only, `ShiftType.DurationHours`, xử lý UTC/Vietnam time, optimistic concurrency và Vietnamese collation cũng đã được thêm.
+Bộ test case đã được nâng cấp theo yêu cầu Tuần 6 và bổ sung các trường hợp kiểm thử cho chỉ số tỷ lệ phủ ca (NC-08). Các kết quả mong đợi đều nêu HTTP status, trạng thái dữ liệu hoặc hành vi có thể kiểm tra. BR20 và BR21 đã được bổ sung vào các luồng phân công, công bố và chuyển ca phù hợp. Các regression liên quan OR-Tools Proposal-only, `ShiftType.DurationHours`, xử lý UTC/Vietnam time, optimistic concurrency và Vietnamese collation cũng đã được thêm.
 
-Bộ test case Tuần 6 đã được thực thi và đối chiếu với HTTP/runtime trên commit 779e73d. Các test case Pass đã có kết quả thực tế; các trường hợp concurrency chưa chốt contract được giữ ở trạng thái Blocked và ghi EXPECTED_RESULT_REVIEW_REQUIRED.
+Bộ test case Tuần 6 đã được thực thi và đối chiếu với HTTP/runtime trên commit 779e73d. Các test case Pass đã có kết quả thực tế; các trường hợp concurrency chưa chốt contract được giữ ở trạng thái Blocked và ghi EXPECTED_RESULT_REVIEW_REQUIRED. Các test case NC-08 mới bổ sung ở trạng thái chờ cập nhật kết quả sau commit.
