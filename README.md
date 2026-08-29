@@ -95,7 +95,7 @@ Employee xem lịch
 | UC06 | Sinh lịch bằng Google OR-Tools | ✅ Hoàn thành |
 | UC07 | Duyệt và công bố lịch | ✅ Hoàn thành |
 | UC08 | Xem lịch làm việc cá nhân | ✅ Hoàn thành |
-| UC09 | Quản lý đơn xin nghỉ | ✅ Hoàn thành |
+| UC09 | Quản lý đơn xin nghỉ | ✅ Hoàn thành một phần |
 | UC10 | Quản lý yêu cầu đổi ca | ✅ Hoàn thành |
 | UC11 | Báo cáo số ca và giờ làm | ✅ Hoàn thành |
 
@@ -201,6 +201,8 @@ Features/
 
 ## Kiểm thử gần nhất
 
+Automated test được chạy trên branch `tuan-08`.
+
 ```text
 Build:
 0 warnings
@@ -212,6 +214,59 @@ Tests:
 0 failed
 0 skipped
 ```
+
+Các nhóm kiểm thử chính:
+
+- Authentication và Authorization.
+- Employee lifecycle.
+- Kỳ lịch và ba ca làm việc trong ngày.
+- Availability.
+- Phân công thủ công.
+- Quy tắc Part-time / Full-time.
+- BR20 — nghỉ tối thiểu 12 giờ.
+- BR21 — nghỉ liên tục tối thiểu 24 giờ.
+- OR-Tools:
+  - Phương án khả thi.
+  - INFEASIBLE.
+  - Proposal-only.
+  - Không tự động Publish.
+- Publish validation.
+- Đơn xin nghỉ.
+- Đổi ca.
+- Báo cáo và xuất CSV.
+- Concurrency.
+- Các trường hợp biên ngày tháng.
+
+> **Lưu ý:** Kết quả automated test và kết quả kiểm thử HTTP/UI được quản lý độc lập. Không tự động xem testcase HTTP/UI là Pass chỉ vì automated test tương ứng đang Pass.
+
+### Tài liệu kiểm thử
+
+Các tài liệu kiểm thử chính:
+
+```text
+docs/kiem-thu/
+├── testcase.md
+├── matrantruyvet.md
+└── BR_Test Coverage.md
+```
+
+Trong đó:
+
+- `testcase.md`: Mô tả chi tiết các testcase chính.
+- `matrantruyvet.md`: Truy vết FR / BR → testcase theo TC-08.
+- `BR_Test Coverage.md`: Kiểm tra nhanh coverage theo từng Business Rule.
+
+### Kỹ thuật kiểm thử
+
+Các kỹ thuật kiểm thử được sử dụng:
+
+- Phân hoạch tương đương.
+- Phân tích giá trị biên.
+- Bảng quyết định.
+- Kiểm thử chuyển trạng thái.
+- Kiểm thử hồi quy.
+
+---
 
 Các luồng chính đã được kiểm tra:
 

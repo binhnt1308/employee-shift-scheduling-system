@@ -1,16 +1,23 @@
-# TEST CASES
+# TEST CASES — EMPLOYEE SHIFT SCHEDULING SYSTEM
 
-## 1. Mục đích
+## 1. Phạm vi và quy ước
 
-Tài liệu trình bày bộ test case dùng để kiểm tra các chức năng, quy tắc nghiệp vụ và các yêu cầu kiểm thử của hệ thống Employee Shift Scheduling & Workforce Management System.
+Tài liệu này tổng hợp toàn bộ các test case kiểm thử hệ thống xếp lịch ca làm việc và quản lý nhân sự (Employee Shift Scheduling System). Bộ test case được cập nhật cho Tuần 8 dựa trên đặc tả Use Case, các quy tắc nghiệp vụ hiện hành, góp ý của GVHD và các yêu cầu TC-04, TC-06, TC-11, TC-12, NC-08 (chỉ số tỷ lệ phủ ca), NC-01 / BR-05 (giới hạn trần tổng giờ làm việc trong tuần theo loại hợp đồng).
 
-Bộ test case được cập nhật cho Tuần 8 dựa trên đặc tả Use Case, các quy tắc nghiệp vụ hiện hành, góp ý của GVHD và các yêu cầu TC-04, TC-06, TC-11, TC-12, NC-08 (chỉ số tỷ lệ phủ ca), NC-01 / BR-05 (giới hạn trần tổng giờ làm việc trong tuần theo loại hợp đồng).
+**Mốc source hiện tại**
+- Branch: `tuan-08`
+- Automated test: **234/234 PASS, 0 Failed, 0 Skipped**
+- Lượt chạy test case thứ nhất: **190 test case (185 Pass, 5 Blocked, 0 Fail)**
+- Lượt HTTP/UI gần nhất còn lưu trong tài liệu: `15/08/2026` (commit `779e73d`) và `28/08/2026` (commit `992e885` / `c8505df`)
 
-**Lưu ý về cấu trúc:** toàn bộ bảng bên dưới giữ đúng 9 cột đang dùng trong báo cáo:
+### Quy ước mã testcase
+
+Mã testcase tài liệu giữ chuẩn `TC-<MODULE>-<NNN>` theo TC-02. Mã đã cấp không đổi và không tái sử dụng.
+Một số automated test trong source được tạo ở các giai đoạn trước nên còn dùng mã như `TC01-01`, `TC05-INT-01`, `TC-BR20-03`, `TC10-R11`... Các ma trận truy vết chi tiết FR/BR → testcase được quản lý riêng tại tệp `docs/kiem-thu/matrantruyvet.md` theo yêu cầu TC-08.
+
+Mỗi testcase giữ đúng 9 trường theo TC-03:
 
 `Mã TC` · `Chức năng / UC` · `Mục tiêu` · `Tiền điều kiện` · `Dữ liệu đầu vào` · `Các bước thực hiện` · `Kết quả mong đợi` · `Kết quả thực tế` · `Trạng thái`.
-
-HTTP method, URL và HTTP status **không tạo thành cột mới**; chúng được ghi trong `Dữ liệu đầu vào`, `Các bước thực hiện` và đặc biệt là `Kết quả mong đợi`.
 
 ## 2. Bảng test case
 
