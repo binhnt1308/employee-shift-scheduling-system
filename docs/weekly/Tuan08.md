@@ -68,12 +68,12 @@ Theo nội dung đã trao đổi, BR-09 về ngày lễ và QT-3/NC-11 về nhâ
 1. Em đã chạy thử hệ thống với một database mới và đăng nhập bằng đủ ba vai trò. Thầy cho em hỏi kết quả này đã được tính là kiểm thử tích hợp của Tuần 08 chưa, hay em cần viết thêm test tự động trong xUnit?
 2. Đối với BR-01, hệ thống hiện cho phép Quản lý chỉnh giờ bắt đầu và kết thúc của ba ca. Thầy cho em hỏi có cần cho phép thêm hoặc xóa ca để thay đổi số lượng ca trong ngày không?
 3. Đối với BR-10, ca tối hiện tại có thời gian từ 16:00 đến 20:00. Thầy cho em hỏi ca này có được tính là ca đêm không? Nếu có thì một nhân viên được làm liên tiếp tối đa bao nhiêu ca tối?
-4. Hệ thống hiện có hộp thư thông báo trong giao diện. Thầy cho em hỏi có bắt buộc phải bổ sung thêm Email hoặc SMS trong phạm vi nghiệm thu không?
-5. Xin thầy xác nhận chức năng quản lý ngày lễ và nhân bản kỳ lịch trước được phép chuyển sang phần cải tiến, không bắt buộc triển khai trong phiên bản nghiệm thu hiện tại.
+4. Hệ thống hiện có hộp thư thông báo trong giao diện. Thầy cho em hỏi có bắt buộc phải bổ sung thêm Email hoặc SMS trong phạm vi của đề tài không?
+
 
 ## 7. Kế hoạch tiếp theo
 
 - Tiếp thu phản hồi của GVHD.
 - Hoàn thiện các nội dung bắt buộc còn thiếu.
 - Đồng bộ báo cáo Word và tài liệu kiểm thử.
-- Hoàn tất Pull Request Tuần 08.
+
