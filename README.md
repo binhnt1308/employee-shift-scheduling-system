@@ -331,9 +331,7 @@ dotnet test src/backend/ShiftScheduling.sln `
 | --- | --- | --- |
 | Admin | `admin` | `admin123` |
 | Manager | `quanly` | `quanly123` |
-
-> Tài khoản Employee hiện được sử dụng trong dữ liệu kiểm thử.
-> Dữ liệu seed Employee chính thức sẽ được hoàn thiện sau.
+| Employee | `nhanvien` | `nhanvien123` |
 
 ---
 
