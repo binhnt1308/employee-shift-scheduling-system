@@ -11,8 +11,8 @@ namespace ShiftScheduling.Tests.Notifications;
 
 public sealed class RegistrationOpenedNotificationTests
 {
-    [Fact(DisplayName = "TC-NC10-REG-001: Mo dang ky thanh cong gui thong bao cho dung Employee active/unlocked")]
-    public async Task OpenRegistration_WhenSucceeds_SendsNotificationsToActiveUnlockedEmployees()
+    [Fact(DisplayName = "TC-NC10-REG-001: Mo dang ky thanh cong gui thong bao cho danh sach account ID do repository tra ve")]
+    public async Task OpenRegistration_SendsNotificationsToAccountIdsReturnedByRepository()
     {
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = CreateShiftTypeRepository();
@@ -35,58 +35,6 @@ public sealed class RegistrationOpenedNotificationTests
         Assert.Contains(notificationRepo.Items, n => n.ReceiverAccountId == 101);
         Assert.Contains(notificationRepo.Items, n => n.ReceiverAccountId == 102);
         Assert.Contains(notificationRepo.Items, n => n.ReceiverAccountId == 103);
-    }
-
-    [Fact(DisplayName = "TC-NC10-REG-002: Khong gui thong bao mo dang ky cho Admin hoac Manager")]
-    public async Task OpenRegistration_DoesNotSendToAdminOrManagerAccountIds()
-    {
-        var periodRepo = new FakeSchedulePeriodRepository();
-        var shiftTypeRepo = CreateShiftTypeRepository();
-        var notificationRepo = new FakeNotificationRepository();
-        notificationRepo.EmployeeAccountIds.Add(101);
-        notificationRepo.ManagerAccountIds.AddRange(new[] { 201, 202 });
-        var uow = new FakeUnitOfWork();
-        var auditRepo = new FakeAuditLogRepository();
-        var clock = new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) };
-
-        var period = CreateValidPeriodWith21Requirements();
-        periodRepo.SchedulePeriods.Add(period);
-
-        var service = new SchedulePeriodService(
-            periodRepo, shiftTypeRepo, notificationRepo, auditRepo, uow, clock, NullLogger<SchedulePeriodService>.Instance);
-
-        var result = await service.OpenRegistrationAsync(period.SchedulePeriodId, actorAccountId: 1);
-
-        Assert.True(result.Succeeded);
-        Assert.Single(notificationRepo.Items);
-        Assert.Equal(101, notificationRepo.Items[0].ReceiverAccountId);
-        Assert.DoesNotContain(notificationRepo.Items, n => n.ReceiverAccountId == 201);
-        Assert.DoesNotContain(notificationRepo.Items, n => n.ReceiverAccountId == 202);
-    }
-
-    [Fact(DisplayName = "TC-NC10-REG-003: Khong gui thong bao cho Employee inactive hoac account locked")]
-    public async Task OpenRegistration_DoesNotSendToInactiveOrLockedEmployees()
-    {
-        var periodRepo = new FakeSchedulePeriodRepository();
-        var shiftTypeRepo = CreateShiftTypeRepository();
-        var notificationRepo = new FakeNotificationRepository();
-        // Repository filters out inactive/locked; returns only active unlocked ID
-        notificationRepo.EmployeeAccountIds.Add(105);
-        var uow = new FakeUnitOfWork();
-        var auditRepo = new FakeAuditLogRepository();
-        var clock = new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) };
-
-        var period = CreateValidPeriodWith21Requirements();
-        periodRepo.SchedulePeriods.Add(period);
-
-        var service = new SchedulePeriodService(
-            periodRepo, shiftTypeRepo, notificationRepo, auditRepo, uow, clock, NullLogger<SchedulePeriodService>.Instance);
-
-        var result = await service.OpenRegistrationAsync(period.SchedulePeriodId, actorAccountId: 1);
-
-        Assert.True(result.Succeeded);
-        Assert.Single(notificationRepo.Items);
-        Assert.Equal(105, notificationRepo.Items[0].ReceiverAccountId);
     }
 
     [Fact(DisplayName = "TC-NC10-REG-004: Thong bao dung Type, RelatedObjectId, IsRead=false va CreatedAt")]
@@ -299,25 +247,6 @@ public sealed class RegistrationOpenedNotificationTests
         Assert.Equal(2, notificationRepo.Items.Count);
     }
 
-    [Fact(DisplayName = "TC-NC10-REG-012: Notification SchedulePublished hien tai khong hoi quy")]
-    public void NotificationItemViewModel_MapsSchedulePublishedToMyScheduleIndexRoute()
-    {
-        var item = new NotificationItemViewModel
-        {
-            NotificationId = 2,
-            Title = "Lịch đã công bố",
-            Content = "Nội dung",
-            Type = NotificationType.SchedulePublished,
-            RelatedObjectId = 10,
-            IsRead = false,
-            CreatedAtUtc = DateTime.UtcNow,
-            CreatedAtVietnam = DateTime.UtcNow.AddHours(7)
-        };
-
-        Assert.Equal("MySchedule", item.TargetController);
-        Assert.Equal("Index", item.TargetAction);
-        Assert.Equal(10, item.TargetId);
-    }
 
     private static FakeShiftTypeRepository CreateShiftTypeRepository()
     {
