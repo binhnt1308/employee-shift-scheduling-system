@@ -29,7 +29,7 @@
                     Mỗi kỳ lịch gồm <strong>7 ngày</strong>. Ngày kết thúc được hệ thống tự động tính từ ngày bắt đầu.
                 </div>
 
-                <form method="post" asp-action="Create">
+                <form method="post" asp-action="Create" data-prevent-double-submit="true">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
                     <div class="mb-3">

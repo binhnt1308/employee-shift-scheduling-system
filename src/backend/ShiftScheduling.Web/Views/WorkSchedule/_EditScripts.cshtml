@@ -1,0 +1,207 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleEditViewModel
+
+<script>
+    let currentAssignContext = {};
+    let currentProposalData = null;
+
+    function openAssignModal(periodId, workDate, shiftTypeId, titleText) {
+        currentAssignContext = { periodId, workDate, shiftTypeId };
+        document.getElementById('assignModalTitle').textContent = 'Phân công ca: ' + titleText;
+        const alertEl = document.getElementById('assignModalAlert');
+        alertEl.textContent = '';
+        alertEl.classList.add('d-none');
+        
+        const select = document.getElementById('assignEmployeeSelect');
+        select.innerHTML = '<option value="">-- Đang tải nhân viên --</option>';
+
+        fetch(`/WorkSchedule/GetEligibleEmployees?schedulePeriodId=${periodId}&workDate=${workDate}&shiftTypeId=${shiftTypeId}`)
+            .then(res => res.json())
+            .then(data => {
+                select.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
+                data.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.employeeId;
+                    const typeLabel = emp.employmentTypeLabel || (emp.employmentType === 2 ? 'FT' : 'PT');
+                    const posLabel = emp.positionLabel || (emp.position === 2 ? 'Thu ngân' : 'Tư vấn');
+                    const levelNumber = typeof emp.level === 'number' ? emp.level : (emp.level || '').replace(/\D/g, '');
+                    opt.textContent = `${emp.employeeCode} - ${emp.fullName} (${typeLabel}, ${posLabel}, Level ${levelNumber})` + (emp.isEligible ? '' : ` [BỊ CHẶN: ${emp.ineligibilityReason}]`);
+                    if (!emp.isEligible) opt.disabled = true;
+                    select.appendChild(opt);
+                });
+                new bootstrap.Modal(document.getElementById('assignModal')).show();
+            });
+    }
+
+    function submitManualAssign(btn) {
+        if (btn && btn.disabled) return;
+        const empId = document.getElementById('assignEmployeeSelect').value;
+        if (!empId) return;
+
+        if (btn) btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('SchedulePeriodId', currentAssignContext.periodId);
+        formData.append('WorkDate', currentAssignContext.workDate);
+        formData.append('ShiftTypeId', currentAssignContext.shiftTypeId);
+        formData.append('EmployeeId', empId);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch('/WorkSchedule/AssignManual', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    if (btn) btn.disabled = false;
+                    const alertEl = document.getElementById('assignModalAlert');
+                    alertEl.textContent = data.message || 'Không thể thực hiện phân công.';
+                    alertEl.classList.remove('d-none');
+                }
+            })
+            .catch(() => {
+                if (btn) btn.disabled = false;
+                const alertEl = document.getElementById('assignModalAlert');
+                alertEl.textContent = 'Có lỗi xảy ra khi kết nối máy chủ.';
+                alertEl.classList.remove('d-none');
+            });
+    }
+
+    function removeEmployee(periodId, assignmentId, btn) {
+        if (btn && btn.disabled) return;
+        if (!confirm('Xác nhận xóa nhân viên khỏi ca làm việc này?')) return;
+        if (btn) btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('SchedulePeriodId', periodId);
+        formData.append('ShiftAssignmentId', assignmentId);
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch('/WorkSchedule/RemoveManual', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    if (btn) btn.disabled = false;
+                    alert(data.message);
+                }
+            })
+            .catch(() => {
+                if (btn) btn.disabled = false;
+                alert('Có lỗi xảy ra khi kết nối máy chủ.');
+            });
+    }
+
+    function generateOrToolsProposal(btn) {
+        if (btn && btn.disabled) return;
+        if (btn) btn.disabled = true;
+
+        const modalEl = document.getElementById('orToolsModal');
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        document.getElementById('orToolsLoading').classList.remove('d-none');
+        document.getElementById('orToolsContent').classList.add('d-none');
+        document.getElementById('orToolsFooter').classList.add('d-none');
+
+        const formData = new FormData();
+        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+        fetch(`/WorkSchedule/GenerateOrToolsProposal/${@Model.SchedulePeriodId}`, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('orToolsLoading').classList.add('d-none');
+                document.getElementById('orToolsContent').classList.remove('d-none');
+
+                const bannerEl = document.getElementById('orToolsStatusBanner');
+                bannerEl.textContent = '';
+
+                const icon = document.createElement('i');
+                icon.className = data.succeeded ? 'fa-solid fa-circle-check me-2' : 'fa-solid fa-circle-xmark me-2';
+                bannerEl.appendChild(icon);
+
+                if (data.succeeded) {
+                    currentProposalData = data.proposedAssignments;
+                    bannerEl.className = 'alert alert-success mb-3';
+                    const solveTime = typeof data.solveTimeSeconds === 'number' ? data.solveTimeSeconds.toFixed(2) : data.solveTimeSeconds;
+                    bannerEl.appendChild(document.createTextNode(`${data.message} (Thời gian giải: ${solveTime}s)`));
+                    document.getElementById('orToolsFooter').classList.remove('d-none');
+
+                    const tbody = document.getElementById('orToolsTableBody');
+                    tbody.textContent = '';
+                    data.proposedAssignments.forEach(item => {
+                        const tr = document.createElement('tr');
+                        const formattedWorkDate = item.workDate && item.workDate.includes('-') ? item.workDate.split('-').reverse().join('/') : item.workDate;
+
+                        const tdDate = document.createElement('td');
+                        tdDate.textContent = formattedWorkDate;
+
+                        const tdShift = document.createElement('td');
+                        tdShift.textContent = item.shiftName;
+
+                        const tdEmp = document.createElement('td');
+                        const strongCode = document.createElement('strong');
+                        strongCode.textContent = item.employeeCode;
+                        tdEmp.appendChild(strongCode);
+                        tdEmp.appendChild(document.createTextNode(` - ${item.fullName}`));
+
+                        const tdPos = document.createElement('td');
+                        tdPos.textContent = item.position;
+
+                        tr.appendChild(tdDate);
+                        tr.appendChild(tdShift);
+                        tr.appendChild(tdEmp);
+                        tr.appendChild(tdPos);
+
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    bannerEl.className = 'alert alert-danger mb-3';
+                    bannerEl.appendChild(document.createTextNode(data.message || ''));
+                }
+            })
+            .catch(() => {
+                document.getElementById('orToolsLoading').classList.add('d-none');
+                document.getElementById('orToolsContent').classList.remove('d-none');
+                const bannerEl = document.getElementById('orToolsStatusBanner');
+                bannerEl.className = 'alert alert-danger mb-3';
+                bannerEl.textContent = '';
+                const icon = document.createElement('i');
+                icon.className = 'fa-solid fa-circle-xmark me-2';
+                bannerEl.appendChild(icon);
+                bannerEl.appendChild(document.createTextNode('Có lỗi xảy ra khi kết nối máy chủ.'));
+            })
+            .finally(() => {
+                if (btn) btn.disabled = false;
+            });
+    }
+
+    function adoptOrToolsProposal(btn) {
+        if (!currentProposalData) return;
+        if (btn && btn.disabled) return;
+        if (!confirm('Áp dụng đề xuất này sẽ GHI ĐÈ toàn bộ lịch nháp hiện tại. Xác nhận tiếp tục?')) return;
+        if (btn) btn.disabled = true;
+
+        fetch(`/WorkSchedule/AdoptProposal/${@Model.SchedulePeriodId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify(currentProposalData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                if (btn) btn.disabled = false;
+                alert(data.message);
+            }
+        })
+        .catch(() => {
+            if (btn) btn.disabled = false;
+            alert('Có lỗi xảy ra khi kết nối máy chủ.');
+        });
+    }
+</script>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ShiftScheduling.Infrastructure.Persistence;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.Repositories;
 
@@ -69,6 +70,35 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PagedResult<LeaveRequest>> GetPagedForEmployeeAsync(
+        int employeeId,
+        int? schedulePeriodId,
+        LeaveRequestStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = BaseQuery(true).Where(request => request.EmployeeId == employeeId);
+        if (schedulePeriodId.HasValue)
+        {
+            query = query.Where(request => request.SchedulePeriodId == schedulePeriodId.Value);
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(request => request.Status == status.Value);
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(request => request.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LeaveRequest>(items, page, pageSize, totalItems);
+    }
+
     public async Task<IReadOnlyList<LeaveRequest>> GetForManagerAsync(
         int? schedulePeriodId,
         LeaveRequestStatus? status,
@@ -89,6 +119,35 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
             .OrderBy(request => request.Status)
             .ThenByDescending(request => request.SubmittedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<LeaveRequest>> GetPagedForManagerAsync(
+        int? schedulePeriodId,
+        LeaveRequestStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = BaseQuery(true);
+        if (schedulePeriodId.HasValue)
+        {
+            query = query.Where(request => request.SchedulePeriodId == schedulePeriodId.Value);
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(request => request.Status == status.Value);
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(request => request.Status)
+            .ThenByDescending(request => request.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LeaveRequest>(items, page, pageSize, totalItems);
     }
 
     public Task<LeaveRequest?> GetByIdAsync(
@@ -163,6 +222,11 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
     public void Add(LeaveRequest leaveRequest)
     {
         _dbContext.LeaveRequests.Add(leaveRequest);
+    }
+
+    public void SetOriginalRowVersion(LeaveRequest request, byte[] rowVersion)
+    {
+        _dbContext.Entry(request).Property(x => x.RowVersion).OriginalValue = rowVersion;
     }
 
     private IQueryable<LeaveRequest> BaseQuery(bool asNoTracking)

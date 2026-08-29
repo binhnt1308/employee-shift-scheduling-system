@@ -12,6 +12,7 @@ public sealed class LeaveRequestConfiguration : IEntityTypeConfiguration<LeaveRe
         entity.HasKey(x => x.LeaveRequestId);
         entity.Property(x => x.Reason).HasMaxLength(1000).IsRequired();
         entity.Property(x => x.ManagerNote).HasMaxLength(1000);
+        entity.Property(x => x.RowVersion).IsRowVersion();
         entity.HasIndex(x => new { x.EmployeeId, x.SchedulePeriodId, x.LeaveDate, x.ShiftTypeId });
 
         entity.HasOne(x => x.Employee)

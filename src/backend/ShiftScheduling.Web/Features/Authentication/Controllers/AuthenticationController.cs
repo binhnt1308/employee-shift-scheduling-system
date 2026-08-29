@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using ShiftScheduling.Features.Authentication.Services;
+using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.ViewModels;
 using UserAuthenticationService =
     ShiftScheduling.Features.Authentication.Services.IAuthenticationService;
@@ -104,18 +105,39 @@ public sealed class AuthenticationController : Controller
     private async Task SignInAsync(AuthenticatedAccount account)
     {
         // Chi dua thong tin dinh danh va phan quyen can thiet vao cookie.
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                account.UserAccountId.ToString()),
-            new Claim(
-                ClaimTypes.Name,
-                account.Username),
-            new Claim(
-                ClaimTypes.Role,
-                account.Role.ToString())
+            new(ClaimTypes.NameIdentifier, account.UserAccountId.ToString()),
+            new(ClaimTypes.Name, account.Username),
+            new(ClaimTypes.Role, account.Role.ToString())
         };
+
+        if (!string.IsNullOrEmpty(account.FullName))
+        {
+            claims.Add(new Claim("EmployeeFullName", account.FullName));
+        }
+        if (!string.IsNullOrEmpty(account.EmployeeCode))
+        {
+            claims.Add(new Claim("EmployeeCode", account.EmployeeCode));
+        }
+        if (account.EmploymentType.HasValue)
+        {
+            claims.Add(new Claim("EmploymentTypeLabel", account.EmploymentType.Value == EmploymentType.FullTime ? "FT" : "PT"));
+        }
+        if (account.Position.HasValue)
+        {
+            var posText = account.Position.Value switch
+            {
+                EmployeePosition.Sales => "Tư vấn",
+                EmployeePosition.Cashier => "Thu ngân",
+                _ => account.Position.Value.ToString()
+            };
+            claims.Add(new Claim("PositionLabel", posText));
+        }
+        if (account.Level.HasValue)
+        {
+            claims.Add(new Claim("EmployeeLevel", $"Level {(int)account.Level.Value}"));
+        }
 
         var identity = new ClaimsIdentity(
             claims,

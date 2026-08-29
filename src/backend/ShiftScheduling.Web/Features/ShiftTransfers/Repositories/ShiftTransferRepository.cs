@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using ShiftScheduling.Features.ShiftTransfers.ViewModels;
 using ShiftScheduling.Infrastructure.Persistence;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.Repositories;
 
@@ -148,6 +150,61 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             cancellationToken);
     }
 
+    public async Task<HashSet<int>> GetCandidateAvailabilitiesAsync(
+        IEnumerable<int> candidateEmployeeIds,
+        int schedulePeriodId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = candidateEmployeeIds.ToList();
+        var set = await _dbContext.Availabilities
+            .AsNoTracking()
+            .Where(a => ids.Contains(a.EmployeeId)
+                && a.SchedulePeriodId == schedulePeriodId
+                && a.WorkDate == workDate
+                && a.ShiftTypeId == shiftTypeId)
+            .Select(a => a.EmployeeId)
+            .ToListAsync(cancellationToken);
+        return set.ToHashSet();
+    }
+
+    public async Task<HashSet<int>> GetCandidateApprovedLeavesAsync(
+        IEnumerable<int> candidateEmployeeIds,
+        int schedulePeriodId,
+        DateOnly workDate,
+        int shiftTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = candidateEmployeeIds.ToList();
+        var set = await _dbContext.LeaveRequests
+            .AsNoTracking()
+            .Where(r => ids.Contains(r.EmployeeId)
+                && r.SchedulePeriodId == schedulePeriodId
+                && r.LeaveDate == workDate
+                && r.Status == LeaveRequestStatus.Approved
+                && (!r.ShiftTypeId.HasValue || r.ShiftTypeId == shiftTypeId))
+            .Select(r => r.EmployeeId)
+            .ToListAsync(cancellationToken);
+        return set.ToHashSet();
+    }
+
+    public async Task<ILookup<int, ShiftAssignment>> GetCandidatePublishedAssignmentsInPeriodAsync(
+        IEnumerable<int> candidateEmployeeIds,
+        int schedulePeriodId,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = candidateEmployeeIds.ToList();
+        var assignments = await AssignmentQuery(true)
+            .Where(a => ids.Contains(a.EmployeeId)
+                && a.WorkSchedule.Status == ScheduleStatus.Published
+                && a.WorkSchedule.SchedulePeriodId == schedulePeriodId)
+            .OrderBy(a => a.WorkDate)
+            .ThenBy(a => a.ShiftType.DisplayOrder)
+            .ToListAsync(cancellationToken);
+        return assignments.ToLookup(a => a.EmployeeId);
+    }
+
     public async Task<IReadOnlyList<ShiftTransferRequest>> GetSentRequestsAsync(
         int employeeId,
         CancellationToken cancellationToken = default)
@@ -156,6 +213,22 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             .Where(request => request.SenderEmployeeId == employeeId)
             .OrderByDescending(request => request.SubmittedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<ShiftTransferRequest>> GetPagedSentRequestsAsync(
+        int employeeId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = RequestQuery(true).Where(request => request.SenderEmployeeId == employeeId);
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(request => request.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResult<ShiftTransferRequest>(items, page, pageSize, totalItems);
     }
 
     public async Task<IReadOnlyList<ShiftTransferRequest>> GetReceivedRequestsAsync(
@@ -169,6 +242,23 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PagedResult<ShiftTransferRequest>> GetPagedReceivedRequestsAsync(
+        int employeeId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = RequestQuery(true).Where(request => request.ReceiverEmployeeId == employeeId);
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(request => request.ReceiverStatus)
+            .ThenByDescending(request => request.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResult<ShiftTransferRequest>(items, page, pageSize, totalItems);
+    }
+
     public async Task<IReadOnlyList<ShiftTransferRequest>> GetManagerRequestsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -177,6 +267,39 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             .ThenBy(request => request.ReceiverStatus)
             .ThenByDescending(request => request.SubmittedAt)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<ShiftTransferRequest>> GetPagedManagerRequestsAsync(
+        ShiftTransferStatusFilter? filter,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = RequestQuery(true);
+        if (filter.HasValue)
+        {
+            query = filter.Value switch
+            {
+                ShiftTransferStatusFilter.WaitingReceiver => query.Where(r =>
+                    r.ReceiverStatus == ReceiverStatus.Pending),
+                ShiftTransferStatusFilter.WaitingManager => query.Where(r =>
+                    r.ReceiverStatus == ReceiverStatus.Accepted && r.ApprovalStatus == ApprovalStatus.Pending),
+                ShiftTransferStatusFilter.Approved => query.Where(r => r.ApprovalStatus == ApprovalStatus.Approved),
+                ShiftTransferStatusFilter.Rejected => query.Where(r =>
+                    r.ReceiverStatus == ReceiverStatus.Rejected || r.ApprovalStatus == ApprovalStatus.Rejected),
+                _ => query
+            };
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(request => request.ApprovalStatus)
+            .ThenBy(request => request.ReceiverStatus)
+            .ThenByDescending(request => request.SubmittedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new PagedResult<ShiftTransferRequest>(items, page, pageSize, totalItems);
     }
 
     public Task<ShiftTransferRequest?> GetRequestByIdAsync(
@@ -193,6 +316,11 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
     public void Add(ShiftTransferRequest request)
     {
         _dbContext.ShiftTransferRequests.Add(request);
+    }
+
+    public void SetOriginalRowVersion(ShiftTransferRequest request, byte[] rowVersion)
+    {
+        _dbContext.Entry(request).Property(x => x.RowVersion).OriginalValue = rowVersion;
     }
 
     private IQueryable<ShiftAssignment> AssignmentQuery(bool asNoTracking)

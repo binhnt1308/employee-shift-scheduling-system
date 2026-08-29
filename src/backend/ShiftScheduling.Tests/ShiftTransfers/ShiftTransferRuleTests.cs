@@ -166,4 +166,36 @@ public sealed class ShiftTransferRuleTests
         Assert.Equal(ErrorCodes.ShiftTransferRuleViolation, result.ErrorCode);
         Assert.Contains("định mức", result.ErrorMessage ?? string.Empty);
     }
+
+    [Fact(DisplayName = "TC10-R11 - UC10 BR21 - Người nhận ca vi phạm 24h nghỉ liên tục trong kỳ" +
+        " -> chặn")]
+    public async Task SubmitAsync_WhenReceiverWouldViolateWeekly24hRest_ReturnsRuleViolation()
+    {
+        var context = ShiftTransferTestContext.Create();
+        context.Receiver.EmploymentType = EmploymentType.PartTime;
+
+        // Phân ca cho người nhận tất cả các ngày còn lại
+        // từ Thứ 3 đến Chủ Nhật (ca Sáng 08:00-12:00)
+        var id = 10;
+        for (var day = 1; day <= 6; day++)
+        {
+            var date = context.Period.WeekStartDate.AddDays(day);
+            context.AddReceiverAssignment(date, context.Morning, id++);
+            context.Repository.Availabilities.Add(new Availability
+            {
+                EmployeeId = context.Receiver.EmployeeId,
+                SchedulePeriodId = context.Period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = context.Morning.ShiftTypeId
+            });
+        }
+
+        // Nhận ca Thứ 2 (08:00-12:00) -> người nhận sẽ có ca cả 7 ngày
+        // -> tất cả gap < 24h -> vi phạm BR21
+        var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.ShiftTransferRuleViolation, result.ErrorCode);
+        Assert.Contains("BR21", result.ErrorMessage ?? string.Empty);
+    }
 }

@@ -28,13 +28,17 @@ public sealed class LeaveRequestController : AuthorizedController
     public async Task<IActionResult> Index(
         int? schedulePeriodId,
         LeaveRequestStatus? status,
-        CancellationToken cancellationToken)
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         var model = await _leaveRequestService.GetIndexAsync(
             CurrentAccountId,
             User.IsInRole(RoleNames.Manager),
             schedulePeriodId,
             status,
+            page,
+            pageSize,
             cancellationToken);
         return View(model);
     }
@@ -139,6 +143,7 @@ public sealed class LeaveRequestController : AuthorizedController
             approve,
             model.ManagerNote,
             CurrentAccountId,
+            model.RowVersion,
             cancellationToken);
         TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
             ? approve ? "Đã duyệt đơn xin nghỉ." : "Đã từ chối đơn xin nghỉ."

@@ -72,7 +72,8 @@ public sealed class FakeSchedulePeriodRepository : ISchedulePeriodRepository
             requirement.SchedulePeriodId = requirement.SchedulePeriod.SchedulePeriodId;
         }
         Requirements.Add(requirement);
-        if (requirement.SchedulePeriod != null && !requirement.SchedulePeriod.StaffingRequirements.Contains(requirement))
+        if (requirement.SchedulePeriod != null
+            && !requirement.SchedulePeriod.StaffingRequirements.Contains(requirement))
         {
             requirement.SchedulePeriod.StaffingRequirements.Add(requirement);
         }

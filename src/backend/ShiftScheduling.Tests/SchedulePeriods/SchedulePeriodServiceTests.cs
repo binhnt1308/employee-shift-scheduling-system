@@ -8,7 +8,7 @@ using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.SchedulePeriods;
 
-public sealed class SchedulePeriodServiceTests
+public sealed partial class SchedulePeriodServiceTests
 {
     [Fact(DisplayName = "TC03-B01 - UC03 BR03 - Có đúng 3 fixed shifts -> tạo đúng 21 StaffingRequirement")]
     public async Task CreateAsync_WhenValidFixedShifts_CreatesExactly21Requirements()
@@ -92,15 +92,37 @@ public sealed class SchedulePeriodServiceTests
         Assert.Equal(ErrorCodes.ShiftTypeNotFound, result.ErrorCode);
     }
 
-    [Fact(DisplayName = "TC03-B04 - UC03 BR03 - Một fixed shift có sai StartTime/EndTime -> từ chối tạo period")]
+    [Fact(DisplayName = "TC03-B04 - UC03 BR03 - Một fixed shift có sai StartTime/EndTime" +
+        " -> từ chối tạo period")]
     public async Task CreateAsync_WhenFixedShiftHasInvalidTime_ReturnsShiftTypeError()
     {
         // Sap xep
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = new FakeShiftTypeRepository();
-        shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(11, 0), IsActive = true });
-        shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), IsActive = true });
-        shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), IsActive = true });
+        shiftTypeRepo.ShiftTypes.Add(new ShiftType
+        {
+            ShiftTypeId = 1,
+            ShiftCode = "MORNING",
+            StartTime = new TimeOnly(7, 0),
+            EndTime = new TimeOnly(11, 0),
+            IsActive = true
+        });
+        shiftTypeRepo.ShiftTypes.Add(new ShiftType
+        {
+            ShiftTypeId = 2,
+            ShiftCode = "AFTERNOON",
+            StartTime = new TimeOnly(12, 0),
+            EndTime = new TimeOnly(16, 0),
+            IsActive = true
+        });
+        shiftTypeRepo.ShiftTypes.Add(new ShiftType
+        {
+            ShiftTypeId = 3,
+            ShiftCode = "EVENING",
+            StartTime = new TimeOnly(16, 0),
+            EndTime = new TimeOnly(20, 0),
+            IsActive = true
+        });
 
         var service = CreateService(periodRepo, shiftTypeRepo);
         var model = new SchedulePeriodCreateViewModel
@@ -117,13 +139,21 @@ public sealed class SchedulePeriodServiceTests
         Assert.Equal(ErrorCodes.ShiftTypeNotFound, result.ErrorCode);
     }
 
-    [Fact(DisplayName = "TC03-B05 - UC03 BR03 - UpdateStaffing với ShiftType thứ 4 tồn tại thật -> bị từ chối")]
+    [Fact(DisplayName = "TC03-B05 - UC03 BR03 - UpdateStaffing với ShiftType thứ 4 tồn tại thật" +
+        " -> bị từ chối")]
     public async Task UpdateStaffingAsync_WhenUsingFourthShift_ReturnsShiftTypeError()
     {
         // Sap xep
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
-        shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 4, ShiftCode = "NIGHT", StartTime = new TimeOnly(20, 0), EndTime = new TimeOnly(0, 0), IsActive = true });
+        shiftTypeRepo.ShiftTypes.Add(new ShiftType
+        {
+            ShiftTypeId = 4,
+            ShiftCode = "NIGHT",
+            StartTime = new TimeOnly(20, 0),
+            EndTime = new TimeOnly(0, 0),
+            IsActive = true
+        });
 
         var service = CreateService(periodRepo, shiftTypeRepo);
         var period = CreateValidPeriodWith21Requirements();
@@ -221,7 +251,8 @@ public sealed class SchedulePeriodServiceTests
         Assert.Equal(RegistrationStatus.Preparing, period.RegistrationStatus);
     }
 
-    [Fact(DisplayName = "TC03-C03 - UC03 BR12 - Một requirement Sales = 0 và Cashier = 0 -> không OpenRegistration")]
+    [Fact(DisplayName = "TC03-C03 - UC03 BR12 - Một requirement Sales = 0 và Cashier = 0" +
+        " -> không OpenRegistration")]
     public async Task OpenRegistrationAsync_WhenTotalZero_ReturnsBR12Error()
     {
         // Sap xep
@@ -279,124 +310,27 @@ public sealed class SchedulePeriodServiceTests
         Assert.Equal(RegistrationStatus.Preparing, period.RegistrationStatus);
     }
 
-    private static SchedulePeriodService CreateService(
-        FakeSchedulePeriodRepository periodRepo,
-        FakeShiftTypeRepository shiftTypeRepo)
-    {
-        return new SchedulePeriodService(
-            periodRepo,
-            shiftTypeRepo,
-            new FakeAuditLogRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) },
-            NullLogger<SchedulePeriodService>.Instance);
-    }
-
-    private static FakeShiftTypeRepository CreateShiftTypeRepositoryWithThreeFixedShifts()
-    {
-        var repo = new FakeShiftTypeRepository();
-        repo.ShiftTypes.Add(new ShiftType
-        {
-            ShiftTypeId = 1,
-            ShiftCode = "MORNING",
-            ShiftName = "Ca sáng",
-            StartTime = new TimeOnly(8, 0),
-            EndTime = new TimeOnly(12, 0),
-            DisplayOrder = 1,
-            IsActive = true
-        });
-        repo.ShiftTypes.Add(new ShiftType
-        {
-            ShiftTypeId = 2,
-            ShiftCode = "AFTERNOON",
-            ShiftName = "Ca chiều",
-            StartTime = new TimeOnly(12, 0),
-            EndTime = new TimeOnly(16, 0),
-            DisplayOrder = 2,
-            IsActive = true
-        });
-        repo.ShiftTypes.Add(new ShiftType
-        {
-            ShiftTypeId = 3,
-            ShiftCode = "EVENING",
-            ShiftName = "Ca tối",
-            StartTime = new TimeOnly(16, 0),
-            EndTime = new TimeOnly(20, 0),
-            DisplayOrder = 3,
-            IsActive = true
-        });
-        return repo;
-    }
-
-    [Fact(DisplayName = "TC03-08 - UC03 BR03 - Duplicate SchedulePeriod for same week is rejected")]
-    public async Task CreateAsync_WhenWeekAlreadyExists_ReturnsOverlapError()
+    [Fact(DisplayName = "TC03-E01 - UC03 - WeekStartDate mặc định -> từ chối tạo kỳ lịch")]
+    public async Task CreateAsync_WhenWeekStartDateIsDefault_ReturnsInvalidDateRangeError()
     {
         // Sap xep
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
         var service = CreateService(periodRepo, shiftTypeRepo);
-        var start = new DateOnly(2026, 8, 10);
         var model = new SchedulePeriodCreateViewModel
         {
-            PeriodName = "Kỳ lịch tuần 33",
-            WeekStartDate = start,
+            PeriodName = "Kỳ lịch mặc định",
+            WeekStartDate = default,
             AvailabilityDeadline = new DateTime(2026, 8, 8, 23, 59, 0, DateTimeKind.Utc)
         };
 
-        // Tao lan 1
-        var result1 = await service.CreateAsync(model, 1);
-        Assert.True(result1.Succeeded);
+        // Thuc hien
+        var result = await service.CreateAsync(model, 1);
 
-        // Tao lan 2 cung weekStartDate
-        var result2 = await service.CreateAsync(model, 1);
-        Assert.False(result2.Succeeded);
-        Assert.Equal(ErrorCodes.SchedulePeriodOverlap, result2.ErrorCode);
-    }
-
-    private static SchedulePeriod CreateValidPeriodWith21Requirements()
-    {
-        var start = new DateOnly(2026, 8, 10);
-        var period = new SchedulePeriod
-        {
-            SchedulePeriodId = 1,
-            PeriodName = "Kỳ lịch 10/08 - 16/08",
-            WeekStartDate = start,
-            WeekEndDate = start.AddDays(6),
-            AvailabilityDeadline = new DateTime(2026, 8, 8, 23, 59, 0, DateTimeKind.Utc),
-            RegistrationStatus = RegistrationStatus.Preparing,
-            CreatedByAccountId = 1,
-            StaffingRequirements = new List<StaffingRequirement>()
-        };
-
-        var shiftTypes = new[]
-        {
-            new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DisplayOrder = 1, IsActive = true },
-            new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DisplayOrder = 2, IsActive = true },
-            new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DisplayOrder = 3, IsActive = true }
-        };
-
-        int idCounter = 1;
-        for (int day = 0; day < 7; day++)
-        {
-            var date = start.AddDays(day);
-            foreach (var shift in shiftTypes)
-            {
-                period.StaffingRequirements.Add(new StaffingRequirement
-                {
-                    StaffingRequirementId = idCounter++,
-                    SchedulePeriodId = 1,
-                    SchedulePeriod = period,
-                    WorkDate = date,
-                    ShiftTypeId = shift.ShiftTypeId,
-                    ShiftType = shift,
-                    RequiredSalesStaff = 1,
-                    RequiredCashiers = 1,
-                    RequiredExperiencedStaff = 1,
-                    MinimumLevel = EmployeeLevel.Level2
-                });
-            }
-        }
-
-        return period;
+        // Kiem tra
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidDateRange, result.ErrorCode);
+        Assert.Empty(periodRepo.SchedulePeriods);
+        Assert.Empty(periodRepo.Requirements);
     }
 }

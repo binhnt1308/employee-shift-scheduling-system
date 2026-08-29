@@ -62,7 +62,9 @@ public sealed partial class ShiftTransferService
         ShiftTransferRequest request,
         CancellationToken cancellationToken)
     {
-        var resultText = request.ApprovalStatus == ApprovalStatus.Approved ? "đã được duyệt" : "đã bị từ chối";
+        var resultText = request.ApprovalStatus == ApprovalStatus.Approved
+            ? "đã được duyệt"
+            : "đã bị từ chối";
         foreach (var accountId in GetResultReceiverAccountIds(request))
         {
             AddNotification(

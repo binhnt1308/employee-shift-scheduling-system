@@ -14,6 +14,7 @@ public class WorkSchedule
     public DateTime? UpdatedAt { get; set; }
     public int? PublishedByAccountId { get; set; }
     public DateTime? PublishedAt { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public SchedulePeriod SchedulePeriod { get; set; } = null!;
     public UserAccount CreatedByAccount { get; set; } = null!;

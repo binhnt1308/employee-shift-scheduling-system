@@ -1,5 +1,6 @@
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.Repositories;
 
@@ -22,9 +23,24 @@ public interface ILeaveRequestRepository
         LeaveRequestStatus? status,
         CancellationToken cancellationToken = default);
 
+    Task<PagedResult<LeaveRequest>> GetPagedForEmployeeAsync(
+        int employeeId,
+        int? schedulePeriodId,
+        LeaveRequestStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LeaveRequest>> GetForManagerAsync(
         int? schedulePeriodId,
         LeaveRequestStatus? status,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<LeaveRequest>> GetPagedForManagerAsync(
+        int? schedulePeriodId,
+        LeaveRequestStatus? status,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default);
 
     Task<LeaveRequest?> GetByIdAsync(
@@ -58,4 +74,6 @@ public interface ILeaveRequestRepository
         CancellationToken cancellationToken = default);
 
     void Add(LeaveRequest leaveRequest);
+
+    void SetOriginalRowVersion(LeaveRequest request, byte[] rowVersion);
 }

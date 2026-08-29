@@ -120,13 +120,65 @@ public sealed class AccountServiceTests
         Assert.Equal(ErrorCodes.LastActiveAdmin, result.ErrorCode);
     }
 
-    private static AccountService CreateService(FakeAccountRepository repository)
+    [Fact(DisplayName = "TC01-09 - UC01 BR01 - Khóa tài khoản bình thường")]
+    public async Task SetLockedAsync_WhenTargetIsNormalAccount_LocksAccount()
+    {
+        // Sap xep
+        var repository = new FakeAccountRepository();
+        var targetAccount = new UserAccount
+        {
+            UserAccountId = 2,
+            Username = "emp1",
+            Role = UserRole.Employee,
+            IsLocked = false
+        };
+        repository.Accounts.Add(targetAccount);
+        var unitOfWork = new FakeUnitOfWork();
+        var service = CreateService(repository, unitOfWork);
+
+        // Thuc hien
+        var result = await service.SetLockedAsync(2, true, 1, CancellationToken.None);
+
+        // Kiem tra
+        Assert.True(result.Succeeded);
+        Assert.True(targetAccount.IsLocked);
+        Assert.Equal(1, unitOfWork.SaveCount);
+    }
+
+    [Fact(DisplayName = "TC01-10 - UC01 BR01 - Mở khóa tài khoản bị khóa")]
+    public async Task SetLockedAsync_WhenTargetIsLockedAccount_UnlocksAccount()
+    {
+        // Sap xep
+        var repository = new FakeAccountRepository();
+        var targetAccount = new UserAccount
+        {
+            UserAccountId = 2,
+            Username = "emp1",
+            Role = UserRole.Employee,
+            IsLocked = true
+        };
+        repository.Accounts.Add(targetAccount);
+        var unitOfWork = new FakeUnitOfWork();
+        var service = CreateService(repository, unitOfWork);
+
+        // Thuc hien
+        var result = await service.SetLockedAsync(2, false, 1, CancellationToken.None);
+
+        // Kiem tra
+        Assert.True(result.Succeeded);
+        Assert.False(targetAccount.IsLocked);
+        Assert.Equal(1, unitOfWork.SaveCount);
+    }
+
+    private static AccountService CreateService(
+        FakeAccountRepository repository,
+        FakeUnitOfWork? unitOfWork = null)
     {
         return new AccountService(
             repository,
             new FakeAuditLogRepository(),
             new FakePasswordHashService(),
-            new FakeUnitOfWork(),
+            unitOfWork ?? new FakeUnitOfWork(),
             new FakeClock(),
             NullLogger<AccountService>.Instance);
     }

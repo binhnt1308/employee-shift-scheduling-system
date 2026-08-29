@@ -14,6 +14,8 @@ public interface ILeaveRequestService
         bool isManager,
         int? schedulePeriodId,
         LeaveRequestStatus? status,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -25,7 +27,8 @@ public interface ILeaveRequestService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gửi đơn xin nghỉ của chính Nhân viên đang đăng nhập sau khi kiểm tra dữ liệu và trùng lặp.
+    /// Gửi đơn xin nghỉ của chính Nhân viên đang đăng nhập
+    /// sau khi kiểm tra dữ liệu và trùng lặp.
     /// </summary>
     Task<ServiceResult> SubmitAsync(
         LeaveRequestCreateViewModel model,
@@ -56,5 +59,6 @@ public interface ILeaveRequestService
         bool approve,
         string? managerNote,
         int managerAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default);
 }

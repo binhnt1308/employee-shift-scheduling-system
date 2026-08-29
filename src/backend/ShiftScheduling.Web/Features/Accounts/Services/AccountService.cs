@@ -178,7 +178,9 @@ public sealed partial class AccountService : IAccountService
     {
         if (accountId == actorAccountId)
         {
-            return ServiceResult.Failure(ErrorCodes.SelfAccountChange, "Không thể khóa tài khoản đang đăng nhập.");
+            return ServiceResult.Failure(
+                ErrorCodes.SelfAccountChange,
+                "Không thể khóa tài khoản đang đăng nhập.");
         }
 
         var account = await _accountRepository.GetByIdAsync(accountId, false, cancellationToken);

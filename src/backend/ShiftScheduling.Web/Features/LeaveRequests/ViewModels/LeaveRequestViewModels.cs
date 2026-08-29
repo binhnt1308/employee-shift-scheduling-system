@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.ViewModels;
 
@@ -9,7 +10,7 @@ public sealed class LeaveRequestIndexViewModel
     public int? SchedulePeriodId { get; init; }
     public LeaveRequestStatus? Status { get; init; }
     public IReadOnlyList<LeavePeriodOptionViewModel> Periods { get; init; } = [];
-    public IReadOnlyList<LeaveRequestListItemViewModel> Requests { get; init; } = [];
+    public PagedResult<LeaveRequestListItemViewModel> Requests { get; init; } = new([], 1, 10, 0);
 }
 
 public sealed class LeaveRequestListItemViewModel
@@ -24,6 +25,7 @@ public sealed class LeaveRequestListItemViewModel
     public LeaveRequestStatus Status { get; init; }
     public DateTime SubmittedAt { get; init; }
     public bool HasPublishedAssignment { get; init; }
+    public string RowVersion { get; init; } = string.Empty;
 }
 
 public sealed class LeaveRequestCreateViewModel
@@ -64,11 +66,13 @@ public sealed class LeaveRequestDetailsViewModel
     public bool HasPublishedAssignment { get; init; }
     public bool HasDraftAssignment { get; init; }
     public bool CanReview { get; init; }
+    public string RowVersion { get; init; } = string.Empty;
 }
 
 public sealed class LeaveRequestReviewViewModel
 {
     public int LeaveRequestId { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
 
     [StringLength(1000, ErrorMessage = "Ghi chú không được vượt quá 1000 ký tự.")]
     [Display(Name = "Ghi chú của Quản lý")]

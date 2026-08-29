@@ -8,4 +8,6 @@ public sealed class DashboardViewModel
     public int EmployeeCount { get; init; }
     public int ShiftTypeCount { get; init; }
     public IReadOnlyList<ShiftType> ShiftTypes { get; init; } = Array.Empty<ShiftType>();
+    public bool HasSchedule { get; init; }
+    public bool HasMySchedule { get; init; }
 }

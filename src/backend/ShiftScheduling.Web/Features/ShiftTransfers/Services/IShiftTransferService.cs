@@ -12,6 +12,8 @@ public interface IShiftTransferService
         int actorAccountId,
         bool isManager,
         ShiftTransferStatusFilter? managerStatus,
+        int page = 1,
+        int pageSize = 10,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -46,6 +48,7 @@ public interface IShiftTransferService
         int shiftTransferRequestId,
         bool accept,
         int actorAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -63,5 +66,6 @@ public interface IShiftTransferService
         bool approve,
         string? managerNote,
         int managerAccountId,
+        string rowVersion = "",
         CancellationToken cancellationToken = default);
 }

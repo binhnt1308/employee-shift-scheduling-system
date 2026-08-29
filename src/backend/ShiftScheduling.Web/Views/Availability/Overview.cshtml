@@ -80,40 +80,44 @@
                             <td class="fw-semibold bg-light bg-opacity-50 ps-3">
                                 @day.DayOfWeekName
                             </td>
-                            @foreach (var shift in day.Shifts)
+                            @foreach (var st in Model.ShiftOptions)
                             {
+                                var shift = day.Shifts.FirstOrDefault(s => s.ShiftTypeId == st.ShiftTypeId);
                                 <td class="align-top p-2" style="min-width: 220px;">
-                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
-                                        <span class="badge bg-secondary">@shift.ShiftName</span>
-                                        <span class="badge bg-info text-dark font-monospace">@shift.AvailableEmployees.Count người</span>
-                                    </div>
-                                    @if (!shift.AvailableEmployees.Any())
+                                    @if (shift != null)
                                     {
-                                        <div class="text-muted small italic text-center py-2">Chưa có nhân viên rảnh</div>
-                                    }
-                                    else
-                                    {
-                                        <div class="d-flex flex-column gap-1">
-                                            @foreach (var emp in shift.AvailableEmployees)
-                                            {
-                                                <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
-                                                    <div>
-                                                        <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
-                                                    </div>
-                                                    <div>
-                                                        @if (emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
-                                                        {
-                                                            <span class="badge bg-primary me-1">Sales</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-success me-1">TN</span>
-                                                        }
-                                                        <span class="badge bg-outline-secondary border text-muted">@emp.Level</span>
-                                                    </div>
-                                                </div>
-                                            }
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                            <span class="badge bg-secondary">@shift.ShiftName</span>
+                                            <span class="badge bg-info text-dark font-monospace">@shift.AvailableEmployees.Count người</span>
                                         </div>
+                                        @if (!shift.AvailableEmployees.Any())
+                                        {
+                                            <div class="text-muted small italic text-center py-2">Chưa có nhân viên rảnh</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex flex-column gap-1">
+                                                @foreach (var emp in shift.AvailableEmployees)
+                                                {
+                                                    <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
+                                                        <div>
+                                                            <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
+                                                        </div>
+                                                        <div>
+                                                            @if (emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
+                                                            {
+                                                                <span class="badge bg-primary me-1">Sales</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-success me-1">TN</span>
+                                                            }
+                                                            <span class="badge bg-outline-secondary border text-muted">@emp.Level</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     }
                                 </td>
                             }

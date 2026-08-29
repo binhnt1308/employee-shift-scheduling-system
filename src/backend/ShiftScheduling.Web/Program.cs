@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Notifications;
@@ -28,6 +30,14 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
         "Chưa cấu hình ConnectionStrings:DefaultConnection bằng User Secrets hoặc biến môi trường.");
 }
+
+var vietnamCulture = new CultureInfo("vi-VN");
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(vietnamCulture);
+    options.SupportedCultures = new[] { vietnamCulture };
+    options.SupportedUICultures = new[] { vietnamCulture };
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddProblemDetails();
@@ -70,8 +80,8 @@ builder.Services.AddScoped<
     ShiftScheduling.Features.Availabilities.Services.AvailabilityService>();
 
 builder.Services.AddScoped<
-    ShiftScheduling.Features.WorkSchedules.Services.IScheduleValidationService,
-    ShiftScheduling.Features.WorkSchedules.Services.ScheduleValidationService>();
+    ShiftScheduling.Features.WorkSchedules.Services.ISchedulingValidationService,
+    ShiftScheduling.Features.WorkSchedules.Services.SchedulingValidationService>();
 builder.Services.AddScoped<
     ShiftScheduling.Features.WorkSchedules.Services.IOrToolsSchedulingService,
     ShiftScheduling.Features.WorkSchedules.Services.OrToolsSchedulingService>();
@@ -104,11 +114,27 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers["Retry-After"] =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        await context.HttpContext.Response.WriteAsync(
+            "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ một lát rồi thử lại.",
+            token);
+    };
+
     options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
+            PermitLimit = 10,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
             AutoReplenishment = true
@@ -141,6 +167,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseRequestLocalization();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();

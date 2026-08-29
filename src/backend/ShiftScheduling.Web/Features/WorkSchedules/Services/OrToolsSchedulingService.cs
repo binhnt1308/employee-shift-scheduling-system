@@ -12,11 +12,11 @@ namespace ShiftScheduling.Features.WorkSchedules.Services;
 /// </summary>
 public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
 {
-    private readonly IScheduleValidationService _validationService;
+    private readonly ISchedulingValidationService _validationService;
     private readonly ILogger<OrToolsSchedulingService> _logger;
 
     public OrToolsSchedulingService(
-        IScheduleValidationService validationService,
+        ISchedulingValidationService validationService,
         ILogger<OrToolsSchedulingService> logger)
     {
         _validationService = validationService;
@@ -34,12 +34,9 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
         int timeoutSeconds = 10)
     {
         var startTime = DateTime.UtcNow;
-        var fixedShifts = shiftTypes
-            .Where(s => s.IsActive && IsFixedShiftCode(s.ShiftCode))
-            .OrderBy(s => s.DisplayOrder)
-            .ToList();
+        var fixedShifts = GetFixedShifts(shiftTypes);
 
-        if (fixedShifts.Count != 3 || !activeEmployees.Any())
+        if (fixedShifts is null || !activeEmployees.Any())
         {
             return new OrToolsProposalResultViewModel
             {
@@ -49,47 +46,108 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
             };
         }
 
-        var shiftCodeIndexMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < fixedShifts.Count; i++)
+        var (model, x) = BuildCpModel(
+            period, activeEmployees, fixedShifts, availabilities, approvedLeaves, staffingRequirements);
+
+        var solver = new CpSolver { StringParameters = $"max_time_in_seconds:{timeoutSeconds}.0" };
+        var status = solver.Solve(model);
+        var solveTime = (DateTime.UtcNow - startTime).TotalSeconds;
+
+        _logger.LogInformation(
+            "OR-Tools CP-SAT solve finished. Status: {Status}; Time: {Time:F2}s",
+            status, solveTime);
+
+        if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
         {
-            shiftCodeIndexMap[fixedShifts[i].ShiftCode] = i;
+            return ProcessSolverSolution(
+                solver, status, solveTime, x, period, activeEmployees, availabilities,
+                approvedLeaves, staffingRequirements, fixedShifts, shiftTypes);
         }
 
+        return new OrToolsProposalResultViewModel
+        {
+            Succeeded = false,
+            Status = status.ToString(),
+            Message = "Không tìm thấy phương án lập lịch thỏa mãn toàn bộ ràng buộc bắt buộc.",
+            SolveTimeSeconds = solveTime
+        };
+    }
+
+    private static List<ShiftType>? GetFixedShifts(IReadOnlyList<ShiftType> shiftTypes)
+    {
+        var fixedShifts = shiftTypes
+            .Where(s => s.IsActive && IsFixedShiftCode(s.ShiftCode))
+            .OrderBy(s => s.DisplayOrder)
+            .ToList();
+
+        return fixedShifts.Count == 3 ? fixedShifts : null;
+    }
+
+    private static (CpModel Model, BoolVar[,,] Variables) BuildCpModel(
+        SchedulePeriod period,
+        IReadOnlyList<Employee> activeEmployees,
+        List<ShiftType> fixedShifts,
+        IReadOnlyList<Availability> availabilities,
+        IReadOnlyList<LeaveRequest> approvedLeaves,
+        IReadOnlyList<StaffingRequirement> staffingRequirements)
+    {
+        var shiftCodeIndexMap = BuildShiftCodeIndexMap(fixedShifts);
         int morningIdx = shiftCodeIndexMap[ShiftTypeConstants.MorningCode];
         int afternoonIdx = shiftCodeIndexMap[ShiftTypeConstants.AfternoonCode];
         int eveningIdx = shiftCodeIndexMap[ShiftTypeConstants.EveningCode];
 
         var availSet = availabilities.Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId)).ToHashSet();
-        var leaveSet = approvedLeaves
-            .Where(l => l.Status == LeaveRequestStatus.Approved)
-            .ToList();
-
-        var reqMap = staffingRequirements
-            .ToDictionary(r => (r.WorkDate, r.ShiftTypeId));
+        var leaveSet = approvedLeaves.Where(l => l.Status == LeaveRequestStatus.Approved).ToList();
+        var reqMap = staffingRequirements.ToDictionary(r => (r.WorkDate, r.ShiftTypeId));
 
         var model = new CpModel();
         int empCount = activeEmployees.Count;
-        int numDays = 7;
-        int numShifts = 3;
+        var x = new BoolVar[empCount, 7, 3];
 
-        // BIEN QUYET DINH: x[e, d, s] in {0, 1}
-        var x = new BoolVar[empCount, numDays, numShifts];
+        AddAvailabilityAndLeaveConstraints(model, x, activeEmployees, period, fixedShifts, availSet, leaveSet);
+        AddStaffingRequirementsConstraints(model, x, activeEmployees, period, fixedShifts, reqMap);
+        AddEmploymentWorkloadConstraints(model, x, activeEmployees, morningIdx, afternoonIdx, eveningIdx);
 
+        // BR21: Bao dam moi nhan vien co it nhat 24 gio nghi lien tuc trong ky lich 7 ngay.
+        AddWeeklyContinuousRestConstraints(model, x, activeEmployees, period, fixedShifts);
+
+        AddWorkloadObjective(model, x, activeEmployees);
+
+        return (model, x);
+    }
+
+    private static Dictionary<string, int> BuildShiftCodeIndexMap(List<ShiftType> fixedShifts)
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < fixedShifts.Count; i++)
+        {
+            map[fixedShifts[i].ShiftCode] = i;
+        }
+        return map;
+    }
+
+    private static void AddAvailabilityAndLeaveConstraints(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        SchedulePeriod period,
+        List<ShiftType> fixedShifts,
+        HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> availSet,
+        List<LeaveRequest> leaveSet)
+    {
+        int empCount = activeEmployees.Count;
         for (int e = 0; e < empCount; e++)
         {
             var emp = activeEmployees[e];
-            for (int d = 0; d < numDays; d++)
+            for (int d = 0; d < 7; d++)
             {
                 var workDate = period.WeekStartDate.AddDays(d);
-                for (int s = 0; s < numShifts; s++)
+                for (int s = 0; s < 3; s++)
                 {
                     var shift = fixedShifts[s];
-                    var varName = $"x_{emp.EmployeeId}_{d}_{shift.ShiftTypeId}";
-                    x[e, d, s] = model.NewBoolVar(varName);
+                    x[e, d, s] = model.NewBoolVar($"x_{emp.EmployeeId}_{d}_{shift.ShiftTypeId}");
 
-                    // BR02/BR05: Chi phan vao ca da dang ky ranh
                     var isAvail = availSet.Contains((emp.EmployeeId, workDate, shift.ShiftTypeId));
-                    // BR06: Khong phan va ca co don xin nghi da duyiet
                     var isOnLeave = leaveSet.Any(l => l.EmployeeId == emp.EmployeeId
                         && l.LeaveDate == workDate
                         && (!l.ShiftTypeId.HasValue || l.ShiftTypeId.Value == shift.ShiftTypeId));
@@ -101,12 +159,21 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
                 }
             }
         }
+    }
 
-        // RANG BUOC BAT BUOC TRONG CA (BR07, BR12, BR13)
-        for (int d = 0; d < numDays; d++)
+    private static void AddStaffingRequirementsConstraints(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        SchedulePeriod period,
+        List<ShiftType> fixedShifts,
+        Dictionary<(DateOnly WorkDate, int ShiftTypeId), StaffingRequirement> reqMap)
+    {
+        int empCount = activeEmployees.Count;
+        for (int d = 0; d < 7; d++)
         {
             var workDate = period.WeekStartDate.AddDays(d);
-            for (int s = 0; s < numShifts; s++)
+            for (int s = 0; s < 3; s++)
             {
                 var shift = fixedShifts[s];
                 reqMap.TryGetValue((workDate, shift.ShiftTypeId), out var req);
@@ -120,50 +187,45 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
                 for (int e = 0; e < empCount; e++)
                 {
                     var emp = activeEmployees[e];
-                    if (emp.Position == EmployeePosition.Sales)
-                    {
-                        salesVars.Add(x[e, d, s]);
-                    }
-                    else if (emp.Position == EmployeePosition.Cashier)
-                    {
-                        cashierVars.Add(x[e, d, s]);
-                    }
+                    if (emp.Position == EmployeePosition.Sales) salesVars.Add(x[e, d, s]);
+                    else if (emp.Position == EmployeePosition.Cashier) cashierVars.Add(x[e, d, s]);
 
-                    if (emp.Level >= EmployeeLevel.Level2)
-                    {
-                        lvl2PlusVars.Add(x[e, d, s]);
-                    }
+                    if (emp.Level >= EmployeeLevel.Level2) lvl2PlusVars.Add(x[e, d, s]);
                 }
 
-                // BR12: Dinh muc Sales va Cashier
                 model.Add(LinearExpr.Sum(salesVars) == salesReq);
                 model.Add(LinearExpr.Sum(cashierVars) == cashierReq);
 
-                // BR13: It nhat 1 nhan vien Level 2+ khi ca co nguoi
                 if (salesReq + cashierReq > 0)
                 {
                     model.Add(LinearExpr.Sum(lvl2PlusVars) >= 1);
                 }
             }
         }
+    }
 
-        // RANG BUOC NGUOI LAM (BR09, BR10, BR11)
+    private static void AddEmploymentWorkloadConstraints(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        int morningIdx,
+        int afternoonIdx,
+        int eveningIdx)
+    {
+        int empCount = activeEmployees.Count;
         for (int e = 0; e < empCount; e++)
         {
             var emp = activeEmployees[e];
-
             if (emp.EmploymentType == EmploymentType.PartTime)
             {
-                // BR09: PT max 1 shift/day
-                for (int d = 0; d < numDays; d++)
+                for (int d = 0; d < 7; d++)
                 {
                     model.Add(x[e, d, 0] + x[e, d, 1] + x[e, d, 2] <= 1);
                 }
             }
             else if (emp.EmploymentType == EmploymentType.FullTime)
             {
-                // BR10: FT 2 ca lien tiep (Sang-Chieu hoac Chieu-Toi)
-                for (int d = 0; d < numDays; d++)
+                for (int d = 0; d < 7; d++)
                 {
                     model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] <= 1);
                     model.Add(x[e, d, morningIdx] <= x[e, d, afternoonIdx]);
@@ -171,25 +233,107 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
                     model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] == x[e, d, afternoonIdx]);
                 }
 
-                // BR11: FT max 6 days/week (Afternoon = 1 iff day is active)
                 var ftDayVars = new List<BoolVar>();
-                for (int d = 0; d < numDays; d++)
+                for (int d = 0; d < 7; d++)
                 {
                     ftDayVars.Add(x[e, d, afternoonIdx]);
                 }
                 model.Add(LinearExpr.Sum(ftDayVars) <= 6);
             }
         }
+    }
 
-        // HAM MUC TIEU UU TIEN (BR18, BR19)
+    private static void AddWeeklyContinuousRestConstraints(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        SchedulePeriod period,
+        List<ShiftType> fixedShifts)
+    {
+        var minRestHours = SchedulingRuleConstants.MinimumWeeklyContinuousRestHours;
+        var periodStart = period.WeekStartDate.ToDateTime(TimeOnly.MinValue);
+        var periodEnd = periodStart.AddDays(7);
+
+        var candidateStarts = new HashSet<DateTime> { periodStart };
+        for (int d = 0; d < 7; d++)
+        {
+            var workDate = period.WeekStartDate.AddDays(d);
+            foreach (var shift in fixedShifts)
+            {
+                var shiftEnd = workDate.ToDateTime(shift.EndTime);
+                if (shift.EndTime <= shift.StartTime)
+                {
+                    shiftEnd = shiftEnd.AddDays(1);
+                }
+                candidateStarts.Add(shiftEnd);
+            }
+        }
+
+        var candidateWindows = new List<(DateTime Start, DateTime End)>();
+        foreach (var start in candidateStarts.OrderBy(t => t))
+        {
+            var end = start.AddHours(minRestHours);
+            if (end <= periodEnd)
+            {
+                candidateWindows.Add((start, end));
+            }
+        }
+
+        if (candidateWindows.Count == 0)
+        {
+            return;
+        }
+
+        int empCount = activeEmployees.Count;
+        for (int e = 0; e < empCount; e++)
+        {
+            var windowVars = new List<BoolVar>();
+            for (int k = 0; k < candidateWindows.Count; k++)
+            {
+                var (winStart, winEnd) = candidateWindows[k];
+                var winVar = model.NewBoolVar($"rest_win_{e}_{k}");
+                windowVars.Add(winVar);
+
+                for (int d = 0; d < 7; d++)
+                {
+                    var workDate = period.WeekStartDate.AddDays(d);
+                    for (int s = 0; s < 3; s++)
+                    {
+                        var shift = fixedShifts[s];
+                        var shiftStart = workDate.ToDateTime(shift.StartTime);
+                        var shiftEnd = workDate.ToDateTime(shift.EndTime);
+                        if (shiftEnd <= shiftStart)
+                        {
+                            shiftEnd = shiftEnd.AddDays(1);
+                        }
+
+                        if (shiftStart < winEnd && shiftEnd > winStart)
+                        {
+                            model.Add(x[e, d, s] == 0).OnlyEnforceIf(winVar);
+                        }
+                    }
+                }
+            }
+
+            model.AddBoolOr(windowVars);
+        }
+    }
+
+    private static void AddWorkloadObjective(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees)
+    {
+        int empCount = activeEmployees.Count;
         var objTerms = new List<LinearExpr>();
+
         for (int e = 0; e < empCount; e++)
         {
             var emp = activeEmployees[e];
             var allEmpShifts = new List<BoolVar>();
-            for (int d = 0; d < numDays; d++)
+            for (int d = 0; d < 7; d++)
             {
-                for (int s = 0; s < numShifts; s++)
+                for (int s = 0; s < 3; s++)
                 {
                     allEmpShifts.Add(x[e, d, s]);
                 }
@@ -207,79 +351,99 @@ public sealed class OrToolsSchedulingService : IOrToolsSchedulingService
         }
 
         model.Minimize(LinearExpr.Sum(objTerms));
+    }
 
-        // CHAY CP-SAT SOLVER
-        var solver = new CpSolver();
-        solver.StringParameters = $"max_time_in_seconds:{timeoutSeconds}.0";
+    private OrToolsProposalResultViewModel ProcessSolverSolution(
+        CpSolver solver,
+        CpSolverStatus status,
+        double solveTime,
+        BoolVar[,,] x,
+        SchedulePeriod period,
+        IReadOnlyList<Employee> activeEmployees,
+        IReadOnlyList<Availability> availabilities,
+        IReadOnlyList<LeaveRequest> approvedLeaves,
+        IReadOnlyList<StaffingRequirement> staffingRequirements,
+        List<ShiftType> fixedShifts,
+        IReadOnlyList<ShiftType> shiftTypes)
+    {
+        ExtractAssignments(
+            solver, x, period, activeEmployees, fixedShifts,
+            out var proposedAssignments, out var tempAssignments);
 
-        var status = solver.Solve(model);
-        var solveTime = (DateTime.UtcNow - startTime).TotalSeconds;
+        var valResult = _validationService.ValidateSchedule(
+            period, activeEmployees, availabilities, approvedLeaves,
+            staffingRequirements, tempAssignments, shiftTypes);
 
-        _logger.LogInformation(
-            "OR-Tools CP-SAT solve finished. Status: {Status}; Time: {Time:F2}s",
-            status, solveTime);
-
-        if (status == CpSolverStatus.Optimal || status == CpSolverStatus.Feasible)
+        if (!valResult.IsValid)
         {
-            var proposedAssignments = new List<ProposedAssignmentItemViewModel>();
-            var tempAssignments = new List<ShiftAssignment>();
-
-            for (int e = 0; e < empCount; e++)
-            {
-                var emp = activeEmployees[e];
-                for (int d = 0; d < numDays; d++)
-                {
-                    var workDate = period.WeekStartDate.AddDays(d);
-                    for (int s = 0; s < numShifts; s++)
-                    {
-                        var shift = fixedShifts[s];
-                        if (solver.Value(x[e, d, s]) == 1)
-                        {
-                            proposedAssignments.Add(new ProposedAssignmentItemViewModel
-                            {
-                                WorkDate = workDate,
-                                ShiftTypeId = shift.ShiftTypeId,
-                                ShiftName = shift.ShiftName,
-                                EmployeeId = emp.EmployeeId,
-                                EmployeeCode = emp.EmployeeCode,
-                                FullName = emp.FullName,
-                                Position = emp.Position,
-                                EmploymentType = emp.EmploymentType
-                            });
-
-                            tempAssignments.Add(new ShiftAssignment
-                            {
-                                EmployeeId = emp.EmployeeId,
-                                WorkDate = workDate,
-                                ShiftTypeId = shift.ShiftTypeId,
-                                Source = AssignmentSource.ORTools
-                            });
-                        }
-                    }
-                }
-            }
-
-            var valResult = _validationService.ValidateSchedule(
-                period, activeEmployees, availabilities, approvedLeaves, staffingRequirements, tempAssignments, shiftTypes);
-
             return new OrToolsProposalResultViewModel
             {
-                Succeeded = true,
-                Status = status.ToString(),
-                Message = $"Đã tạo lịch đề xuất tự động ({proposedAssignments.Count} lượt phân công).",
+                Succeeded = false,
+                Status = "INFEASIBLE",
+                Message = "Phương án đề xuất vi phạm ràng buộc bắt buộc.",
                 SolveTimeSeconds = solveTime,
-                ProposedAssignments = proposedAssignments,
                 ValidationResult = valResult
             };
         }
 
         return new OrToolsProposalResultViewModel
         {
-            Succeeded = false,
+            Succeeded = true,
             Status = status.ToString(),
-            Message = "Không tìm thấy phương án lập lịch thỏa mãn toàn bộ ràng buộc bắt buộc.",
-            SolveTimeSeconds = solveTime
+            Message = $"Đã tạo lịch đề xuất tự động ({proposedAssignments.Count} lượt phân công).",
+            SolveTimeSeconds = solveTime,
+            ProposedAssignments = proposedAssignments,
+            ValidationResult = valResult
         };
+    }
+
+    private static void ExtractAssignments(
+        CpSolver solver,
+        BoolVar[,,] x,
+        SchedulePeriod period,
+        IReadOnlyList<Employee> activeEmployees,
+        List<ShiftType> fixedShifts,
+        out List<ProposedAssignmentItemViewModel> proposedAssignments,
+        out List<ShiftAssignment> tempAssignments)
+    {
+        proposedAssignments = new List<ProposedAssignmentItemViewModel>();
+        tempAssignments = new List<ShiftAssignment>();
+        int empCount = activeEmployees.Count;
+
+        for (int e = 0; e < empCount; e++)
+        {
+            var emp = activeEmployees[e];
+            for (int d = 0; d < 7; d++)
+            {
+                var workDate = period.WeekStartDate.AddDays(d);
+                for (int s = 0; s < 3; s++)
+                {
+                    var shift = fixedShifts[s];
+                    if (solver.Value(x[e, d, s]) == 1)
+                    {
+                        proposedAssignments.Add(new ProposedAssignmentItemViewModel
+                        {
+                            WorkDate = workDate,
+                            ShiftTypeId = shift.ShiftTypeId,
+                            ShiftName = shift.ShiftName,
+                            EmployeeId = emp.EmployeeId,
+                            EmployeeCode = emp.EmployeeCode,
+                            FullName = emp.FullName,
+                            Position = emp.Position,
+                            EmploymentType = emp.EmploymentType
+                        });
+
+                        tempAssignments.Add(new ShiftAssignment
+                        {
+                            EmployeeId = emp.EmployeeId,
+                            WorkDate = workDate,
+                            ShiftTypeId = shift.ShiftTypeId,
+                            Source = AssignmentSource.ORTools
+                        });
+                    }
+                }
+            }
+        }
     }
 
     private static bool IsFixedShiftCode(string? shiftCode)

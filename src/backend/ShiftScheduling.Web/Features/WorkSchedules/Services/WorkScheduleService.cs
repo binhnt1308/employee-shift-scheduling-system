@@ -30,7 +30,7 @@ public partial class WorkScheduleService : IWorkScheduleService
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAvailabilityRepository _availabilityRepository;
     private readonly ILeaveRequestRepository _leaveRequestRepository;
-    private readonly IScheduleValidationService _validationService;
+    private readonly ISchedulingValidationService _validationService;
     private readonly IOrToolsSchedulingService _orToolsService;
     private readonly INotificationRepository _notificationRepository;
     private readonly IAuditLogRepository _auditLogRepository;
@@ -45,7 +45,7 @@ public partial class WorkScheduleService : IWorkScheduleService
         IEmployeeRepository employeeRepository,
         IAvailabilityRepository availabilityRepository,
         ILeaveRequestRepository leaveRequestRepository,
-        IScheduleValidationService validationService,
+        ISchedulingValidationService validationService,
         IOrToolsSchedulingService orToolsService,
         INotificationRepository notificationRepository,
         IAuditLogRepository auditLogRepository,
@@ -83,7 +83,8 @@ public partial class WorkScheduleService : IWorkScheduleService
                 period.SchedulePeriodId, true, true, cancellationToken);
 
             var canSchedule = period.RegistrationStatus == RegistrationStatus.Closed
-                || (period.RegistrationStatus == RegistrationStatus.Open && period.AvailabilityDeadline <= _clock.UtcNow);
+                || (period.RegistrationStatus == RegistrationStatus.Open
+                    && period.AvailabilityDeadline <= _clock.UtcNow);
 
             periodItems.Add(new WorkSchedulePeriodItemViewModel
             {
@@ -141,7 +142,9 @@ public partial class WorkScheduleService : IWorkScheduleService
             period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
             schedule.ShiftAssignments.ToList(), allShifts);
 
-        var days = BuildGridDays(period, fixedShifts, period.StaffingRequirements.ToList(), schedule.ShiftAssignments.ToList(), activeEmployees);
+        var days = BuildGridDays(
+            period, fixedShifts, period.StaffingRequirements.ToList(),
+            schedule.ShiftAssignments.ToList(), activeEmployees);
 
         return new WorkScheduleEditViewModel
         {
@@ -181,7 +184,9 @@ public partial class WorkScheduleService : IWorkScheduleService
                 int reqSales = req?.RequiredSalesStaff ?? 0;
                 int reqCashier = req?.RequiredCashiers ?? 0;
 
-                var shiftAssigns = assignments.Where(a => a.WorkDate == date && a.ShiftTypeId == shift.ShiftTypeId).ToList();
+                var shiftAssigns = assignments
+                    .Where(a => a.WorkDate == date && a.ShiftTypeId == shift.ShiftTypeId)
+                    .ToList();
                 var assignedItems = shiftAssigns.Select(a =>
                 {
                     empMap.TryGetValue(a.EmployeeId, out var emp);
@@ -217,7 +222,9 @@ public partial class WorkScheduleService : IWorkScheduleService
                     MissingSales = Math.Max(0, reqSales - assignedSales),
                     MissingCashier = Math.Max(0, reqCashier - assignedCashier),
                     HasLevel2Plus = hasLevel2Plus,
-                    IsSatisfied = assignedSales >= reqSales && assignedCashier >= reqCashier && (hasLevel2Plus || reqSales + reqCashier == 0),
+                    IsSatisfied = assignedSales >= reqSales
+                        && assignedCashier >= reqCashier
+                        && (hasLevel2Plus || reqSales + reqCashier == 0),
                     AssignedEmployees = assignedItems
                 });
             }

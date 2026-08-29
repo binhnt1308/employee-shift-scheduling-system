@@ -1,5 +1,6 @@
 using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Features.ShiftTransfers.ViewModels;
+using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.Errors;
@@ -17,7 +18,9 @@ public sealed partial class ShiftTransferService
     {
         if (assignment is null || assignment.EmployeeId != sender.EmployeeId)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftAssignmentNotFound, "Ca cần chuyển không thuộc lịch của bạn.");
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftAssignmentNotFound,
+                "Ca cần chuyển không thuộc lịch của bạn.");
         }
 
         var assignmentState = ValidateAssignmentState(assignment, sender.EmployeeId);
@@ -41,7 +44,8 @@ public sealed partial class ShiftTransferService
         {
             return ServiceResult.Failure(
                 ErrorCodes.ShiftTransferInvalidReceiver,
-                "Người nhận không còn hoạt động, không cùng vị trí hoặc không có tài khoản hợp lệ.");
+                "Người nhận không còn hoạt động, không cùng vị trí"
+                    + " hoặc không có tài khoản hợp lệ.");
         }
 
         var validation = await ValidateTransferAsync(assignment, sender, receiver, cancellationToken);
@@ -62,26 +66,21 @@ public sealed partial class ShiftTransferService
         }
 
         return HasShiftStarted(assignment)
-            ? ServiceResult.Failure(ErrorCodes.ShiftAlreadyStarted, "Ca làm việc đã bắt đầu hoặc đã kết thúc.")
+            ? ServiceResult.Failure(
+                ErrorCodes.ShiftAlreadyStarted,
+                "Ca làm việc đã bắt đầu hoặc đã kết thúc.")
             : ServiceResult.Success();
     }
 
     private async Task<TransferValidationResult> ValidateTransferAsync(
-        ShiftTransferRequest request,
-        CancellationToken cancellationToken)
+        ShiftTransferRequest request, CancellationToken cancellationToken)
     {
         return await ValidateTransferAsync(
-            request.ShiftAssignment,
-            request.SenderEmployee,
-            request.ReceiverEmployee,
-            cancellationToken);
+            request.ShiftAssignment, request.SenderEmployee, request.ReceiverEmployee, cancellationToken);
     }
 
     private async Task<TransferValidationResult> ValidateTransferAsync(
-        ShiftAssignment assignment,
-        Employee sender,
-        Employee receiver,
-        CancellationToken cancellationToken)
+        ShiftAssignment assignment, Employee sender, Employee receiver, CancellationToken cancellationToken)
     {
         var errors = new List<string>();
         var warnings = new List<string>();
@@ -93,19 +92,75 @@ public sealed partial class ShiftTransferService
 
         await AddAvailabilityAndLeaveErrorsAsync(assignment, receiver, errors, cancellationToken);
         var senderAssignments = await _repository.GetPublishedAssignmentsForEmployeeInPeriodAsync(
-            sender.EmployeeId,
-            assignment.WorkSchedule.SchedulePeriodId,
-            cancellationToken);
+            sender.EmployeeId, assignment.WorkSchedule.SchedulePeriodId, cancellationToken);
         var receiverAssignments = await _repository.GetPublishedAssignmentsForEmployeeInPeriodAsync(
-            receiver.EmployeeId,
-            assignment.WorkSchedule.SchedulePeriodId,
-            cancellationToken);
+            receiver.EmployeeId, assignment.WorkSchedule.SchedulePeriodId, cancellationToken);
 
         // BR08-BR11 trong UC10 được kiểm tra trên người nhận sau khi nhận thêm ca.
         AddReceiverScheduleRuleErrors(assignment, receiver, receiverAssignments, errors);
         await AddStaffingErrorsAsync(assignment, receiver, errors, cancellationToken);
         AddWorkloadWarnings(assignment, sender, receiver, senderAssignments, receiverAssignments, warnings);
         return new TransferValidationResult(errors, warnings);
+    }
+
+    private TransferValidationResult ValidateTransferInMemory(
+        ShiftAssignment assignment, Employee sender, Employee receiver,
+        IReadOnlyList<ShiftAssignment> senderAssignments, IReadOnlyList<ShiftAssignment> receiverAssignments,
+        bool isReceiverAvailable, bool hasReceiverApprovedLeave,
+        StaffingRequirement? requirement, IReadOnlyList<ShiftAssignment> shiftAssignments)
+    {
+        var errors = new List<string>();
+        var warnings = new List<string>();
+
+        AddAssignmentAndIdentityErrors(assignment, sender, receiver, errors);
+        if (errors.Count > 0)
+        {
+            return new TransferValidationResult(errors, warnings);
+        }
+
+        AddAvailabilityAndLeaveErrors(isReceiverAvailable, hasReceiverApprovedLeave, errors);
+        AddReceiverScheduleRuleErrors(assignment, receiver, receiverAssignments, errors);
+        AddStaffingErrors(assignment, receiver, requirement, shiftAssignments, errors);
+        AddWorkloadWarnings(assignment, sender, receiver, senderAssignments, receiverAssignments, warnings);
+
+        return new TransferValidationResult(errors, warnings);
+    }
+
+    private static void AddAvailabilityAndLeaveErrors(
+        bool isReceiverAvailable, bool hasReceiverApprovedLeave, List<string> errors)
+    {
+        if (!isReceiverAvailable)
+        {
+            errors.Add("Người nhận chưa đăng ký rảnh tại ca này.");
+        }
+
+        if (hasReceiverApprovedLeave)
+        {
+            errors.Add("Người nhận có đơn xin nghỉ đã được duyệt tại ca này.");
+        }
+    }
+
+    private static void AddStaffingErrors(
+        ShiftAssignment target, Employee receiver, StaffingRequirement? requirement,
+        IReadOnlyList<ShiftAssignment> assignments, List<string> errors)
+    {
+        if (requirement is null)
+        {
+            errors.Add("Không tìm thấy định mức mới nhất của ca để kiểm tra.");
+            return;
+        }
+
+        var employees = assignments
+            .Where(item => item.ShiftAssignmentId != target.ShiftAssignmentId)
+            .Select(item => item.Employee)
+            .Append(receiver)
+            .ToArray();
+        var sales = employees.Count(employee => employee.Position == EmployeePosition.Sales);
+        var cashiers = employees.Count(employee => employee.Position == EmployeePosition.Cashier);
+        if (sales < requirement.RequiredSalesStaff || cashiers < requirement.RequiredCashiers)
+        {
+            errors.Add("Sau khi đổi ca, ca không còn đáp ứng định mức nhân sự theo vị trí.");
+        }
     }
 
     private void AddAssignmentAndIdentityErrors(
@@ -184,15 +239,28 @@ public sealed partial class ShiftTransferService
         var projectedAssignments = existingAssignments.Append(target).ToArray();
         if (receiver.EmploymentType == EmploymentType.PartTime)
         {
-            // BR09: Việc nhận ca không được làm nhân viên bán thời gian vượt quá một ca trong ngày.
+            // BR09: Việc nhận ca không được làm nhân viên bán thời gian
+            // vượt quá một ca trong ngày.
             if (projectedAssignments.GroupBy(item => item.WorkDate).Any(group => group.Count() > 1))
             {
                 errors.Add("Việc nhận ca làm nhân viên bán thời gian vượt quá một ca trong ngày.");
             }
-            return;
+        }
+        else
+        {
+            AddFullTimeRuleErrors(projectedAssignments, errors);
         }
 
-        AddFullTimeRuleErrors(projectedAssignments, errors);
+        // BR20, BR21: Kiểm tra quy tắc nghỉ tối thiểu 12h giữa ca cuối ngày D và ca đầu ngày D+1,
+        // và 24h liên tục trong kỳ lịch.
+        var shiftTypeMap = projectedAssignments
+            .Where(a => a.ShiftType is not null)
+            .GroupBy(a => a.ShiftTypeId)
+            .ToDictionary(g => g.Key, g => g.First().ShiftType);
+        var weekStartDate = target.WorkSchedule.SchedulePeriod.WeekStartDate;
+        var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
+            receiver, projectedAssignments, shiftTypeMap, weekStartDate);
+        errors.AddRange(restErrors);
     }
 
     private static void AddFullTimeRuleErrors(
@@ -208,7 +276,8 @@ public sealed partial class ShiftTransferService
                 .ToArray();
             if (codes.Length != 2 || !IsConsecutivePair(codes))
             {
-                errors.Add("Việc đổi ca làm vi phạm quy tắc hai ca liên tiếp của nhân viên toàn thời gian.");
+                errors.Add("Việc đổi ca làm vi phạm quy tắc hai ca liên tiếp"
+                    + " của nhân viên toàn thời gian.");
                 break;
             }
         }
@@ -216,7 +285,8 @@ public sealed partial class ShiftTransferService
         // BR11: FT không được vượt quá 6 ngày làm trong một kỳ lịch tuần.
         if (assignments.Select(item => item.WorkDate).Distinct().Count() > 6)
         {
-            errors.Add("Việc đổi ca làm nhân viên toàn thời gian vượt quá 6 ngày làm việc trong tuần.");
+            errors.Add("Việc đổi ca làm nhân viên toàn thời gian vượt quá"
+                + " 6 ngày làm việc trong tuần.");
         }
     }
 
@@ -289,7 +359,8 @@ public sealed partial class ShiftTransferService
         {
             if (assignments.Count != 5)
             {
-                warnings.Add($"{label} dự kiến có {assignments.Count} ca trong tuần, khác mức ưu tiên khoảng 5 ca.");
+                warnings.Add($"{label} dự kiến có {assignments.Count} ca trong tuần,"
+                    + " khác mức ưu tiên khoảng 5 ca.");
             }
             return;
         }

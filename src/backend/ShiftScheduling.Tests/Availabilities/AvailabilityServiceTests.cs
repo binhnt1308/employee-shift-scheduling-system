@@ -12,7 +12,8 @@ namespace ShiftScheduling.Tests.Availabilities;
 
 public sealed class AvailabilityServiceTests
 {
-    [Fact(DisplayName = "TC04-01 - UC04 BR04 - Kỳ lịch đang mở và chưa hết hạn -> Lưu lịch rảnh thành công")]
+    [Fact(DisplayName = "TC04-01 - UC04 BR04 - Kỳ lịch đang mở và chưa hết hạn"
+        + " -> Lưu lịch rảnh thành công")]
     public async Task SaveEmployeeAvailabilityAsync_WhenPeriodIsOpenAndDeadlineNotExpired_Succeeds()
     {
         var availRepo = new FakeAvailabilityRepository();
@@ -43,7 +44,9 @@ public sealed class AvailabilityServiceTests
 
         var service = new AvailabilityService(
             availRepo, periodRepo, shiftTypeRepo, empRepo,
-            new FakeAuditLogRepository(), new FakeUnitOfWork(), new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
             NullLogger<AvailabilityService>.Instance);
 
         var keys = new List<string> { "2026-08-10_1", "2026-08-10_2" };
@@ -53,7 +56,8 @@ public sealed class AvailabilityServiceTests
         Assert.Equal(2, availRepo.Availabilities.Count);
     }
 
-    [Fact(DisplayName = "TC04-02 - UC04 BR04 - Đã hết thời hạn đăng ký (Deadline expired) -> Từ chối đăng ký")]
+    [Fact(DisplayName = "TC04-02 - UC04 BR04 - Đã hết thời hạn đăng ký (Deadline expired)"
+        + " -> Từ chối đăng ký")]
     public async Task SaveEmployeeAvailabilityAsync_WhenDeadlineExpired_ReturnsDeadlineExpiredError()
     {
         var availRepo = new FakeAvailabilityRepository();
@@ -76,10 +80,13 @@ public sealed class AvailabilityServiceTests
 
         var service = new AvailabilityService(
             availRepo, periodRepo, shiftTypeRepo, empRepo,
-            new FakeAuditLogRepository(), new FakeUnitOfWork(), new FakeClock(new DateTime(2026, 8, 9, 10, 0, 0, DateTimeKind.Utc)), // Sau deadline
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 9, 10, 0, 0, DateTimeKind.Utc)), // Sau deadline
             NullLogger<AvailabilityService>.Instance);
 
-        var result = await service.SaveEmployeeAvailabilityAsync(10, 1, new List<string> { "2026-08-10_1" });
+        var result = await service.SaveEmployeeAvailabilityAsync(
+            10, 1, new List<string> { "2026-08-10_1" });
 
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.RegistrationDeadlineExpired, result.ErrorCode);
@@ -106,10 +113,13 @@ public sealed class AvailabilityServiceTests
 
         var service = new AvailabilityService(
             availRepo, periodRepo, shiftTypeRepo, empRepo,
-            new FakeAuditLogRepository(), new FakeUnitOfWork(), new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
             NullLogger<AvailabilityService>.Instance);
 
-        var result = await service.SaveEmployeeAvailabilityAsync(10, 1, new List<string> { "2026-08-10_1" });
+        var result = await service.SaveEmployeeAvailabilityAsync(
+            10, 1, new List<string> { "2026-08-10_1" });
 
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.InvalidSchedulePeriodStatus, result.ErrorCode);
@@ -120,9 +130,24 @@ public sealed class AvailabilityServiceTests
         var repo = new FakeShiftTypeRepository();
         repo.ShiftTypes.AddRange(new[]
         {
-            new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DisplayOrder = 1, IsActive = true },
-            new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DisplayOrder = 2, IsActive = true },
-            new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DisplayOrder = 3, IsActive = true }
+            new ShiftType
+            {
+                ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng",
+                StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0),
+                DisplayOrder = 1, IsActive = true
+            },
+            new ShiftType
+            {
+                ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều",
+                StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0),
+                DisplayOrder = 2, IsActive = true
+            },
+            new ShiftType
+            {
+                ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối",
+                StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0),
+                DisplayOrder = 3, IsActive = true
+            }
         });
         return repo;
     }
@@ -131,17 +156,32 @@ public sealed class AvailabilityServiceTests
     {
         public List<Availability> Availabilities { get; } = new();
 
-        public Task<List<Availability>> GetByEmployeeAndPeriodAsync(int employeeId, int schedulePeriodId, CancellationToken cancellationToken = default)
+        public Task<List<Availability>> GetByEmployeeAndPeriodAsync(
+            int employeeId, int schedulePeriodId, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Availabilities.Where(a => a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId).ToList());
+            return Task.FromResult(
+                Availabilities.Where(a =>
+                    a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId).ToList());
         }
 
-        public Task<List<Availability>> GetByPeriodWithDetailsAsync(int schedulePeriodId, int? employeeIdFilter = null, EmployeePosition? positionFilter = null, DateOnly? dateFilter = null, int? shiftTypeIdFilter = null, CancellationToken cancellationToken = default)
+        public Task<List<Availability>> GetByPeriodWithDetailsAsync(
+            int schedulePeriodId,
+            int? employeeIdFilter = null,
+            EmployeePosition? positionFilter = null,
+            DateOnly? dateFilter = null,
+            int? shiftTypeIdFilter = null,
+            CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Availabilities.Where(a => a.SchedulePeriodId == schedulePeriodId).ToList());
+            return Task.FromResult(
+                Availabilities.Where(a => a.SchedulePeriodId == schedulePeriodId).ToList());
         }
 
-        public Task SaveEmployeeAvailabilitiesAsync(int employeeId, int schedulePeriodId, IEnumerable<(DateOnly WorkDate, int ShiftTypeId)> selectedShifts, DateTime now, CancellationToken cancellationToken = default)
+        public Task SaveEmployeeAvailabilitiesAsync(
+            int employeeId,
+            int schedulePeriodId,
+            IEnumerable<(DateOnly WorkDate, int ShiftTypeId)> selectedShifts,
+            DateTime now,
+            CancellationToken cancellationToken = default)
         {
             Availabilities.RemoveAll(a => a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId);
             foreach (var (date, shiftId) in selectedShifts)

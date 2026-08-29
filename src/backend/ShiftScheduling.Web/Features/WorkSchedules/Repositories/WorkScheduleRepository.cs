@@ -53,7 +53,8 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
             .ThenInclude(a => a.Employee)
             .Include(w => w.ShiftAssignments)
             .ThenInclude(a => a.ShiftType)
-            .FirstOrDefaultAsync(w => w.SchedulePeriodId == schedulePeriodId && w.Status == ScheduleStatus.Published, cancellationToken);
+            .FirstOrDefaultAsync(w => w.SchedulePeriodId == schedulePeriodId
+                && w.Status == ScheduleStatus.Published, cancellationToken);
     }
 
     public async Task<WorkSchedule> EnsureDraftExistsAsync(
@@ -70,7 +71,8 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
             return existing;
         }
 
-        var period = await _dbContext.SchedulePeriods.FirstAsync(p => p.SchedulePeriodId == schedulePeriodId, cancellationToken);
+        var period = await _dbContext.SchedulePeriods.FirstAsync(
+            p => p.SchedulePeriodId == schedulePeriodId, cancellationToken);
         var workSchedule = new WorkSchedule
         {
             SchedulePeriodId = schedulePeriodId,
@@ -111,7 +113,8 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
             });
         }
 
-        var schedule = await _dbContext.WorkSchedules.FirstAsync(w => w.WorkScheduleId == workScheduleId, cancellationToken);
+        var schedule = await _dbContext.WorkSchedules.FirstAsync(
+            w => w.WorkScheduleId == workScheduleId, cancellationToken);
         schedule.UpdatedAt = now;
     }
 
@@ -132,5 +135,45 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
         var period = await _dbContext.SchedulePeriods
             .FirstAsync(p => p.SchedulePeriodId == schedule.SchedulePeriodId, cancellationToken);
         period.RegistrationStatus = RegistrationStatus.Closed;
+    }
+
+    public async Task<HashSet<int>> GetPublishedPeriodIdsAsync(
+        IEnumerable<int> periodIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = periodIds.ToList();
+        var publishedIds = await _dbContext.WorkSchedules
+            .AsNoTracking()
+            .Where(ws => ids.Contains(ws.SchedulePeriodId) && ws.Status == ScheduleStatus.Published)
+            .Select(ws => ws.SchedulePeriodId)
+            .ToListAsync(cancellationToken);
+        return publishedIds.ToHashSet();
+    }
+
+    public Task<WorkSchedule?> GetLatestPublishedScheduleAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.WorkSchedules
+            .AsNoTracking()
+            .Include(ws => ws.SchedulePeriod)
+            .Include(ws => ws.ShiftAssignments)
+                .ThenInclude(sa => sa.ShiftType)
+            .Where(ws => ws.Status == ScheduleStatus.Published)
+            .OrderByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<bool> HasFuturePublishedAssignmentAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.ShiftAssignments
+            .AsNoTracking()
+            .AnyAsync(sa => sa.EmployeeId == employeeId
+                && sa.WorkDate >= fromDate
+                && sa.WorkSchedule.Status == ScheduleStatus.Published,
+                cancellationToken);
     }
 }

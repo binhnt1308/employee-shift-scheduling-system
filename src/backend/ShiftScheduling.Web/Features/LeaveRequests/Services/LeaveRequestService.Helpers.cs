@@ -57,7 +57,9 @@ public sealed partial class LeaveRequestService
     {
         if (leaveDate < _clock.TodayInVietnam)
         {
-            return ServiceResult.Failure(ErrorCodes.LeaveRequestShiftEnded, "Ngày hoặc ca xin nghỉ đã kết thúc.");
+            return ServiceResult.Failure(
+            ErrorCodes.LeaveRequestShiftEnded,
+            "Ngày hoặc ca xin nghỉ đã kết thúc.");
         }
 
         if (leaveDate > _clock.TodayInVietnam)
@@ -90,8 +92,9 @@ public sealed partial class LeaveRequestService
                 ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
                 Reason = request.Reason,
                 Status = request.Status,
-                SubmittedAt = request.SubmittedAt,
-                HasPublishedAssignment = affected
+                SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
+                HasPublishedAssignment = affected,
+                RowVersion = Convert.ToBase64String(request.RowVersion)
             });
         }
 
@@ -113,8 +116,10 @@ public sealed partial class LeaveRequestService
             ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
             Reason = request.Reason,
             Status = request.Status,
-            SubmittedAt = request.SubmittedAt,
-            ReviewedAt = request.ReviewedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
+            ReviewedAt = request.ReviewedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReviewedAt.Value)
+                : null,
             ManagerNote = request.ManagerNote,
             HasPublishedAssignment = await HasPublishedAssignmentAsync(request, cancellationToken),
             HasDraftAssignment = isManager
@@ -124,7 +129,8 @@ public sealed partial class LeaveRequestService
                     request.LeaveDate,
                     request.ShiftTypeId,
                     cancellationToken),
-            CanReview = isManager && request.Status == LeaveRequestStatus.Pending
+            CanReview = isManager && request.Status == LeaveRequestStatus.Pending,
+            RowVersion = Convert.ToBase64String(request.RowVersion)
         };
     }
 

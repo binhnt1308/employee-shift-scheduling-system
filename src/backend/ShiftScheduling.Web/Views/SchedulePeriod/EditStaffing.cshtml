@@ -28,7 +28,7 @@
     </div>
 </div>
 
-<form method="post" asp-action="EditStaffing">
+<form method="post" asp-action="EditStaffing" data-prevent-double-submit="true">
     <input type="hidden" asp-for="SchedulePeriodId" />
     <input type="hidden" asp-for="PeriodName" />
     <input type="hidden" asp-for="WeekStartDate" />

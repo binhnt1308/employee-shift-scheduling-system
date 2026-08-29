@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.Employees.Repositories;
+using ShiftScheduling.Features.WorkSchedules.Repositories;
 using ShiftScheduling.Infrastructure.Persistence;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
@@ -17,6 +18,7 @@ public sealed class EmployeeService : IEmployeeService
     private const int MaxPageSize = 50;
 
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IWorkScheduleRepository _workScheduleRepository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -27,12 +29,14 @@ public sealed class EmployeeService : IEmployeeService
     /// </summary>
     public EmployeeService(
         IEmployeeRepository employeeRepository,
+        IWorkScheduleRepository workScheduleRepository,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClock clock,
         ILogger<EmployeeService> logger)
     {
         _employeeRepository = employeeRepository;
+        _workScheduleRepository = workScheduleRepository;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _clock = clock;
@@ -142,6 +146,21 @@ public sealed class EmployeeService : IEmployeeService
             return ServiceResult.Failure(ErrorCodes.EmployeeNotFound, "Không tìm thấy nhân viên.");
         }
 
+        if (!isActive)
+        {
+            var hasFuturePublished = await _workScheduleRepository.HasFuturePublishedAssignmentAsync(
+                employeeId,
+                _clock.TodayInVietnam,
+                cancellationToken);
+
+            if (hasFuturePublished)
+            {
+                return ServiceResult.Failure(
+                    ErrorCodes.EmployeeHasFutureAssignments,
+                    "Không thể ngừng hoạt động nhân viên vì vẫn còn ca làm từ hôm nay trở đi trong lịch đã công bố. Vui lòng điều chỉnh lịch trước.");
+            }
+        }
+
         // BR02: Khong xoa ho so da co lich su, chi thay doi trang thai hoat dong.
         var previousValues = new { employee.IsActive };
         employee.IsActive = isActive;
@@ -169,7 +188,9 @@ public sealed class EmployeeService : IEmployeeService
             || !Enum.IsDefined(typeof(EmploymentType), model.EmploymentType)
             || !Enum.IsDefined(typeof(EmployeeLevel), model.Level))
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEnumValue, "Thông tin phân loại nhân viên không hợp lệ.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEnumValue,
+            "Thông tin phân loại nhân viên không hợp lệ.");
         }
 
         var dateValidation = ValidateDates(model);
@@ -181,7 +202,9 @@ public sealed class EmployeeService : IEmployeeService
         var employeeCode = NormalizeEmployeeCode(model.EmployeeCode);
         if (await _employeeRepository.EmployeeCodeExistsAsync(employeeCode, excludedEmployeeId, cancellationToken))
         {
-            return ServiceResult.Failure(ErrorCodes.DuplicateEmployeeCode, "Mã nhân viên đã được sử dụng.");
+            return ServiceResult.Failure(
+            ErrorCodes.DuplicateEmployeeCode,
+            "Mã nhân viên đã được sử dụng.");
         }
 
         var email = NormalizeEmail(model.Email);
@@ -201,14 +224,18 @@ public sealed class EmployeeService : IEmployeeService
     {
         if (model.DateOfBirth is null || model.StartDate is null)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEmployeeDate, "Ngày sinh và ngày vào làm là bắt buộc.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEmployeeDate,
+            "Ngày sinh và ngày vào làm là bắt buộc.");
         }
 
         var dateOfBirth = model.DateOfBirth.Value;
         var startDate = model.StartDate.Value;
         if (dateOfBirth >= _clock.TodayInVietnam)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidEmployeeDate, "Ngày sinh phải nhỏ hơn ngày hiện tại.");
+            return ServiceResult.Failure(
+            ErrorCodes.InvalidEmployeeDate,
+            "Ngày sinh phải nhỏ hơn ngày hiện tại.");
         }
 
         if (startDate > _clock.TodayInVietnam || startDate < dateOfBirth)

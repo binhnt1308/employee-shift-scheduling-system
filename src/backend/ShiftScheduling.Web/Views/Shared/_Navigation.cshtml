@@ -1,0 +1,237 @@
+@using System.Security.Claims
+@using ShiftScheduling.Models.Constants
+
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var username = User.Identity?.Name ?? "Khách";
+    var role = User.FindFirstValue(ClaimTypes.Role);
+
+    var isAdmin = role == RoleNames.Admin;
+    var isStoreManager = role == RoleNames.Manager;
+    var isEmployee = role == RoleNames.Employee;
+    var canManageEmployees = isAdmin || isStoreManager;
+
+    var empFullName = User.FindFirstValue("EmployeeFullName");
+    var empCode = User.FindFirstValue("EmployeeCode") ?? username;
+    var empType = User.FindFirstValue("EmploymentTypeLabel");
+    var empPos = User.FindFirstValue("PositionLabel");
+    var empLvl = User.FindFirstValue("EmployeeLevel");
+
+    var displayName = !string.IsNullOrWhiteSpace(empFullName) ? empFullName : username;
+    var hasEmpInfo = !string.IsNullOrWhiteSpace(empType) && !string.IsNullOrWhiteSpace(empPos);
+}
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+    <div class="container-fluid px-lg-4">
+        <a class="navbar-brand navbar-brand-custom"
+           asp-controller="Home"
+           asp-action="Index">
+
+            <div class="brand-icon">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+
+            <span>ShiftScheduler</span>
+        </a>
+
+        <button class="navbar-toggler border-0"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navMenu">
+
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse"
+             id="navMenu">
+
+            @if (isAuthenticated)
+            {
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom @(currentController == "Home" ? "active" : "")"
+                           asp-controller="Home"
+                           asp-action="Index">
+
+                            <i class="fa-solid fa-house"></i>
+                            Tổng quan
+                        </a>
+                    </li>
+
+                    @if (isAdmin)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom
+                                      @(currentController == "Account" && currentAction != "Login"
+                                          ? "active"
+                                          : "")"
+                               asp-controller="Account"
+                               asp-action="Index">
+
+                                <i class="fa-solid fa-user-shield"></i>
+                                Tài khoản
+                            </a>
+                        </li>
+                    }
+
+                    @if (canManageEmployees)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Employee" ? "active" : "")"
+                               asp-controller="Employee"
+                               asp-action="Index">
+
+                                <i class="fa-solid fa-users"></i>
+                                Nhân viên
+                            </a>
+                        </li>
+                    }
+
+                    @if (isStoreManager)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "ShiftType" ? "active" : "")"
+                               asp-controller="ShiftType"
+                               asp-action="Index">
+                                <i class="fa-regular fa-clock"></i> Ca làm
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "SchedulePeriod" ? "active" : "")"
+                               asp-controller="SchedulePeriod"
+                               asp-action="Index">
+                                <i class="fa-solid fa-calendar-week"></i> Kỳ lịch
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Availability" ? "active" : "")"
+                               asp-controller="Availability"
+                               asp-action="Overview">
+                                <i class="fa-solid fa-users-viewfinder"></i> Lịch rảnh
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "WorkSchedule" ? "active" : "")"
+                               asp-controller="WorkSchedule"
+                               asp-action="Index">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Phân công
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "LeaveRequest" ? "active" : "")"
+                               asp-controller="LeaveRequest"
+                               asp-action="Index">
+                                <i class="fa-solid fa-calendar-minus"></i> Đơn xin nghỉ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "ShiftTransfer" ? "active" : "")"
+                               asp-controller="ShiftTransfer"
+                               asp-action="Index">
+                                <i class="fa-solid fa-right-left"></i> Đổi ca
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Report" ? "active" : "")"
+                               asp-controller="Report"
+                               asp-action="Index">
+                                <i class="fa-solid fa-chart-column"></i> Báo cáo
+                            </a>
+                        </li>
+                    }
+
+                    @if (isEmployee)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Availability" ? "active" : "")"
+                               asp-controller="Availability"
+                               asp-action="Index">
+                                <i class="fa-solid fa-user-clock"></i> Đăng ký rảnh
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "MySchedule" ? "active" : "")"
+                               asp-controller="MySchedule"
+                               asp-action="Index">
+                                <i class="fa-solid fa-calendar-check"></i> Lịch của tôi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "LeaveRequest" ? "active" : "")"
+                               asp-controller="LeaveRequest"
+                               asp-action="Index">
+                                <i class="fa-solid fa-calendar-minus"></i> Xin nghỉ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "ShiftTransfer" ? "active" : "")"
+                               asp-controller="ShiftTransfer"
+                               asp-action="Index">
+                                <i class="fa-solid fa-right-left"></i> Đổi ca
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom @(currentController == "Report" ? "active" : "")"
+                               asp-controller="Report"
+                               asp-action="MyReport">
+                                <i class="fa-solid fa-chart-pie"></i> Báo cáo ca
+                            </a>
+                        </li>
+                    }
+                </ul>
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div class="user-profile-pill">
+
+                        <div class="rounded-circle bg-primary bg-opacity-25 text-white
+                                    d-flex align-items-center justify-content-center"
+                             style="width:26px; height:26px; font-size:0.75rem;">
+
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+
+                        <div class="d-flex flex-column">
+
+                            <span class="fw-bold" title="@empCode">
+                                @displayName
+                            </span>
+
+                            <span class="text-white-50"
+                                  style="font-size:0.7rem; line-height:1;">
+                                @if (hasEmpInfo)
+                                {
+                                    @($"{empCode} • {empType} • {empPos} • {empLvl}")
+                                }
+                                else
+                                {
+                                    @(role == RoleNames.Admin
+                                        ? "Quản trị viên"
+                                        : role == RoleNames.Manager
+                                            ? "Quản lý"
+                                            : "Nhân viên")
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <form asp-controller="Account"
+                          asp-action="Logout"
+                          method="post"
+                          data-prevent-double-submit="true">
+
+                        <button type="submit"
+                                class="btn btn-outline-light btn-sm rounded-pill px-3">
+
+                            <i class="fa-solid fa-right-from-bracket me-1"></i>
+                            Thoát
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+</nav>

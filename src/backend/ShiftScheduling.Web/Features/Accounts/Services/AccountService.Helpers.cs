@@ -42,7 +42,9 @@ public sealed partial class AccountService
 
         if (await _accountRepository.UsernameExistsAsync(normalizedUsername, account.UserAccountId, cancellationToken))
         {
-            return (ServiceResult.Failure(ErrorCodes.DuplicateUsername, "Tên đăng nhập đã được sử dụng."), null);
+            return (ServiceResult.Failure(
+                ErrorCodes.DuplicateUsername,
+                "Tên đăng nhập đã được sử dụng."), null);
         }
 
         var adminValidation = await ValidateRoleChangeAsync(account, model.Role, cancellationToken);

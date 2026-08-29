@@ -31,7 +31,8 @@
 
                 <form method="post"
                       asp-action="Edit"
-                      asp-route-id="@Model.ShiftTypeId">
+                      asp-route-id="@Model.ShiftTypeId"
+                      data-prevent-double-submit="true">
                     <input asp-for="ShiftTypeId" type="hidden" />
                     <input asp-for="ShiftCode" type="hidden" />
 

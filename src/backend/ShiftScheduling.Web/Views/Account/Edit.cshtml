@@ -23,7 +23,7 @@
                 Thông tin tài khoản
             </div>
             <div class="card-body p-4">
-                <form method="post" asp-action="Edit" asp-route-id="@Model.UserAccountId">
+                <form method="post" asp-action="Edit" asp-route-id="@Model.UserAccountId" data-prevent-double-submit="true">
                     <input asp-for="UserAccountId" type="hidden" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 

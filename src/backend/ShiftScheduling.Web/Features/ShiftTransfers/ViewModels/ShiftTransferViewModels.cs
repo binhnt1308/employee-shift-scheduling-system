@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.ViewModels;
 
@@ -15,9 +16,9 @@ public sealed class ShiftTransferIndexViewModel
 {
     public bool IsManager { get; init; }
     public ShiftTransferStatusFilter? ManagerStatus { get; init; }
-    public IReadOnlyList<ShiftTransferListItemViewModel> SentRequests { get; init; } = [];
-    public IReadOnlyList<ShiftTransferListItemViewModel> ReceivedRequests { get; init; } = [];
-    public IReadOnlyList<ShiftTransferListItemViewModel> ManagerRequests { get; init; } = [];
+    public PagedResult<ShiftTransferListItemViewModel> SentRequests { get; init; } = new([], 1, 10, 0);
+    public PagedResult<ShiftTransferListItemViewModel> ReceivedRequests { get; init; } = new([], 1, 10, 0);
+    public PagedResult<ShiftTransferListItemViewModel> ManagerRequests { get; init; } = new([], 1, 10, 0);
 }
 
 public sealed class ShiftTransferListItemViewModel
@@ -33,6 +34,7 @@ public sealed class ShiftTransferListItemViewModel
     public DateTime SubmittedAt { get; init; }
     public bool CanRespond { get; init; }
     public bool CanReview { get; init; }
+    public string RowVersion { get; init; } = string.Empty;
 }
 
 public sealed class ShiftTransferCreateViewModel
@@ -74,11 +76,13 @@ public sealed class ShiftTransferDetailsViewModel
     public string? ManagerNote { get; init; }
     public bool CanRespond { get; init; }
     public bool CanReview { get; init; }
+    public string RowVersion { get; init; } = string.Empty;
 }
 
 public sealed class ShiftTransferReviewViewModel
 {
     public int ShiftTransferRequestId { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
 
     [StringLength(1000, ErrorMessage = "Ghi chú không được vượt quá 1000 ký tự.")]
     [Display(Name = "Ghi chú của Quản lý")]

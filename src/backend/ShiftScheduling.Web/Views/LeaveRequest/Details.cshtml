@@ -39,7 +39,7 @@
             <dt class="col-sm-3">Lý do</dt>
             <dd class="col-sm-9">@Model.Reason</dd>
             <dt class="col-sm-3">Thời điểm gửi</dt>
-            <dd class="col-sm-9">@Model.SubmittedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+            <dd class="col-sm-9">@Model.SubmittedAt.ToString("dd/MM/yyyy HH:mm")</dd>
             <dt class="col-sm-3">Ghi chú Quản lý</dt>
             <dd class="col-sm-9">@(Model.ManagerNote ?? "—")</dd>
         </dl>

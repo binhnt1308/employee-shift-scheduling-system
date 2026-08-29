@@ -19,6 +19,7 @@ public sealed class AuthenticationRepository : IAuthenticationRepository
     {
         return _dbContext.UserAccounts
             .AsNoTracking()
+            .Include(x => x.Employee)
             .SingleOrDefaultAsync(x => x.Username == normalizedUsername, cancellationToken);
     }
 }

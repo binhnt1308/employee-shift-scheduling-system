@@ -136,7 +136,7 @@
              class="alert alert-danger border-0 bg-danger bg-opacity-25 text-white py-2 px-3 mb-3 rounded-3 small">
         </div>
 
-        <form method="post" asp-controller="Account" asp-action="Login">
+        <form method="post" asp-controller="Account" asp-action="Login" data-prevent-double-submit="true">
             <input asp-for="ReturnUrl" type="hidden" />
 
             <div class="mb-3 position-relative">

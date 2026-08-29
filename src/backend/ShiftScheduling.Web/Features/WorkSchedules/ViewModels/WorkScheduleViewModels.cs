@@ -81,6 +81,13 @@ public sealed class EligibleEmployeeOptionViewModel
     public EmployeePosition Position { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public EmployeeLevel Level { get; set; }
+    public string EmploymentTypeLabel => EmploymentType == EmploymentType.FullTime ? "FT" : "PT";
+    public string PositionLabel => Position switch
+    {
+        EmployeePosition.Sales => "Tư vấn",
+        EmployeePosition.Cashier => "Thu ngân",
+        _ => Position.ToString()
+    };
     public bool HasAvailability { get; set; }
     public bool HasApprovedLeave { get; set; }
     public bool HasOverlappingShift { get; set; }
@@ -121,7 +128,7 @@ public sealed class EmployeeSummaryItemViewModel
     public EmployeeLevel Level { get; set; }
     public int TotalShifts { get; set; }
     public int TotalWorkDays { get; set; }
-    public int TotalHours { get; set; }
+    public decimal TotalHours { get; set; }
     public string Warning { get; set; } = string.Empty;
 }
 

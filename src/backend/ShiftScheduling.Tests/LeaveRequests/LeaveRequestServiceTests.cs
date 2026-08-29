@@ -161,7 +161,7 @@ public sealed class LeaveRequestServiceTests
             1,
             LeaveRequestStatus.Approved);
 
-        var item = Assert.Single(model.Requests);
+        var item = Assert.Single(model.Requests.Items);
         Assert.Equal(2, item.LeaveRequestId);
         Assert.Equal(LeaveRequestStatus.Approved, item.Status);
     }
@@ -273,6 +273,28 @@ public sealed class LeaveRequestServiceTests
                 IsActive = true
             }
         ];
+    }
+
+    [Fact(DisplayName = "DB-15 - UC09 - Quản lý duyệt đơn với RowVersion -> Đặt OriginalValue")]
+    public async Task ReviewAsync_WithRowVersion_PassesOriginalValueToRepository()
+    {
+        var context = CreateContext();
+        var originalBytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        var staleRowVersion = Convert.ToBase64String(originalBytes);
+        var request = CreateLeaveRequest(1, LeaveRequestStatus.Pending, 1);
+        request.RowVersion = [8, 7, 6, 5, 4, 3, 2, 1];
+        context.Repository.Requests.Add(request);
+        context.Repository.WireLeaveRequest(request);
+
+        var result = await context.Service.ReviewAsync(
+            leaveRequestId: 1,
+            approve: true,
+            managerNote: "OK",
+            managerAccountId: 99,
+            rowVersion: staleRowVersion);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(originalBytes, context.Repository.TargetOriginalRowVersion);
     }
 
     private static LeaveRequest CreateLeaveRequest(

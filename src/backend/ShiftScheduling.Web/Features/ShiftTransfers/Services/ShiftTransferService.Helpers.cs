@@ -29,10 +29,44 @@ public sealed partial class ShiftTransferService
             sender.Position,
             sender.EmployeeId,
             cancellationToken);
-        var result = new List<ShiftReceiverOptionViewModel>();
-        foreach (var candidate in candidates.Where(IsInteractiveEmployee))
+        var candidateList = candidates.Where(IsInteractiveEmployee).ToList();
+        if (candidateList.Count == 0)
         {
-            var validation = await ValidateTransferAsync(assignment, sender, candidate, cancellationToken);
+            return [];
+        }
+
+        var periodId = assignment.WorkSchedule.SchedulePeriodId;
+        var workDate = assignment.WorkDate;
+        var shiftTypeId = assignment.ShiftTypeId;
+        var workScheduleId = assignment.WorkScheduleId;
+        var candidateIds = candidateList.Select(c => c.EmployeeId).ToList();
+
+        var senderAssignments = await _repository.GetPublishedAssignmentsForEmployeeInPeriodAsync(
+            sender.EmployeeId, periodId, cancellationToken);
+        var requirement = await _repository.GetStaffingRequirementAsync(
+            periodId, workDate, shiftTypeId, cancellationToken);
+        var shiftAssignments = await _repository.GetAssignmentsForShiftAsync(
+            workScheduleId, workDate, shiftTypeId, cancellationToken);
+
+        var availSet = await _repository.GetCandidateAvailabilitiesAsync(
+            candidateIds, periodId, workDate, shiftTypeId, cancellationToken);
+        var leaveSet = await _repository.GetCandidateApprovedLeavesAsync(
+            candidateIds, periodId, workDate, shiftTypeId, cancellationToken);
+        var candidateAssignmentsLookup = await _repository.GetCandidatePublishedAssignmentsInPeriodAsync(
+            candidateIds, periodId, cancellationToken);
+
+        var result = new List<ShiftReceiverOptionViewModel>();
+        foreach (var candidate in candidateList)
+        {
+            var validation = ValidateTransferInMemory(
+                assignment, sender, candidate,
+                senderAssignments,
+                candidateAssignmentsLookup[candidate.EmployeeId].ToList(),
+                availSet.Contains(candidate.EmployeeId),
+                leaveSet.Contains(candidate.EmployeeId),
+                requirement,
+                shiftAssignments);
+
             if (validation.BlockingErrors.Count == 0)
             {
                 result.Add(MapReceiverOption(candidate));
@@ -89,7 +123,9 @@ public sealed partial class ShiftTransferService
     {
         if (employee is null || request is null || request.ReceiverEmployeeId != employee.EmployeeId)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTransferNotFound, "Không tìm thấy yêu cầu đổi ca phù hợp.");
+            return ServiceResult.Failure(
+            ErrorCodes.ShiftTransferNotFound,
+            "Không tìm thấy yêu cầu đổi ca phù hợp.");
         }
 
         if (request.ReceiverStatus != ReceiverStatus.Pending || request.ApprovalStatus != ApprovalStatus.Pending)
@@ -111,11 +147,15 @@ public sealed partial class ShiftTransferService
 
         if (request.ReceiverStatus != ReceiverStatus.Accepted)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTransferNotAccepted, "Người nhận chưa đồng ý nhận ca.");
+            return ServiceResult.Failure(
+            ErrorCodes.ShiftTransferNotAccepted,
+            "Người nhận chưa đồng ý nhận ca.");
         }
 
         return request.ApprovalStatus != ApprovalStatus.Pending
-            ? ServiceResult.Failure(ErrorCodes.ShiftTransferAlreadyHandled, "Yêu cầu đã được Quản lý xử lý.")
+            ? ServiceResult.Failure(
+                ErrorCodes.ShiftTransferAlreadyHandled,
+                "Yêu cầu đã được Quản lý xử lý.")
             : ServiceResult.Success();
     }
 
@@ -144,7 +184,8 @@ public sealed partial class ShiftTransferService
             return;
         }
 
-        // BR17: Cập nhật một chiều trong cùng bản ghi phân công để loại người gửi và gán người nhận đồng thời.
+        // BR17: Cập nhật một chiều trong cùng bản ghi phân công
+        // để loại người gửi và gán người nhận đồng thời.
         request.ShiftAssignment.EmployeeId = request.ReceiverEmployeeId;
         request.ShiftAssignment.Employee = request.ReceiverEmployee;
         request.ShiftAssignment.Source = AssignmentSource.ShiftTransfer;
@@ -175,7 +216,7 @@ public sealed partial class ShiftTransferService
             && employee.UserAccount is { IsLocked: false };
     }
 
-    private static ShiftTransferListItemViewModel MapListItem(
+    private ShiftTransferListItemViewModel MapListItem(
         ShiftTransferRequest request,
         bool receivedByCurrentEmployee,
         bool isManager)
@@ -190,17 +231,18 @@ public sealed partial class ShiftTransferService
             ShiftName = request.ShiftAssignment.ShiftType.ShiftName,
             ReceiverStatus = request.ReceiverStatus,
             ApprovalStatus = request.ApprovalStatus,
-            SubmittedAt = request.SubmittedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
             CanRespond = receivedByCurrentEmployee
                 && request.ReceiverStatus == ReceiverStatus.Pending
                 && request.ApprovalStatus == ApprovalStatus.Pending,
             CanReview = isManager
                 && request.ReceiverStatus == ReceiverStatus.Accepted
-                && request.ApprovalStatus == ApprovalStatus.Pending
+                && request.ApprovalStatus == ApprovalStatus.Pending,
+            RowVersion = Convert.ToBase64String(request.RowVersion)
         };
     }
 
-    private static ShiftTransferDetailsViewModel MapDetails(
+    private ShiftTransferDetailsViewModel MapDetails(
         ShiftTransferRequest request,
         int? currentEmployeeId,
         bool isManager)
@@ -219,16 +261,21 @@ public sealed partial class ShiftTransferService
             Reason = request.Reason,
             ReceiverStatus = request.ReceiverStatus,
             ApprovalStatus = request.ApprovalStatus,
-            SubmittedAt = request.SubmittedAt,
-            ReceiverRespondedAt = request.ReceiverRespondedAt,
-            ReviewedAt = request.ReviewedAt,
+            SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
+            ReceiverRespondedAt = request.ReceiverRespondedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReceiverRespondedAt.Value)
+                : null,
+            ReviewedAt = request.ReviewedAt.HasValue
+                ? _clock.ToVietnamTime(request.ReviewedAt.Value)
+                : null,
             ManagerNote = request.ManagerNote,
             CanRespond = currentEmployeeId == request.ReceiverEmployeeId
                 && request.ReceiverStatus == ReceiverStatus.Pending
                 && request.ApprovalStatus == ApprovalStatus.Pending,
             CanReview = isManager
                 && request.ReceiverStatus == ReceiverStatus.Accepted
-                && request.ApprovalStatus == ApprovalStatus.Pending
+                && request.ApprovalStatus == ApprovalStatus.Pending,
+            RowVersion = Convert.ToBase64String(request.RowVersion)
         };
     }
 

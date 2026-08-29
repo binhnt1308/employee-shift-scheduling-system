@@ -27,16 +27,30 @@ public partial class WorkScheduleService
 
         if (schedule is null)
         {
-            return ServiceResult.Failure(ErrorCodes.WorkScheduleNotFound, "Không tìm thấy lịch nháp để công bố.");
+            return ServiceResult.Failure(
+                ErrorCodes.WorkScheduleNotFound,
+                "Không tìm thấy lịch nháp để công bố.");
         }
 
         if (schedule.Status == ScheduleStatus.Published)
         {
-            return ServiceResult.Failure(ErrorCodes.InvalidScheduleStatus, "Kỳ lịch này đã được công bố trước đó.");
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidScheduleStatus,
+                "Kỳ lịch này đã được công bố trước đó.");
         }
 
-        // BR16: Tải dữ liệu mới nhất từ DB và kiểm tra lại toàn bộ các ràng buộc ngay trước khi công bố
+        // BR16: Tải dữ liệu mới nhất từ DB và kiểm tra lại toàn bộ các ràng buộc
+        // ngay trước khi công bố
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
+
+        // BR02: Khong cong bo lich neu con phan cong cho nhan vien da ngung hoat dong.
+        var activeEmployeeIds = activeEmployees.Select(e => e.EmployeeId).ToHashSet();
+        if (schedule.ShiftAssignments.Any(a => !activeEmployeeIds.Contains(a.EmployeeId)))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidSchedulePublish,
+                "Lịch làm việc vẫn còn phân công cho nhân viên đã ngừng hoạt động (BR02).");
+        }
         var availabilities = await _availabilityRepository.GetByPeriodWithDetailsAsync(
             schedulePeriodId, null, null, null, null, cancellationToken);
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
@@ -53,7 +67,8 @@ public partial class WorkScheduleService
             var errorSummary = string.Join("; ", validationResult.HardErrors.Take(3));
             return ServiceResult.Failure(
                 ErrorCodes.InvalidSchedulePublish,
-                $"Lịch làm việc vẫn còn {validationResult.HardErrors.Count} vi phạm bắt buộc. Không thể công bố: {errorSummary}");
+                $"Lịch làm việc vẫn còn {validationResult.HardErrors.Count}" +
+                $" vi phạm bắt buộc. Không thể công bố: {errorSummary}");
         }
 
         var now = _clock.UtcNow;
@@ -121,17 +136,7 @@ public partial class WorkScheduleService
         }
         else
         {
-            var pagedPeriods = await _periodRepository.GetPagedAsync(1, 50, cancellationToken);
-            foreach (var p in pagedPeriods.Items)
-            {
-                var sch = await _workScheduleRepository.GetPublishedByPeriodIdAsync(
-                    p.SchedulePeriodId, cancellationToken);
-                if (sch is not null)
-                {
-                    publishedSchedule = sch;
-                    break;
-                }
-            }
+            publishedSchedule = await _workScheduleRepository.GetLatestPublishedScheduleAsync(cancellationToken);
         }
 
         if (publishedSchedule is null)

@@ -12,5 +12,7 @@ public interface IDashboardService
     /// </summary>
     /// <param name="cancellationToken">Token huy thao tac khi request ngung.</param>
     /// <returns>ViewModel chua cac con so thuc te tu database.</returns>
-    Task<DashboardViewModel> GetDashboardAsync(CancellationToken cancellationToken = default);
+    Task<DashboardViewModel> GetDashboardAsync(
+        int? userAccountId = null,
+        CancellationToken cancellationToken = default);
 }

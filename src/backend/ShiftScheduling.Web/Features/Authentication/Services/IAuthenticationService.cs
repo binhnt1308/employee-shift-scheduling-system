@@ -2,7 +2,15 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Authentication.Services;
 
-public sealed record AuthenticatedAccount(int UserAccountId, string Username, UserRole Role);
+public sealed record AuthenticatedAccount(
+    int UserAccountId,
+    string Username,
+    UserRole Role,
+    string? FullName = null,
+    string? EmployeeCode = null,
+    EmploymentType? EmploymentType = null,
+    EmployeePosition? Position = null,
+    EmployeeLevel? Level = null);
 
 public interface IAuthenticationService
 {

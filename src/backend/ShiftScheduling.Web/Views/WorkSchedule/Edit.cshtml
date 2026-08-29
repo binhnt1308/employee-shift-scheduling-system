@@ -31,7 +31,7 @@
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu nháp</button>
             </form>
-            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
+            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
             <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "") onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
@@ -146,7 +146,7 @@
                                                 </div>
                                                 @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
                                                 {
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId)" title="Xóa phân công">
+                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId, this)" title="Xóa phân công">
                                                         <i class="fa-solid fa-xmark"></i>
                                                     </button>
                                                 }
@@ -189,7 +189,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign()">Phân công</button>
+                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign(this)">Phân công</button>
             </div>
         </div>
     </div>
@@ -230,134 +230,12 @@
             </div>
             <div class="modal-footer d-none" id="orToolsFooter">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Bỏ đề xuất</button>
-                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal()"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
+                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal(this)"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-<script>
-    let currentAssignContext = {};
-    let currentProposalData = null;
-
-    function openAssignModal(periodId, workDate, shiftTypeId, titleText) {
-        currentAssignContext = { periodId, workDate, shiftTypeId };
-        document.getElementById('assignModalTitle').innerText = 'Phân công ca: ' + titleText;
-        document.getElementById('assignModalAlert').classList.add('d-none');
-        
-        const select = document.getElementById('assignEmployeeSelect');
-        select.innerHTML = '<option value="">-- Đang tải nhân viên --</option>';
-
-        fetch(`/WorkSchedule/GetEligibleEmployees?schedulePeriodId=${periodId}&workDate=${workDate}&shiftTypeId=${shiftTypeId}`)
-            .then(res => res.json())
-            .then(data => {
-                select.innerHTML = '<option value="">-- Chọn nhân viên --</option>';
-                data.forEach(emp => {
-                    const opt = document.createElement('option');
-                    opt.value = emp.employeeId;
-                    opt.textContent = `${emp.employeeCode} - ${emp.fullName} (${emp.position}, Level ${emp.level})` + (emp.isEligible ? '' : ` [BỊ CHẶN: ${emp.ineligibilityReason}]`);
-                    if (!emp.isEligible) opt.disabled = true;
-                    select.appendChild(opt);
-                });
-                new bootstrap.Modal(document.getElementById('assignModal')).show();
-            });
-    }
-
-    function submitManualAssign() {
-        const empId = document.getElementById('assignEmployeeSelect').value;
-        if (!empId) return;
-
-        const formData = new FormData();
-        formData.append('SchedulePeriodId', currentAssignContext.periodId);
-        formData.append('WorkDate', currentAssignContext.workDate);
-        formData.append('ShiftTypeId', currentAssignContext.shiftTypeId);
-        formData.append('EmployeeId', empId);
-        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-        fetch('/WorkSchedule/AssignManual', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    const alert = document.getElementById('assignModalAlert');
-                    alert.innerText = data.message;
-                    alert.classList.remove('d-none');
-                }
-            });
-    }
-
-    function removeEmployee(periodId, assignmentId) {
-        if (!confirm('Xác nhận xóa nhân viên khỏi ca làm việc này?')) return;
-        const formData = new FormData();
-        formData.append('SchedulePeriodId', periodId);
-        formData.append('ShiftAssignmentId', assignmentId);
-        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-        fetch('/WorkSchedule/RemoveManual', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) location.reload();
-                else alert(data.message);
-            });
-    }
-
-    function generateOrToolsProposal() {
-        const modalEl = document.getElementById('orToolsModal');
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-
-        document.getElementById('orToolsLoading').classList.remove('d-none');
-        document.getElementById('orToolsContent').classList.add('d-none');
-        document.getElementById('orToolsFooter').classList.add('d-none');
-
-        const formData = new FormData();
-        formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-        fetch(`/WorkSchedule/GenerateOrToolsProposal/${@Model.SchedulePeriodId}`, { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('orToolsLoading').classList.add('d-none');
-                document.getElementById('orToolsContent').classList.remove('d-none');
-
-                if (data.succeeded) {
-                    currentProposalData = data.proposedAssignments;
-                    document.getElementById('orToolsStatusBanner').className = 'alert alert-success mb-3';
-                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>${data.message} (Thời gian giải: ${data.solveTimeSeconds.toFixed(2)}s)`;
-                    document.getElementById('orToolsFooter').classList.remove('d-none');
-
-                    const tbody = document.getElementById('orToolsTableBody');
-                    tbody.innerHTML = '';
-                    data.proposedAssignments.forEach(item => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `<td>${item.workDate}</td><td>${item.shiftName}</td><td><strong>${item.employeeCode}</strong> - ${item.fullName}</td><td>${item.position}</td>`;
-                        tbody.appendChild(tr);
-                    });
-                } else {
-                    document.getElementById('orToolsStatusBanner').className = 'alert alert-danger mb-3';
-                    document.getElementById('orToolsStatusBanner').innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i>${data.message}`;
-                }
-            });
-    }
-
-    function adoptOrToolsProposal() {
-        if (!currentProposalData) return;
-        if (!confirm('Áp dụng đề xuất này sẽ GHI ĐÈ toàn bộ lịch nháp hiện tại. Xác nhận tiếp tục?')) return;
-
-        fetch(`/WorkSchedule/AdoptProposal/${@Model.SchedulePeriodId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-            },
-            body: JSON.stringify(currentProposalData)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) location.reload();
-            else alert(data.message);
-        });
-    }
-</script>
+    @await Html.PartialAsync("_EditScripts", Model)
 }
