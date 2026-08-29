@@ -48,6 +48,8 @@ public sealed partial class SchedulePeriodService
 
         period.RegistrationStatus = RegistrationStatus.Open;
 
+        await SendRegistrationOpenedNotificationsAsync(period, cancellationToken);
+
         LogAndAuditRegistrationOpen(period, actorAccountId);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -58,6 +60,39 @@ public sealed partial class SchedulePeriodService
             schedulePeriodId);
 
         return ServiceResult.Success();
+    }
+
+    private async Task SendRegistrationOpenedNotificationsAsync(
+        SchedulePeriod period,
+        CancellationToken cancellationToken)
+    {
+        var employeeAccountIds = await _notificationRepository.GetActiveEmployeeAccountIdsAsync(cancellationToken);
+        if (employeeAccountIds.Count == 0)
+        {
+            return;
+        }
+
+        var deadlineVietnam = _clock.ToVietnamTime(period.AvailabilityDeadline);
+        var title = $"Mở đăng ký lịch rảnh: {period.PeriodName}";
+        var startFormatted = period.WeekStartDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var endFormatted = period.WeekEndDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var deadlineFormatted = deadlineVietnam.ToString("HH:mm dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var content = $"Quản lý đã mở đăng ký lịch rảnh cho {period.PeriodName} ({startFormatted} - {endFormatted}). Hạn chót đăng ký: {deadlineFormatted}. Vui lòng đăng ký trước thời hạn.";
+        var now = _clock.UtcNow;
+
+        foreach (var accountId in employeeAccountIds)
+        {
+            _notificationRepository.Add(new Notification
+            {
+                ReceiverAccountId = accountId,
+                Title = title,
+                Content = content,
+                Type = NotificationType.RegistrationOpened,
+                RelatedObjectId = period.SchedulePeriodId,
+                IsRead = false,
+                CreatedAt = now
+            });
+        }
     }
 
     private ServiceResult ValidateRegistrationPreconditions(SchedulePeriod period)

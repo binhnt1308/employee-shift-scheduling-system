@@ -10,6 +10,9 @@ public interface INotificationRepository
     Task<IReadOnlyList<int>> GetActiveManagerAccountIdsAsync(
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<int>> GetActiveEmployeeAccountIdsAsync(
+        CancellationToken cancellationToken = default);
+
     Task<PagedResult<Notification>> GetPagedByReceiverAccountIdAsync(
         int receiverAccountId,
         int page,

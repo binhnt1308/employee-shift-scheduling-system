@@ -10,6 +10,7 @@ internal sealed class FakeNotificationRepository : INotificationRepository
 {
     public List<Notification> Items { get; } = [];
     public List<int> ManagerAccountIds { get; } = [];
+    public List<int> EmployeeAccountIds { get; } = [];
     public int GetUnreadCountCallCount { get; private set; }
 
     public void Add(Notification notification)
@@ -28,6 +29,12 @@ internal sealed class FakeNotificationRepository : INotificationRepository
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IReadOnlyList<int>>(ManagerAccountIds);
+    }
+
+    public Task<IReadOnlyList<int>> GetActiveEmployeeAccountIdsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<int>>(EmployeeAccountIds);
     }
 
     public Task<PagedResult<Notification>> GetPagedByReceiverAccountIdAsync(

@@ -30,6 +30,20 @@ public sealed class NotificationRepository : INotificationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<int>> GetActiveEmployeeAccountIdsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.UserAccounts
+            .AsNoTracking()
+            .Where(account => !account.IsLocked &&
+                              account.Role == UserRole.Employee &&
+                              account.Employee != null &&
+                              account.Employee.IsActive)
+            .Select(account => account.UserAccountId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<Notification>> GetPagedByReceiverAccountIdAsync(
         int receiverAccountId,
         int page,

@@ -29,6 +29,7 @@ public sealed record NotificationItemViewModel
             NotificationType.LeaveRequestResult => "LeaveRequest",
             NotificationType.ShiftTransferRequest => "ShiftTransfer",
             NotificationType.ShiftTransferResult => "ShiftTransfer",
+            NotificationType.RegistrationOpened => "Availability",
             _ => "Notification"
         };
     }
@@ -44,6 +45,7 @@ public sealed record NotificationItemViewModel
             NotificationType.LeaveRequestResult => "Details",
             NotificationType.ShiftTransferRequest => "Details",
             NotificationType.ShiftTransferResult => "Details",
+            NotificationType.RegistrationOpened => "Register",
             _ => "Index"
         };
     }

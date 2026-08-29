@@ -59,6 +59,7 @@ public sealed class ShiftConfigurationRuleTests
         var service = new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) },
@@ -89,6 +90,7 @@ public sealed class ShiftConfigurationRuleTests
         var service = new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             new FakeClock { UtcNow = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc) },
@@ -218,6 +220,7 @@ public sealed class ShiftConfigurationRuleTests
         var service = new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             new FakeClock { UtcNow = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc) },

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
+using ShiftScheduling.Common.Notifications;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.SchedulePeriods.Repositories;
 using ShiftScheduling.Features.SchedulePeriods.ViewModels;
@@ -18,6 +19,7 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
 {
     private readonly ISchedulePeriodRepository _schedulePeriodRepository;
     private readonly IShiftTypeRepository _shiftTypeRepository;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
@@ -26,6 +28,7 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
     public SchedulePeriodService(
         ISchedulePeriodRepository schedulePeriodRepository,
         IShiftTypeRepository shiftTypeRepository,
+        INotificationRepository notificationRepository,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClock clock,
@@ -33,6 +36,7 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
     {
         _schedulePeriodRepository = schedulePeriodRepository;
         _shiftTypeRepository = shiftTypeRepository;
+        _notificationRepository = notificationRepository;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _clock = clock;

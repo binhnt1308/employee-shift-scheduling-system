@@ -81,6 +81,7 @@ public sealed class LocalizationAndClockTests
         var service = new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             fakeClock,
@@ -143,6 +144,7 @@ public sealed class LocalizationAndClockTests
         var service = new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             fakeClock,
