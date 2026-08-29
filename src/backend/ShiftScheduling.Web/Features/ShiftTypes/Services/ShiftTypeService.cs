@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Constants;
@@ -12,7 +13,7 @@ using ShiftScheduling.Models.ViewModels;
 namespace ShiftScheduling.Features.ShiftTypes.Services;
 
 /// <summary>
-/// Service quan ly cac ca lam viec co dinh theo BR03.
+/// Service quản lý cấu hình các ca làm việc theo phiên bản (versioned shift configuration).
 /// </summary>
 public sealed class ShiftTypeService : IShiftTypeService
 {
@@ -40,163 +41,337 @@ public sealed class ShiftTypeService : IShiftTypeService
     public async Task<IReadOnlyList<ShiftTypeListItemViewModel>> GetAllAsync(
         CancellationToken cancellationToken = default)
     {
-        var shiftTypes = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var shiftTypes = await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken);
         return shiftTypes.Select(MapListItem).ToArray();
     }
 
     /// <inheritdoc />
-    public async Task<ShiftTypeEditViewModel?> GetEditAsync(
-        int shiftTypeId,
+    public async Task<ShiftConfigurationEditViewModel?> GetConfigurationAsync(
         CancellationToken cancellationToken = default)
+    {
+        var activeShifts = await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken);
+        if (!IsValidActiveShiftSet(activeShifts, out var morning, out var afternoon, out var evening))
+        {
+            return null;
+        }
+
+        var version = morning!.ConfigurationVersion;
+        var ordered = new[] { morning, afternoon!, evening! }.OrderBy(s => s.DisplayOrder).ToList();
+        return new ShiftConfigurationEditViewModel
+        {
+            ExpectedConfigurationVersion = version,
+            Shifts = ordered.Select(s => new ShiftConfigurationItemViewModel
+            {
+                ShiftTypeId = s.ShiftTypeId,
+                ShiftCode = s.ShiftCode,
+                ShiftName = s.ShiftName,
+                StartTime = s.StartTime,
+                EndTime = s.EndTime,
+                DurationHours = s.DurationHours,
+                DisplayOrder = s.DisplayOrder
+            }).ToList()
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<ServiceResult> UpdateConfigurationAsync(
+        ShiftConfigurationEditViewModel model,
+        int actorAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        var modelValidation = ValidateModel(model, out var morning, out var afternoon, out var evening);
+        if (!modelValidation.Succeeded)
+        {
+            return modelValidation;
+        }
+
+        var activeShifts = (await _shiftTypeRepository.GetActiveShiftsAsync(false, cancellationToken))
+            .OrderBy(s => s.DisplayOrder)
+            .ToList();
+
+        var activeValidation = ValidateActiveShifts(activeShifts, model.ExpectedConfigurationVersion, out var activeMorning, out var activeAfternoon, out var activeEvening);
+        if (!activeValidation.Succeeded)
+        {
+            return activeValidation;
+        }
+
+        var timeValidation = ValidateShiftTimesAndDurations(morning!, afternoon!, evening!);
+        if (!timeValidation.Succeeded)
+        {
+            return timeValidation;
+        }
+
+        var currentVersion = activeMorning!.ConfigurationVersion;
+        var newVersion = currentVersion + 1;
+
+        DeactivateOldShifts(activeShifts);
+        var newShifts = CreateNewVersionShifts(activeShifts, morning!, afternoon!, evening!, newVersion);
+        _shiftTypeRepository.AddRange(newShifts);
+
+        LogAuditRecord(actorAccountId, newVersion, activeShifts, newShifts);
+        return await SaveConfigurationChangesAsync(actorAccountId, newVersion, cancellationToken);
+    }
+
+    private static bool IsValidActiveShiftSet(
+        IReadOnlyList<ShiftType> activeShifts,
+        out ShiftType? morning,
+        out ShiftType? afternoon,
+        out ShiftType? evening)
+    {
+        morning = null;
+        afternoon = null;
+        evening = null;
+
+        if (activeShifts.Count != 3)
+        {
+            return false;
+        }
+
+        morning = activeShifts.FirstOrDefault(s => string.Equals(s.ShiftCode, ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
+        afternoon = activeShifts.FirstOrDefault(s => string.Equals(s.ShiftCode, ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
+        evening = activeShifts.FirstOrDefault(s => string.Equals(s.ShiftCode, ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
+
+        if (morning is null || afternoon is null || evening is null)
+        {
+            return false;
+        }
+
+        var version = morning.ConfigurationVersion;
+        if (afternoon.ConfigurationVersion != version || evening.ConfigurationVersion != version)
+        {
+            return false;
+        }
+
+        if (morning.StartTime >= morning.EndTime || afternoon.StartTime >= afternoon.EndTime || evening.StartTime >= evening.EndTime)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static ServiceResult ValidateModel(
+        ShiftConfigurationEditViewModel model,
+        out ShiftConfigurationItemViewModel? morning,
+        out ShiftConfigurationItemViewModel? afternoon,
+        out ShiftConfigurationItemViewModel? evening)
+    {
+        morning = null;
+        afternoon = null;
+        evening = null;
+
+        if (model.Shifts == null || model.Shifts.Count != 3)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationIncomplete,
+                "Cấu hình phải có đủ ba ca làm việc.");
+        }
+
+        morning = model.Shifts.FirstOrDefault(s => s.ShiftCode == ShiftTypeConstants.MorningCode);
+        afternoon = model.Shifts.FirstOrDefault(s => s.ShiftCode == ShiftTypeConstants.AfternoonCode);
+        evening = model.Shifts.FirstOrDefault(s => s.ShiftCode == ShiftTypeConstants.EveningCode);
+
+        if (morning is null || afternoon is null || evening is null)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationIncomplete,
+                "Cấu hình phải có đủ ba ca: Ca sáng (MORNING), Ca chiều (AFTERNOON) và Ca tối (EVENING).");
+        }
+
+        return ServiceResult.Success();
+    }
+
+    private static ServiceResult ValidateActiveShifts(
+        IReadOnlyList<ShiftType> activeShifts,
+        int expectedConfigurationVersion,
+        out ShiftType? morning,
+        out ShiftType? afternoon,
+        out ShiftType? evening)
+    {
+        if (!IsValidActiveShiftSet(activeShifts, out morning, out afternoon, out evening))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationInvalid,
+                "Hệ thống không có đủ ba ca làm việc đang hoạt động hợp lệ hoặc phiên bản không đồng nhất.");
+        }
+
+        var currentVersion = morning!.ConfigurationVersion;
+        if (expectedConfigurationVersion <= 0 || expectedConfigurationVersion != currentVersion)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationChanged,
+                "Cấu hình ca làm việc đã được người khác cập nhật trước đó. Vui lòng tải lại trang.");
+        }
+
+        return ServiceResult.Success();
+    }
+
+    private static ServiceResult ValidateShiftTimesAndDurations(
+        ShiftConfigurationItemViewModel morning,
+        ShiftConfigurationItemViewModel afternoon,
+        ShiftConfigurationItemViewModel evening)
+    {
+        if (morning.EndTime <= morning.StartTime)
+        {
+            return ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Giờ kết thúc Ca sáng phải lớn hơn giờ bắt đầu.");
+        }
+
+        if (afternoon.EndTime <= afternoon.StartTime)
+        {
+            return ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Giờ kết thúc Ca chiều phải lớn hơn giờ bắt đầu.");
+        }
+
+        if (evening.EndTime <= evening.StartTime)
+        {
+            return ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Giờ kết thúc Ca tối phải lớn hơn giờ bắt đầu.");
+        }
+
+        // BR-01: Ba ca làm việc trong ngày không được chồng lấn thời gian.
+        if (morning.EndTime > afternoon.StartTime)
+        {
+            return ServiceResult.Failure(ErrorCodes.ShiftTimeOverlap, "Giờ kết thúc Ca sáng không được lớn hơn giờ bắt đầu Ca chiều.");
+        }
+
+        // BR-01: Ba ca làm việc trong ngày không được chồng lấn thời gian.
+        if (afternoon.EndTime > evening.StartTime)
+        {
+            return ServiceResult.Failure(ErrorCodes.ShiftTimeOverlap, "Giờ kết thúc Ca chiều không được lớn hơn giờ bắt đầu Ca tối.");
+        }
+
+        return ServiceResult.Success();
+    }
+
+    private static void DeactivateOldShifts(IEnumerable<ShiftType> activeShifts)
+    {
+        foreach (var oldShift in activeShifts)
+        {
+            oldShift.IsActive = false;
+        }
+    }
+
+    private static List<ShiftType> CreateNewVersionShifts(
+        IReadOnlyList<ShiftType> activeShifts,
+        ShiftConfigurationItemViewModel morning,
+        ShiftConfigurationItemViewModel afternoon,
+        ShiftConfigurationItemViewModel evening,
+        int newVersion)
+    {
+        var inputMap = new Dictionary<string, ShiftConfigurationItemViewModel>
+        {
+            [ShiftTypeConstants.MorningCode] = morning,
+            [ShiftTypeConstants.AfternoonCode] = afternoon,
+            [ShiftTypeConstants.EveningCode] = evening
+        };
+
+        var newShifts = new List<ShiftType>();
+        foreach (var oldShift in activeShifts)
+        {
+            var input = inputMap[oldShift.ShiftCode];
+            var durationMinutes = (input.EndTime.ToTimeSpan() - input.StartTime.ToTimeSpan()).TotalMinutes;
+            var durationHours = decimal.Round((decimal)(durationMinutes / 60.0), 2);
+
+            newShifts.Add(new ShiftType
+            {
+                ShiftCode = oldShift.ShiftCode,
+                ShiftName = oldShift.ShiftName,
+                DisplayOrder = oldShift.DisplayOrder,
+                StartTime = input.StartTime,
+                EndTime = input.EndTime,
+                DurationHours = durationHours,
+                ConfigurationVersion = newVersion,
+                IsActive = true
+            });
+        }
+
+        return newShifts;
+    }
+
+    private void LogAuditRecord(
+        int actorAccountId,
+        int newVersion,
+        IReadOnlyList<ShiftType> activeShifts,
+        IReadOnlyList<ShiftType> newShifts)
+    {
+        var oldAudit = activeShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion }).ToList();
+        var newAudit = newShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion }).ToList();
+
+        _auditLogRepository.Add(AuditLogFactory.Create(
+            actorAccountId, "UPDATE_SHIFT_CONFIGURATION", nameof(ShiftType), newVersion.ToString(), oldAudit, newAudit, _clock.UtcNow));
+    }
+
+    private async Task<ServiceResult> SaveConfigurationChangesAsync(
+        int actorAccountId,
+        int newVersion,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsShiftConfigurationVersionConflict(ex))
+        {
+            _logger.LogWarning(ex, "Concurrency conflict on shift configuration version.");
+            return ServiceResult.Failure(ErrorCodes.ShiftConfigurationChanged, "Cấu hình ca làm việc đã được người khác cập nhật trước đó.");
+        }
+
+        _logger.LogInformation("Shift configuration updated. ActorAccountId: {ActorAccountId}; NewVersion: {NewVersion}", actorAccountId, newVersion);
+        return ServiceResult.Success();
+    }
+
+    private static bool IsShiftConfigurationVersionConflict(DbUpdateException ex)
+    {
+        Exception? current = ex;
+        while (current != null)
+        {
+            if (current is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                var msg = sqlEx.Message ?? string.Empty;
+                if (msg.Contains("IX_ShiftTypes_ShiftCode_ConfigurationVersion", StringComparison.OrdinalIgnoreCase) ||
+                    msg.Contains("IX_ShiftTypes_DisplayOrder_ConfigurationVersion", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            current = current.InnerException;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    public async Task<ShiftTypeEditViewModel?> GetEditAsync(int shiftTypeId, CancellationToken cancellationToken = default)
     {
         var shiftType = await _shiftTypeRepository.GetByIdAsync(shiftTypeId, true, cancellationToken);
         return shiftType is null ? null : MapEdit(shiftType);
     }
 
     /// <inheritdoc />
-    public async Task<ServiceResult> UpdateAsync(
-        int shiftTypeId,
-        ShiftTypeEditViewModel model,
-        int actorAccountId,
-        CancellationToken cancellationToken = default)
+    public Task<ServiceResult> UpdateAsync(int shiftTypeId, ShiftTypeEditViewModel model, int actorAccountId, CancellationToken cancellationToken = default)
     {
-        var shiftType = await _shiftTypeRepository.GetByIdAsync(shiftTypeId, false, cancellationToken);
-        if (shiftType is null)
-        {
-            return ServiceResult.Failure(ErrorCodes.ShiftTypeNotFound, "Không tìm thấy ca làm việc.");
-        }
-
-        // BR03: He thong chi su dung dung ba ca co dinh (Morning 08-12, Afternoon 12-16, Evening 16-20).
-        if (!ShiftTypeConstants.IsValidFixedShiftTime(shiftType.ShiftCode, model.StartTime, model.EndTime))
-        {
-            return ServiceResult.Failure(
-                ErrorCodes.ShiftTimeInvalid,
-                "BR03 quy định 3 ca cố định: Ca sáng (08:00-12:00),"
-                    + " Ca chiều (12:00-16:00), Ca tối (16:00-20:00)."
-                    + " Không được thay đổi khung giờ.");
-        }
-
-        if (model.EndTime <= model.StartTime)
-        {
-            return ServiceResult.Failure(
-                ErrorCodes.ShiftTimeInvalid,
-                "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
-        }
-
-        if (!model.IsActive)
-        {
-            return ServiceResult.Failure(
-                ErrorCodes.ShiftTimeInvalid,
-                "Không được ngưng hoạt động ca cố định của hệ thống.");
-        }
-
-        var validation = await ValidateUniqueValuesAsync(shiftTypeId, model, cancellationToken);
-        if (!validation.Succeeded)
-        {
-            return validation;
-        }
-
-        var previousValues = BuildAuditValues(shiftType);
-        ApplyChanges(shiftType, model);
-        _auditLogRepository.Add(AuditLogFactory.Create(
-            actorAccountId,
-            "UPDATE_SHIFT_TYPE",
-            nameof(ShiftType),
-            shiftType.ShiftTypeId.ToString(),
-            previousValues,
-            BuildAuditValues(shiftType),
-            _clock.UtcNow));
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation(
-            "Shift type updated. ActorAccountId: {ActorAccountId}; ShiftTypeId: {ShiftTypeId}",
-            actorAccountId,
-            shiftTypeId);
-        return ServiceResult.Success();
+        return Task.FromResult(ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Không được thay đổi riêng lẻ ca cố định. Vui lòng sử dụng chức năng Cấu hình giờ 3 ca."));
     }
 
-    private async Task<ServiceResult> ValidateUniqueValuesAsync(
-        int shiftTypeId,
-        ShiftTypeEditViewModel model,
-        CancellationToken cancellationToken)
+    private static ShiftTypeListItemViewModel MapListItem(ShiftType shiftType) => new()
     {
-        if (await _shiftTypeRepository.DisplayOrderExistsAsync(
-                model.DisplayOrder,
-                shiftTypeId,
-                cancellationToken))
-        {
-            return ServiceResult.Failure(
-                ErrorCodes.DuplicateDisplayOrder,
-                "Thứ tự hiển thị đã được ca khác sử dụng.");
-        }
+        ShiftTypeId = shiftType.ShiftTypeId,
+        ShiftCode = shiftType.ShiftCode,
+        ShiftName = shiftType.ShiftName,
+        StartTime = shiftType.StartTime,
+        EndTime = shiftType.EndTime,
+        DurationHours = shiftType.DurationHours,
+        DisplayOrder = shiftType.DisplayOrder,
+        ConfigurationVersion = shiftType.ConfigurationVersion,
+        IsActive = shiftType.IsActive
+    };
 
-        // BR03: Ba ca co dinh khong duoc trung khung gio.
-        if (model.IsActive
-            && await _shiftTypeRepository.OverlapsAsync(
-                model.StartTime,
-                model.EndTime,
-                shiftTypeId,
-                cancellationToken))
-        {
-            return ServiceResult.Failure(
-                ErrorCodes.ShiftTimeOverlap,
-                "Khung giờ bị trùng với ca đang hoạt động.");
-        }
-
-        return ServiceResult.Success();
-    }
-
-    private static void ApplyChanges(ShiftType shiftType, ShiftTypeEditViewModel model)
+    private static ShiftTypeEditViewModel MapEdit(ShiftType shiftType) => new()
     {
-        var duration = model.EndTime.ToTimeSpan() - model.StartTime.ToTimeSpan();
-        shiftType.ShiftName = model.ShiftName.Trim();
-        shiftType.StartTime = model.StartTime;
-        shiftType.EndTime = model.EndTime;
-        shiftType.DurationHours = decimal.Round((decimal)duration.TotalHours, 2);
-        shiftType.DisplayOrder = model.DisplayOrder;
-        shiftType.IsActive = model.IsActive;
-    }
-
-    private static object BuildAuditValues(ShiftType shiftType)
-    {
-        return new
-        {
-            shiftType.ShiftCode,
-            shiftType.ShiftName,
-            shiftType.StartTime,
-            shiftType.EndTime,
-            shiftType.DurationHours,
-            shiftType.DisplayOrder,
-            shiftType.IsActive
-        };
-    }
-
-    private static ShiftTypeListItemViewModel MapListItem(ShiftType shiftType)
-    {
-        return new ShiftTypeListItemViewModel
-        {
-            ShiftTypeId = shiftType.ShiftTypeId,
-            ShiftCode = shiftType.ShiftCode,
-            ShiftName = shiftType.ShiftName,
-            StartTime = shiftType.StartTime,
-            EndTime = shiftType.EndTime,
-            DurationHours = shiftType.DurationHours,
-            DisplayOrder = shiftType.DisplayOrder,
-            IsActive = shiftType.IsActive
-        };
-    }
-
-    private static ShiftTypeEditViewModel MapEdit(ShiftType shiftType)
-    {
-        return new ShiftTypeEditViewModel
-        {
-            ShiftTypeId = shiftType.ShiftTypeId,
-            ShiftCode = shiftType.ShiftCode,
-            ShiftName = shiftType.ShiftName,
-            StartTime = shiftType.StartTime,
-            EndTime = shiftType.EndTime,
-            DisplayOrder = shiftType.DisplayOrder,
-            IsActive = shiftType.IsActive
-        };
-    }
+        ShiftTypeId = shiftType.ShiftTypeId,
+        ShiftCode = shiftType.ShiftCode,
+        ShiftName = shiftType.ShiftName,
+        StartTime = shiftType.StartTime,
+        EndTime = shiftType.EndTime,
+        DisplayOrder = shiftType.DisplayOrder,
+        IsActive = shiftType.IsActive
+    };
 }

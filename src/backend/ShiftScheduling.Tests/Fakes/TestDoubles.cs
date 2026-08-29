@@ -145,6 +145,37 @@ internal sealed class FakeShiftTypeRepository : IShiftTypeRepository
         return Task.FromResult<IReadOnlyList<ShiftType>>(ShiftTypes);
     }
 
+    public Task<IReadOnlyList<ShiftType>> GetActiveShiftsAsync(
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<ShiftType>>(
+            ShiftTypes.Where(x => x.IsActive).OrderBy(x => x.DisplayOrder).ToList());
+    }
+
+    public Task<IReadOnlyList<ShiftType>> GetByIdsAsync(
+        IEnumerable<int> ids,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToHashSet();
+        return Task.FromResult<IReadOnlyList<ShiftType>>(
+            ShiftTypes.Where(x => idList.Contains(x.ShiftTypeId)).OrderBy(x => x.DisplayOrder).ToList());
+    }
+
+    public void AddRange(IEnumerable<ShiftType> shiftTypes)
+    {
+        int nextId = ShiftTypes.Count == 0 ? 1 : ShiftTypes.Max(x => x.ShiftTypeId) + 1;
+        foreach (var shift in shiftTypes)
+        {
+            if (shift.ShiftTypeId == 0)
+            {
+                shift.ShiftTypeId = nextId++;
+            }
+            ShiftTypes.Add(shift);
+        }
+    }
+
     public Task<ShiftType?> GetByIdAsync(
         int shiftTypeId,
         bool asNoTracking,

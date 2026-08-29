@@ -9,6 +9,7 @@ public class ShiftType
     public TimeOnly EndTime { get; set; }
     public decimal DurationHours { get; set; }
     public int DisplayOrder { get; set; }
+    public int ConfigurationVersion { get; set; } = 1;
     public bool IsActive { get; set; } = true;
 
     public ICollection<StaffingRequirement> StaffingRequirements { get; set; } = new List<StaffingRequirement>();

@@ -1,12 +1,14 @@
-@model ShiftTypeEditViewModel
+@model ShiftConfigurationEditViewModel
 @{
-    ViewData["Title"] = "Chỉnh sửa ca làm";
+    ViewData["Title"] = "Cấu hình giờ 3 ca làm việc";
 }
 
-<div class="page-header">
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1 class="page-title">Chỉnh sửa @Model.ShiftName</h1>
-        <p class="page-subtitle">Mã ca: @Model.ShiftCode</p>
+        <h1 class="page-title mb-1">Cấu hình giờ 3 ca làm việc</h1>
+        <p class="page-subtitle mb-0 text-muted">
+            Thiết lập khung giờ hoạt động cho ba ca làm việc cố định (Phiên bản hiện tại: #@Model.ExpectedConfigurationVersion).
+        </p>
     </div>
     <div>
         <a asp-action="Index" class="btn btn-secondary-custom">
@@ -17,90 +19,82 @@
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card card-custom">
-            <div class="card-header-custom">
-                <i class="fa-regular fa-clock text-primary me-2"></i>
-                Thông tin ca làm việc
-            </div>
-            <div class="card-body p-4">
-                <div class="alert alert-info py-2 px-3 small mb-3">
-                    <i class="fa-solid fa-circle-info me-1"></i>
-                    Khung giờ của ba ca được cố định: Ca sáng 08:00–12:00, Ca chiều 12:00–16:00, Ca tối 16:00–20:00.
-                </div>
-
-                <form method="post"
-                      asp-action="Edit"
-                      asp-route-id="@Model.ShiftTypeId"
-                      data-prevent-double-submit="true">
-                    <input asp-for="ShiftTypeId" type="hidden" />
-                    <input asp-for="ShiftCode" type="hidden" />
-
-                    <div asp-validation-summary="ModelOnly"
-                         class="alert alert-danger"></div>
-
-                    <div class="mb-3">
-                        <label asp-for="ShiftName"
-                               class="form-label fw-semibold"></label>
-                        <input asp-for="ShiftName"
-                               class="form-control form-control-custom" />
-                        <span asp-validation-for="ShiftName"
-                              class="text-danger small"></span>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label asp-for="StartTime"
-                                   class="form-label fw-semibold"></label>
-                            <input asp-for="StartTime"
-                                   type="time"
-                                   readonly
-                                   class="form-control form-control-custom bg-light" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="EndTime"
-                                   class="form-label fw-semibold"></label>
-                            <input asp-for="EndTime"
-                                   type="time"
-                                   readonly
-                                   class="form-control form-control-custom bg-light" />
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label asp-for="DisplayOrder"
-                                   class="form-label fw-semibold"></label>
-                            <input asp-for="DisplayOrder"
-                                   type="number"
-                                   class="form-control form-control-custom" />
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <div class="form-check form-switch mb-2">
-                                <input asp-for="IsActive"
-                                       class="form-check-input"
-                                       disabled
-                                       checked />
-                                <input type="hidden" asp-for="IsActive" value="true" />
-                                <label asp-for="IsActive"
-                                       class="form-check-label"></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-2 pt-2 border-top">
-                        <button type="submit"
-                                class="btn btn-primary-custom flex-grow-1 justify-content-center">
-                            <i class="fa-solid fa-floppy-disk me-1"></i>
-                            Lưu thay đổi
-                        </button>
-                        <a asp-action="Index"
-                           class="btn btn-secondary-custom">
-                            Hủy bỏ
-                        </a>
-                    </div>
-                </form>
-            </div>
+    <div class="col-lg-9">
+        <div class="alert alert-info py-3 px-3 shadow-sm border-0 mb-4">
+            <i class="fa-solid fa-circle-info text-primary fs-5 me-2"></i>
+            <strong>Lưu ý quan trọng:</strong> Cấu hình mới chỉ áp dụng cho các kỳ lịch được tạo sau khi lưu. Các kỳ lịch đã tồn tại không bị thay đổi.
         </div>
+
+        <form method="post" asp-action="Edit" data-prevent-double-submit="true">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ExpectedConfigurationVersion" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm border-0 mb-4"></div>
+
+            <div class="card card-custom shadow-sm border-0 mb-4">
+                <div class="card-header-custom py-3 fw-bold">
+                    <i class="fa-regular fa-clock text-primary me-2"></i>
+                    Khung giờ ba ca làm việc trong ngày
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle text-center mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%;">Ca làm việc</th>
+                                    <th style="width: 20%;">Mã ca</th>
+                                    <th style="width: 27%;">Giờ bắt đầu</th>
+                                    <th style="width: 28%;">Giờ kết thúc</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.Shifts.Count; i++)
+                                {
+                                    <input type="hidden" asp-for="Shifts[i].ShiftTypeId" />
+                                    <input type="hidden" asp-for="Shifts[i].ShiftCode" />
+                                    <input type="hidden" asp-for="Shifts[i].ShiftName" />
+                                    <input type="hidden" asp-for="Shifts[i].DisplayOrder" />
+
+                                    <tr>
+                                        <td class="text-start ps-3 fw-bold">
+                                            @Model.Shifts[i].ShiftName
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-custom badge-primary-custom">
+                                                @Model.Shifts[i].ShiftCode
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <input asp-for="Shifts[i].StartTime"
+                                                   type="time"
+                                                   class="form-control form-control-custom text-center font-monospace"
+                                                   required />
+                                            <span asp-validation-for="Shifts[i].StartTime" class="text-danger small"></span>
+                                        </td>
+                                        <td>
+                                            <input asp-for="Shifts[i].EndTime"
+                                                   type="time"
+                                                   class="form-control form-control-custom text-center font-monospace"
+                                                   required />
+                                            <span asp-validation-for="Shifts[i].EndTime" class="text-danger small"></span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>
+                        Quy tắc: Ca Sáng kết thúc &le; Ca Chiều bắt đầu &le; Ca Chiều kết thúc &le; Ca Tối bắt đầu.
+                    </span>
+                    <button type="submit" class="btn btn-primary-custom px-4">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>
+                        Lưu cấu hình
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>

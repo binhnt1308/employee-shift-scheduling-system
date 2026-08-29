@@ -30,9 +30,15 @@ public sealed partial class SchedulePeriodService
             return statusResult;
         }
 
-        var allShiftTypes = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShiftTypes);
-        var validFixedShiftIds = fixedShifts.Select(st => st.ShiftTypeId).ToHashSet();
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .ToList();
+
+        var validFixedShiftIds = periodShifts.Count == 3
+            ? periodShifts.Select(st => st.ShiftTypeId).ToHashSet()
+            : period.StaffingRequirements.Select(r => r.ShiftTypeId).ToHashSet();
 
         var validationResult = ValidateRegistrationRequirements(period, validFixedShiftIds);
         if (!validationResult.Succeeded)

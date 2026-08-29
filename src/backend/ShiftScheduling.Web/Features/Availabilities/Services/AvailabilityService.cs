@@ -103,14 +103,22 @@ public sealed class AvailabilityService : IAvailabilityService
             return null;
         }
 
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null)
         {
             return null;
         }
 
-        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShifts);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+
+        var fixedShifts = periodShifts.Count == 3
+            ? periodShifts
+            : GetFixedThreeShifts(await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken));
 
         var existing = await _availabilityRepository.GetByEmployeeAndPeriodAsync(
             employee.EmployeeId, schedulePeriodId, cancellationToken);
@@ -185,38 +193,39 @@ public sealed class AvailabilityService : IAvailabilityService
             return ServiceResult.Failure(ErrorCodes.EmployeeNotFound, "Không tìm thấy hồ sơ nhân viên.");
         }
 
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null)
         {
             return ServiceResult.Failure(ErrorCodes.SchedulePeriodNotFound, "Không tìm thấy kỳ lịch.");
         }
 
-        // BR04: Nhân viên chỉ được đăng ký khi kỳ lịch đang mở và chưa hết thời hạn
-        var now = _clock.UtcNow;
         if (period.RegistrationStatus != RegistrationStatus.Open)
         {
             return ServiceResult.Failure(
                 ErrorCodes.InvalidSchedulePeriodStatus,
-                "Kỳ lịch hiện không mở đăng ký lịch rảnh.");
+                "Kỳ lịch chưa mở đăng ký hoặc đã đóng đăng ký.");
         }
 
+        var now = _clock.UtcNow;
         if (period.AvailabilityDeadline <= now)
         {
             return ServiceResult.Failure(
-            ErrorCodes.RegistrationDeadlineExpired,
-            "Đã hết thời hạn đăng ký lịch rảnh.");
+                ErrorCodes.RegistrationDeadlineExpired,
+                "Đã hết thời hạn đăng ký lịch rảnh.");
         }
 
-        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var validShiftIds = GetFixedThreeShifts(allShifts).Select(s => s.ShiftTypeId).ToHashSet();
+        var periodShiftIds = period.StaffingRequirements.Select(r => r.ShiftTypeId).ToHashSet();
+        var validShiftIds = periodShiftIds.Count > 0
+            ? periodShiftIds
+            : (await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken)).Select(s => s.ShiftTypeId).ToHashSet();
 
         var parsedShifts = new List<(DateOnly WorkDate, int ShiftTypeId)>();
         foreach (var key in selectedShiftKeys ?? new List<string>())
         {
             var parts = key.Split('_');
             if (parts.Length == 2
-            && DateOnly.TryParse(parts[0], out var date)
-            && int.TryParse(parts[1], out var shiftId))
+                && DateOnly.TryParse(parts[0], out var date)
+                && int.TryParse(parts[1], out var shiftId))
             {
                 // BR03: Chỉ đăng ký theo 3 ca cố định và thuộc tuần kỳ lịch
                 if (date >= period.WeekStartDate && date <= period.WeekEndDate && validShiftIds.Contains(shiftId))
@@ -256,13 +265,15 @@ public sealed class AvailabilityService : IAvailabilityService
         int? shiftTypeIdFilter = null,
         CancellationToken cancellationToken = default)
     {
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null)
         {
             var allPeriods = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
-            period = allPeriods.Items.OrderByDescending(p => p.SchedulePeriodId).FirstOrDefault();
+            var firstPeriod = allPeriods.Items.OrderByDescending(p => p.SchedulePeriodId).FirstOrDefault();
+            if (firstPeriod is null) return null;
+            schedulePeriodId = firstPeriod.SchedulePeriodId;
+            period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
             if (period is null) return null;
-            schedulePeriodId = period.SchedulePeriodId;
         }
 
         var allPeriodsResult = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
@@ -279,8 +290,17 @@ public sealed class AvailabilityService : IAvailabilityService
             DisplayName = $"{e.EmployeeCode} - {e.FullName}"
         }).ToList();
 
-        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShifts);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+
+        var fixedShifts = periodShifts.Count == 3
+            ? periodShifts
+            : GetFixedThreeShifts(await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken));
+
         var shiftOptions = fixedShifts.Select(s => new ShiftTypeOptionViewModel
         {
             ShiftTypeId = s.ShiftTypeId,
@@ -361,17 +381,14 @@ public sealed class AvailabilityService : IAvailabilityService
 
     private static List<ShiftType> GetFixedThreeShifts(IReadOnlyList<ShiftType> allShiftTypes)
     {
-        var morning = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
+        var morning = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
 
-        var afternoon = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
+        var afternoon = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
 
-        var evening = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
+        var evening = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
 
         if (morning is null || afternoon is null || evening is null)
         {
