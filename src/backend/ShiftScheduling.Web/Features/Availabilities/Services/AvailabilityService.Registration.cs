@@ -23,6 +23,7 @@ public sealed partial class AvailabilityService
 
         var periodsResult = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
         var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
         var result = new List<AvailabilityPeriodItemViewModel>();
         foreach (var period in periodsResult.Items)
@@ -31,7 +32,7 @@ public sealed partial class AvailabilityService
                 employee.EmployeeId, period.SchedulePeriodId, cancellationToken);
 
             var isOpen = period.RegistrationStatus == RegistrationStatus.Open;
-            var isExpired = period.AvailabilityDeadline <= now;
+            var isExpired = now > period.AvailabilityDeadline || currentDate >= period.WeekStartDate;
 
             result.Add(new AvailabilityPeriodItemViewModel
             {
@@ -77,9 +78,11 @@ public sealed partial class AvailabilityService
             a => $"{a.WorkDate:yyyy-MM-dd}_{a.ShiftTypeId}");
 
         var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
         var isOpen = period.RegistrationStatus == RegistrationStatus.Open;
-        var isDeadlineValid = period.AvailabilityDeadline > now;
-        var isEditable = isOpen && isDeadlineValid;
+        var isDeadlineValid = now <= period.AvailabilityDeadline;
+        var isBeforeStart = currentDate < period.WeekStartDate;
+        var isEditable = isOpen && isDeadlineValid && isBeforeStart;
 
         string? readonlyReason = null;
         if (!isOpen)
@@ -89,6 +92,10 @@ public sealed partial class AvailabilityService
         else if (!isDeadlineValid)
         {
             readonlyReason = "Thời hạn đăng ký lịch rảnh đã hết.";
+        }
+        else if (!isBeforeStart)
+        {
+            readonlyReason = "Kỳ lịch đã bắt đầu, không thể đăng ký thêm lịch rảnh.";
         }
 
         var days = BuildDayViewModels(period, fixedShifts, existingMap);
@@ -198,9 +205,16 @@ public sealed partial class AvailabilityService
             return new PeriodValidationResult { HasError = true, ErrorCode = ErrorCodes.InvalidSchedulePeriodStatus, ErrorMessage = "Kỳ lịch chưa mở đăng ký hoặc đã đóng đăng ký." };
         }
 
-        if (period.AvailabilityDeadline <= _clock.UtcNow)
+        var now = _clock.UtcNow;
+        if (now > period.AvailabilityDeadline)
         {
             return new PeriodValidationResult { HasError = true, ErrorCode = ErrorCodes.RegistrationDeadlineExpired, ErrorMessage = "Đã hết thời hạn đăng ký lịch rảnh." };
+        }
+
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
+        if (currentDate >= period.WeekStartDate)
+        {
+            return new PeriodValidationResult { HasError = true, ErrorCode = ErrorCodes.InvalidSchedulePeriodStatus, ErrorMessage = "Kỳ lịch đã bắt đầu, không thể đăng ký thêm lịch rảnh." };
         }
 
         return new PeriodValidationResult { HasError = false, Period = period };

@@ -101,6 +101,16 @@ public sealed class ShiftTypeService : IShiftTypeService
             return timeValidation;
         }
 
+        var isUnchanged =
+            activeMorning!.StartTime == morning!.StartTime && activeMorning.EndTime == morning.EndTime &&
+            activeAfternoon!.StartTime == afternoon!.StartTime && activeAfternoon.EndTime == afternoon.EndTime &&
+            activeEvening!.StartTime == evening!.StartTime && activeEvening.EndTime == evening.EndTime;
+
+        if (isUnchanged)
+        {
+            return ServiceResult.Success("Cấu hình ca làm việc không có thay đổi.");
+        }
+
         var currentVersion = activeMorning!.ConfigurationVersion;
         var newVersion = currentVersion + 1;
 

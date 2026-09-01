@@ -75,17 +75,12 @@
                                     </span>
                                 </td>
                                 <td>
-                                    @switch (period.RegistrationStatus)
+                                    <span class="badge badge-custom @period.DisplayBadgeClass">
+                                        @period.EffectiveStatusName
+                                    </span>
+                                    @if (period.NeedsAttention)
                                     {
-                                        case RegistrationStatus.Preparing:
-                                            <span class="badge badge-custom badge-pending"><i class="fa-solid fa-pen me-1"></i>Đang chuẩn bị</span>
-                                            break;
-                                        case RegistrationStatus.Open:
-                                            <span class="badge badge-custom badge-active"><i class="fa-solid fa-door-open me-1"></i>Đang mở đăng ký</span>
-                                            break;
-                                        case RegistrationStatus.Closed:
-                                            <span class="badge badge-custom badge-info-custom"><i class="fa-solid fa-lock me-1"></i>Đã đóng đăng ký</span>
-                                            break;
+                                        <span class="badge bg-danger ms-1">Cần xử lý</span>
                                     }
                                 </td>
                                 <td>@period.CreatedByUsername</td>

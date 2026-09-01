@@ -1,30 +1,20 @@
 @model IReadOnlyList<ShiftTypeListItemViewModel>
 @{
     ViewData["Title"] = "Cấu hình ca làm việc";
-    var activeVersion = Model.FirstOrDefault()?.ConfigurationVersion ?? 1;
 }
 
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <h1 class="page-title">Cấu hình ca làm việc cố định</h1>
+        <h1 class="page-title">Cấu hình ca làm việc</h1>
         <p class="page-subtitle">
-            Hệ thống sử dụng ba ca làm việc cố định: ca sáng, ca chiều và ca tối (Phiên bản cấu hình: #@activeVersion).
+            Thiết lập khung giờ làm việc áp dụng cho các kỳ lịch được tạo sau khi lưu cấu hình.
         </p>
     </div>
     <div>
         <a asp-action="Edit" class="btn btn-primary-custom">
             <i class="fa-solid fa-clock me-1"></i>
-            Cấu hình giờ 3 ca
+            Cập nhật giờ ca
         </a>
-    </div>
-</div>
-
-<div class="alert alert-custom alert-custom-info mb-4">
-    <i class="fa-solid fa-circle-info fs-5 me-2"></i>
-    <div>
-        <strong>Quy định cấu hình:</strong>
-        Hệ thống gồm ba ca cố định: Ca sáng (MORNING), Ca chiều (AFTERNOON) và Ca tối (EVENING).
-        Mọi thay đổi khung giờ ca sẽ tạo phiên bản mới và áp dụng cho các kỳ lịch được tạo sau đó.
     </div>
 </div>
 
@@ -36,14 +26,12 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="badge badge-custom badge-primary-custom fs-6">
-                            @shift.ShiftCode
+                            @shift.ShiftName
                         </span>
                         <span class="badge bg-secondary bg-opacity-10 text-dark border font-monospace">
                             @shift.DurationHours giờ
                         </span>
                     </div>
-
-                    <h4 class="fw-bold text-dark mb-2">@shift.ShiftName</h4>
 
                     <div class="p-3 bg-light rounded-3 border mb-3 d-flex align-items-center gap-3">
                         <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center"
@@ -65,13 +53,7 @@
                         {
                             <span class="badge badge-custom badge-active">
                                 <i class="fa-solid fa-circle-check"></i>
-                                Hoạt động (v@shift.ConfigurationVersion)
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge badge-custom badge-rejected">
-                                Ngừng hoạt động (v@shift.ConfigurationVersion)
+                                Đang áp dụng
                             </span>
                         }
                     </div>

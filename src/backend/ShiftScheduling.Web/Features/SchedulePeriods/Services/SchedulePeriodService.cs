@@ -51,19 +51,29 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
     {
         var paged = await _schedulePeriodRepository.GetPagedAsync(page, pageSize, cancellationToken);
         var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
-        var items = paged.Items.Select(sp => new SchedulePeriodListItemViewModel
+        var items = paged.Items.Select(sp =>
         {
-            SchedulePeriodId = sp.SchedulePeriodId,
-            PeriodName = sp.PeriodName,
-            WeekStartDate = sp.WeekStartDate,
-            WeekEndDate = sp.WeekEndDate,
-            AvailabilityDeadline = _clock.ToVietnamTime(sp.AvailabilityDeadline),
-            RegistrationStatus = sp.RegistrationStatus,
-            CreatedByUsername = sp.CreatedByAccount?.Username ?? string.Empty,
-            TotalRequirementsCount = sp.StaffingRequirements?.Count(
-                r => IsFixedShiftCode(r.ShiftType?.ShiftCode)) ?? 0,
-            IsDeadlineExpired = sp.AvailabilityDeadline <= now
+            var workSchedule = sp.WorkSchedules.OrderByDescending(w => w.WorkScheduleId).FirstOrDefault();
+            var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(sp, workSchedule, now, currentDate);
+
+            return new SchedulePeriodListItemViewModel
+            {
+                SchedulePeriodId = sp.SchedulePeriodId,
+                PeriodName = sp.PeriodName,
+                WeekStartDate = sp.WeekStartDate,
+                WeekEndDate = sp.WeekEndDate,
+                AvailabilityDeadline = _clock.ToVietnamTime(sp.AvailabilityDeadline),
+                RegistrationStatus = sp.RegistrationStatus,
+                EffectiveStatusName = statusResult.StatusName,
+                NeedsAttention = statusResult.NeedsAttention,
+                DisplayBadgeClass = statusResult.DisplayBadgeClass,
+                CreatedByUsername = sp.CreatedByAccount?.Username ?? string.Empty,
+                TotalRequirementsCount = sp.StaffingRequirements?.Count(
+                    r => IsFixedShiftCode(r.ShiftType?.ShiftCode)) ?? 0,
+                IsDeadlineExpired = now > sp.AvailabilityDeadline || currentDate >= sp.WeekStartDate
+            };
         }).ToList();
 
         return new SchedulePeriodIndexViewModel
@@ -85,6 +95,7 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
         }
 
         var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
         // BR03: Chỉ hiển thị và xử lý ba ca cố định trong kỳ lịch
         var requirements = period.StaffingRequirements
@@ -94,7 +105,10 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
             .Select(MapRequirementItem)
             .ToList();
 
-        var isDeadlineValid = period.AvailabilityDeadline > now;
+        var workSchedule = period.WorkSchedules.OrderByDescending(w => w.WorkScheduleId).FirstOrDefault();
+        var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(period, workSchedule, now, currentDate);
+
+        var isDeadlineValid = now <= period.AvailabilityDeadline && currentDate < period.WeekStartDate;
         var has21ValidRows = requirements.Count == 21
             && requirements.All(r => r.RequiredSalesStaff >= 0
                 && r.RequiredCashiers >= 0
@@ -108,6 +122,9 @@ public sealed partial class SchedulePeriodService : ISchedulePeriodService
             WeekEndDate = period.WeekEndDate,
             AvailabilityDeadline = _clock.ToVietnamTime(period.AvailabilityDeadline),
             RegistrationStatus = period.RegistrationStatus,
+            EffectiveStatusName = statusResult.StatusName,
+            NeedsAttention = statusResult.NeedsAttention,
+            DisplayBadgeClass = statusResult.DisplayBadgeClass,
             CreatedByUsername = period.CreatedByAccount?.Username ?? string.Empty,
             CreatedAt = _clock.ToVietnamTime(period.CreatedAt),
             Requirements = requirements,

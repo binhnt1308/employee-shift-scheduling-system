@@ -58,17 +58,12 @@
             <div class="card-body">
                 <h6 class="text-muted text-uppercase fw-bold small">Trạng thái kỳ lịch</h6>
                 <div class="mt-2 mb-3">
-                    @switch (Model.RegistrationStatus)
+                    <span class="badge badge-custom @Model.DisplayBadgeClass fs-6 px-3 py-2">
+                        @Model.EffectiveStatusName
+                    </span>
+                    @if (Model.NeedsAttention)
                     {
-                        case RegistrationStatus.Preparing:
-                            <span class="badge badge-custom badge-pending fs-6 px-3 py-2"><i class="fa-solid fa-pen me-1"></i>Đang chuẩn bị</span>
-                            break;
-                        case RegistrationStatus.Open:
-                            <span class="badge badge-custom badge-active fs-6 px-3 py-2"><i class="fa-solid fa-door-open me-1"></i>Đang mở đăng ký</span>
-                            break;
-                        case RegistrationStatus.Closed:
-                            <span class="badge badge-custom badge-info-custom fs-6 px-3 py-2"><i class="fa-solid fa-lock me-1"></i>Đã đóng đăng ký</span>
-                            break;
+                        <span class="badge bg-danger fs-6 px-3 py-2 ms-2">Cần xử lý</span>
                     }
                 </div>
 
