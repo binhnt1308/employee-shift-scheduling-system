@@ -104,6 +104,10 @@
                                                             <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
                                                         </div>
                                                         <div>
+                                                            @if (emp.PreferenceLevel == ShiftScheduling.Models.Enums.AvailabilityPreferenceLevel.Preferred)
+                                                            {
+                                                                <span class="badge bg-warning text-dark me-1" title="Nguyện vọng: Ưu tiên"><i class="fa-solid fa-star me-1"></i>Ưu tiên</span>
+                                                            }
                                                             @if (emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
                                                             {
                                                                 <span class="badge bg-primary me-1">Sales</span>

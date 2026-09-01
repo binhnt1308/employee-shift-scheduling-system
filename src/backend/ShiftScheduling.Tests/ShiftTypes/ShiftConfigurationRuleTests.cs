@@ -156,6 +156,7 @@ public sealed class ShiftConfigurationRuleTests
             shiftTypeRepo,
             empRepo,
             new FakeAuditLogRepository(),
+            new FakeWeeklyAvailabilityPatternRepository(),
             new FakeUnitOfWork(),
             new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) },
             NullLogger<AvailabilityService>.Instance);

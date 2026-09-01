@@ -1,3 +1,4 @@
+﻿@using ShiftScheduling.Models.Enums
 @model ShiftScheduling.Features.Availabilities.ViewModels.AvailabilityRegisterViewModel
 @{
     ViewData["Title"] = "Đăng ký ca rảnh - " + Model.PeriodName;
@@ -11,8 +12,17 @@
             Hạn đăng ký: <span class="fw-semibold text-danger">@Model.AvailabilityDeadline.ToString("dd/MM/yyyy HH:mm")</span>
         </p>
     </div>
-    <div>
+    <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Quay lại</a>
+        @if (Model.IsEditable)
+        {
+            <button type="button" class="btn btn-outline-primary" id="btnApplyWeeklyPattern" title="Áp dụng mẫu tuần đã lưu vào biểu mẫu kỳ này (chưa lưu database)">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Áp dụng mẫu tuần
+            </button>
+            <button type="button" class="btn btn-outline-success" id="btnSaveWeeklyPattern" title="Lưu các ca đang chọn hiện tại thành mẫu rảnh cố định theo tuần">
+                <i class="fa-solid fa-bookmark me-1"></i>Lưu thành mẫu tuần
+            </button>
+        }
     </div>
 </div>
 
@@ -23,19 +33,21 @@
     </div>
 }
 
-<form method="post" asp-action="Register" asp-route-id="@Model.SchedulePeriodId" data-prevent-double-submit="true">
+<!-- Form đăng ký lịch rảnh kỳ hiện tại -->
+<form method="post" asp-action="Register" asp-route-id="@Model.SchedulePeriodId" id="formRegisterAvailability" data-prevent-double-submit="true">
     @Html.AntiForgeryToken()
 
     <div class="card card-custom border-0 shadow-sm mb-4">
-        <div class="card-header bg-light py-3 fw-bold">
-            <i class="fa-solid fa-calendar-days me-2"></i>Chọn các ca bạn có thể đi làm (3 ca cố định / ngày)
+        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold"><i class="fa-solid fa-calendar-days me-2"></i>Chọn các ca bạn có thể đi làm (3 ca cố định / ngày)</span>
+            <span class="small text-muted"><i class="fa-solid fa-circle-info me-1"></i>Tự chọn nguyện vọng <strong>Bình thường</strong> hoặc <strong>Ưu tiên ⭐</strong></span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-bordered align-middle text-center mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 250px;">Ngày trong tuần</th>
+                            <th style="width: 200px;">Ngày trong tuần</th>
                             <th>Ca sáng (08:00 - 12:00)</th>
                             <th>Ca chiều (12:00 - 16:00)</th>
                             <th>Ca tối (16:00 - 20:00)</th>
@@ -52,12 +64,19 @@
                                 {
                                     var key = $"{shift.WorkDate:yyyy-MM-dd}_{shift.ShiftTypeId}";
                                     var isChecked = shift.IsSelected;
-                                    <td class="@(isChecked ? "bg-primary bg-opacity-10" : "")">
-                                        <div class="form-check form-check-inline m-0">
-                                            <input class="form-check-input" type="checkbox" name="selectedShiftKeys" value="@key" id="chk_@key" @(isChecked ? "checked" : "") @(!Model.IsEditable ? "disabled" : "") />
-                                            <label class="form-check-label ms-1 cursor-pointer" for="chk_@key">
-                                                @shift.ShiftName
-                                            </label>
+                                    var isPreferred = shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred;
+                                    <td class="p-2 cell-shift @(isChecked ? (isPreferred ? "bg-warning bg-opacity-10" : "bg-primary bg-opacity-10") : "")" data-date="@shift.WorkDate.ToString("yyyy-MM-dd")" data-dayofweek="@((int)shift.WorkDate.DayOfWeek == 0 ? 7 : (int)shift.WorkDate.DayOfWeek)" data-shifttypeid="@shift.ShiftTypeId" data-shiftcode="@shift.ShiftCode">
+                                        <div class="d-flex flex-column align-items-center gap-1">
+                                            <div class="form-check form-check-inline m-0">
+                                                <input class="form-check-input chk-shift" type="checkbox" name="selectedShiftKeys" value="@key" id="chk_@key" @(isChecked ? "checked" : "") @(!Model.IsEditable ? "disabled" : "") />
+                                                <label class="form-check-label fw-semibold cursor-pointer" for="chk_@key">
+                                                    @shift.ShiftName
+                                                </label>
+                                            </div>
+                                            <select name="shiftPreferences[@key]" class="form-select form-select-sm pref-select" style="max-width: 140px; font-size: 0.8rem;" id="pref_@key" @(!isChecked || !Model.IsEditable ? "disabled" : "")>
+                                                <option value="Normal" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Normal ? "selected" : null)">Bình thường</option>
+                                                <option value="Preferred" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred ? "selected" : null)">⭐ Ưu tiên</option>
+                                            </select>
                                         </div>
                                     </td>
                                 }
@@ -70,10 +89,159 @@
         @if (Model.IsEditable)
         {
             <div class="card-footer bg-white py-3 text-end">
-                <button type="submit" class="btn btn-primary-custom px-4">
+                <button type="submit" class="btn btn-primary-custom px-4" id="btnSubmitForm">
                     <i class="fa-solid fa-floppy-disk me-1"></i>Lưu lịch rảnh
                 </button>
             </div>
         }
     </div>
 </form>
+
+<!-- Hidden Form dùng để submit mẫu tuần độc lập (POST WeeklyPattern) -->
+@if (Model.IsEditable)
+{
+    <form method="post" asp-action="WeeklyPattern" asp-route-returnPeriodId="@Model.SchedulePeriodId" id="formWeeklyPattern">
+        @Html.AntiForgeryToken()
+        <div id="containerWeeklyPatternInputs"></div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const weeklyPatternData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WeeklyPattern));
+            const isEditable = @(Model.IsEditable ? "true" : "false");
+
+            // Tự động bật/tắt dropdown preference khi toggle checkbox
+            document.querySelectorAll('.chk-shift').forEach(function (chk) {
+                chk.addEventListener('change', function () {
+                    const cell = this.closest('.cell-shift');
+                    const prefSelect = cell.querySelector('.pref-select');
+                    if (this.checked) {
+                        prefSelect.disabled = !isEditable;
+                        updateCellStyle(cell, true, prefSelect.value);
+                    } else {
+                        prefSelect.disabled = true;
+                        updateCellStyle(cell, false, 'Normal');
+                    }
+                });
+            });
+
+            // Tự động đổi màu ô khi chọn mức nguyện vọng Normal/Preferred
+            document.querySelectorAll('.pref-select').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    const cell = this.closest('.cell-shift');
+                    const chk = cell.querySelector('.chk-shift');
+                    if (chk.checked) {
+                        updateCellStyle(cell, true, this.value);
+                    }
+                });
+            });
+
+            function updateCellStyle(cell, isChecked, prefValue) {
+                cell.classList.remove('bg-primary', 'bg-warning', 'bg-opacity-10');
+                if (isChecked) {
+                    if (prefValue === 'Preferred' || prefValue === '2') {
+                        cell.classList.add('bg-warning', 'bg-opacity-10');
+                    } else {
+                        cell.classList.add('bg-primary', 'bg-opacity-10');
+                    }
+                }
+            }
+
+            // Nút "Áp dụng mẫu tuần": chỉ cập nhật giao diện client-side (KHÔNG AJAX, KHÔNG GHI DB)
+            const btnApply = document.getElementById('btnApplyWeeklyPattern');
+            if (btnApply) {
+                btnApply.addEventListener('click', function () {
+                    if (!weeklyPatternData || !weeklyPatternData.Cells || weeklyPatternData.Cells.length === 0) {
+                        alert('Bạn chưa có mẫu lịch rảnh tuần nào được lưu.');
+                        return;
+                    }
+
+                    // Tắt tất cả checkbox trước khi áp dụng mẫu
+                    document.querySelectorAll('.chk-shift').forEach(function (chk) {
+                        chk.checked = false;
+                        const cell = chk.closest('.cell-shift');
+                        const sel = cell.querySelector('.pref-select');
+                        sel.value = 'Normal';
+                        sel.disabled = true;
+                        updateCellStyle(cell, false, 'Normal');
+                    });
+
+                    // Duyệt các ô trong mẫu tuần đã lưu
+                    weeklyPatternData.Cells.forEach(function (patternCell) {
+                        // Tìm cell theo DayOfWeek và ShiftTypeId (hoặc ShiftCode)
+                        const dayOfWeek = patternCell.DayOfWeek;
+                        const shiftTypeId = patternCell.ShiftTypeId;
+                        const prefLevel = patternCell.PreferenceLevel; // 1=Normal, 2=Preferred
+
+                        const targetCell = document.querySelector(`.cell-shift[data-dayofweek="${dayOfWeek}"][data-shifttypeid="${shiftTypeId}"]`);
+                        if (targetCell) {
+                            const chk = targetCell.querySelector('.chk-shift');
+                            const sel = targetCell.querySelector('.pref-select');
+                            if (chk) {
+                                chk.checked = true;
+                                sel.disabled = !isEditable;
+                                sel.value = (prefLevel === 2 || prefLevel === 'Preferred') ? 'Preferred' : 'Normal';
+                                updateCellStyle(targetCell, true, sel.value);
+                            }
+                        }
+                    });
+
+                    alert('Đã áp dụng mẫu tuần vào biểu mẫu! Hãy bấm "Lưu lịch rảnh" để ghi nhận thay đổi.');
+                });
+            }
+
+            // Nút "Lưu thành mẫu tuần": thu thập các ô đang chọn và submit POST /Availability/WeeklyPattern
+            const btnSavePattern = document.getElementById('btnSaveWeeklyPattern');
+            if (btnSavePattern) {
+                btnSavePattern.addEventListener('click', function () {
+                    const checkedCells = document.querySelectorAll('.cell-shift .chk-shift:checked');
+                    if (checkedCells.length === 0) {
+                        if (!confirm('Bạn chưa chọn ca rảnh nào. Bạn có chắc muốn xóa mẫu tuần hiện tại không?')) {
+                            return;
+                        }
+                    } else {
+                        if (!confirm('Lưu lựa chọn ca rảnh hiện tại làm mẫu cố định hàng tuần?')) {
+                            return;
+                        }
+                    }
+
+                    const container = document.getElementById('containerWeeklyPatternInputs');
+                    container.innerHTML = '';
+
+                    let index = 0;
+                    checkedCells.forEach(function (chk) {
+                        const cell = chk.closest('.cell-shift');
+                        const dayOfWeek = cell.getAttribute('data-dayofweek');
+                        const shiftCode = cell.getAttribute('data-shiftcode');
+                        const sel = cell.querySelector('.pref-select');
+                        const prefValue = sel.value;
+
+                        const inputDay = document.createElement('input');
+                        inputDay.type = 'hidden';
+                        inputDay.name = `entries[${index}].DayOfWeek`;
+                        inputDay.value = dayOfWeek;
+                        container.appendChild(inputDay);
+
+                        const inputCode = document.createElement('input');
+                        inputCode.type = 'hidden';
+                        inputCode.name = `entries[${index}].ShiftCode`;
+                        inputCode.value = shiftCode;
+                        container.appendChild(inputCode);
+
+                        const inputPref = document.createElement('input');
+                        inputPref.type = 'hidden';
+                        inputPref.name = `entries[${index}].PreferenceLevel`;
+                        inputPref.value = prefValue;
+                        container.appendChild(inputPref);
+
+                        index++;
+                    });
+
+                    document.getElementById('formWeeklyPattern').submit();
+                });
+            }
+        });
+    </script>
+}

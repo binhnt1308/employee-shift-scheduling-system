@@ -77,3 +77,14 @@ public enum NotificationType
     ShiftTransferResult = 5,
     RegistrationOpened = 6
 }
+
+/// <summary>
+/// Mức nguyện vọng của nhân viên đối với ca rảnh (NC-02).
+/// Normal: có thể làm. Preferred: mong muốn được xếp.
+/// Không có mức Avoid – ô không chọn đã mang nghĩa không rảnh.
+/// </summary>
+public enum AvailabilityPreferenceLevel
+{
+    Normal = 1,
+    Preferred = 2
+}

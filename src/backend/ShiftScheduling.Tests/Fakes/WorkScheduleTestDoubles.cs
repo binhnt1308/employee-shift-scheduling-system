@@ -181,9 +181,56 @@ internal sealed class FakeAvailabilityRepository : IAvailabilityRepository
         int employeeId,
         int schedulePeriodId,
         IEnumerable<(DateOnly WorkDate, int ShiftTypeId)> selectedShifts,
+        IReadOnlyDictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel> preferenceMap,
         DateTime now,
         CancellationToken cancellationToken = default)
     {
+        Availabilities.RemoveAll(a => a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId);
+        foreach (var (date, shiftId) in selectedShifts)
+        {
+            var pref = preferenceMap.TryGetValue((date, shiftId), out var p) ? p : AvailabilityPreferenceLevel.Normal;
+            Availabilities.Add(new Availability
+            {
+                EmployeeId = employeeId,
+                SchedulePeriodId = schedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = shiftId,
+                PreferenceLevel = pref,
+                RegisteredAt = now
+            });
+        }
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeWeeklyAvailabilityPatternRepository : IWeeklyAvailabilityPatternRepository
+{
+    public List<WeeklyAvailabilityPattern> Patterns { get; } = new();
+
+    public Task<List<WeeklyAvailabilityPattern>> GetByEmployeeIdAsync(
+        int employeeId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Patterns.Where(p => p.EmployeeId == employeeId).ToList());
+    }
+
+    public Task UpsertByEmployeeAsync(
+        int employeeId,
+        IEnumerable<(int DayOfWeek, string ShiftCode, AvailabilityPreferenceLevel PreferenceLevel)> entries,
+        DateTime now,
+        CancellationToken cancellationToken = default)
+    {
+        Patterns.RemoveAll(p => p.EmployeeId == employeeId);
+        foreach (var entry in entries)
+        {
+            Patterns.Add(new WeeklyAvailabilityPattern
+            {
+                EmployeeId = employeeId,
+                DayOfWeek = entry.DayOfWeek,
+                ShiftCode = entry.ShiftCode,
+                PreferenceLevel = entry.PreferenceLevel,
+                CreatedAt = now
+            });
+        }
         return Task.CompletedTask;
     }
 }
