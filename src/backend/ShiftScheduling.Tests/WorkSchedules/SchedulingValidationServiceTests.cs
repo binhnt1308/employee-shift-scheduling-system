@@ -267,6 +267,135 @@ public sealed class SchedulingValidationServiceTests
         Assert.Contains(result.HardErrors, e => e.Contains("không đạt tổ hợp 2 ca liên tiếp"));
     }
 
+    [Fact(DisplayName = "TC05-06 - Lịch trống có định mức 1 Tư vấn, 1 Thu ngân, Level 2+ -> IsValid = false, thiếu cả 3 yêu cầu")]
+    public void ValidateSchedule_WhenEmptyScheduleWithStaffingRequirements_ReturnsInvalidWithAllRequiredErrors()
+    {
+        var period = CreateTestPeriod();
+        var shiftTypes = CreateThreeFixedShifts();
+        var requirements = new List<StaffingRequirement>
+        {
+            new StaffingRequirement
+            {
+                WorkDate = period.WeekStartDate,
+                ShiftTypeId = 1,
+                ShiftType = shiftTypes[0],
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 1
+            }
+        };
+
+        var result = _service.ValidateSchedule(
+            period,
+            Array.Empty<Employee>(),
+            new List<Availability>(),
+            new List<LeaveRequest>(),
+            requirements,
+            new List<ShiftAssignment>(),
+            shiftTypes);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.HardErrors, e => e.Contains("Tư vấn"));
+        Assert.Contains(result.HardErrors, e => e.Contains("Thu ngân"));
+        Assert.Contains(result.HardErrors, e => e.Contains("Level 2"));
+    }
+
+    [Fact(DisplayName = "TC05-07 - Chỉ đủ Tư vấn nhưng thiếu Thu ngân -> Không hợp lệ")]
+    public void ValidateSchedule_WhenOnlySalesFulfilledButMissingCashier_ReturnsInvalid()
+    {
+        var period = CreateTestPeriod();
+        var shiftTypes = CreateThreeFixedShifts();
+        var empSales = new Employee
+        {
+            EmployeeId = 1,
+            EmployeeCode = "NV01",
+            FullName = "Tư Vấn 1",
+            Position = EmployeePosition.Sales,
+            Level = EmployeeLevel.Level2,
+            IsActive = true
+        };
+
+        var requirements = new List<StaffingRequirement>
+        {
+            new StaffingRequirement
+            {
+                WorkDate = period.WeekStartDate,
+                ShiftTypeId = 1,
+                ShiftType = shiftTypes[0],
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 1
+            }
+        };
+
+        var assignments = new List<ShiftAssignment>
+        {
+            new ShiftAssignment { EmployeeId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1 }
+        };
+        var avails = new List<Availability>
+        {
+            new Availability { EmployeeId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1 }
+        };
+
+        var result = _service.ValidateSchedule(
+            period, new[] { empSales }, avails, new List<LeaveRequest>(), requirements, assignments, shiftTypes);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.HardErrors, e => e.Contains("Thu ngân"));
+    }
+
+    [Fact(DisplayName = "TC05-08 - Đủ số người Tư vấn và Thu ngân nhưng không có Level 2+ -> Không hợp lệ")]
+    public void ValidateSchedule_WhenStaffCountMetButNoLevel2Plus_ReturnsInvalid()
+    {
+        var period = CreateTestPeriod();
+        var shiftTypes = CreateThreeFixedShifts();
+        var empSales = new Employee
+        {
+            EmployeeId = 1,
+            EmployeeCode = "NV01",
+            FullName = "Tư Vấn 1",
+            Position = EmployeePosition.Sales,
+            Level = EmployeeLevel.Level1,
+            IsActive = true
+        };
+        var empCashier = new Employee
+        {
+            EmployeeId = 2,
+            EmployeeCode = "NV02",
+            FullName = "Thu Ngân 1",
+            Position = EmployeePosition.Cashier,
+            Level = EmployeeLevel.Level1,
+            IsActive = true
+        };
+
+        var requirements = new List<StaffingRequirement>
+        {
+            new StaffingRequirement
+            {
+                WorkDate = period.WeekStartDate,
+                ShiftTypeId = 1,
+                ShiftType = shiftTypes[0],
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 1
+            }
+        };
+
+        var assignments = new List<ShiftAssignment>
+        {
+            new ShiftAssignment { EmployeeId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1 },
+            new ShiftAssignment { EmployeeId = 2, WorkDate = period.WeekStartDate, ShiftTypeId = 1 }
+        };
+        var avails = new List<Availability>
+        {
+            new Availability { EmployeeId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1 },
+            new Availability { EmployeeId = 2, WorkDate = period.WeekStartDate, ShiftTypeId = 1 }
+        };
+
+        var result = _service.ValidateSchedule(
+            period, new[] { empSales, empCashier }, avails, new List<LeaveRequest>(), requirements, assignments, shiftTypes);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.HardErrors, e => e.Contains("Level 2"));
+    }
+
     private static SchedulePeriod CreateTestPeriod()
     {
         return new SchedulePeriod

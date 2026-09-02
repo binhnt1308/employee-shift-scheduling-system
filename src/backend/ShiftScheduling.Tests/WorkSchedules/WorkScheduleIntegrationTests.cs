@@ -241,6 +241,37 @@ public sealed class WorkScheduleIntegrationTests
         Assert.True(scheduleInRepo is null || scheduleInRepo.Status != ScheduleStatus.Published);
     }
 
+    [Fact(DisplayName = "TC07-INT-03 - Gọi luồng công bố với lịch thiếu định mức -> Thất bại, trạng thái vẫn là nháp, không tạo thông báo")]
+    public async Task PublishScheduleAsync_WhenUnderstaffed_FailsRemainsDraftAndNoNotificationsCreated()
+    {
+        var period = CreateStandardPeriod();
+        _periodRepo.SchedulePeriods.Add(period);
+
+        var morning = CreateShiftType(1, "MORNING", "Ca Sáng", 8, 12);
+        _shiftTypeRepo.ShiftTypes.Add(morning);
+
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId,
+            ShiftType = morning,
+            RequiredSalesStaff = 1,
+            RequiredCashiers = 0
+        });
+
+        var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
+
+        var result = await _scheduleService.PublishScheduleAsync(period.SchedulePeriodId, accountId: 2);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidSchedulePublish, result.ErrorCode);
+        Assert.Contains("vi phạm bắt buộc", result.ErrorMessage);
+        Assert.Equal(0, _workScheduleRepo.PublishScheduleCount);
+        Assert.Equal(ScheduleStatus.Draft, draft.Status);
+        Assert.Empty(_notificationRepo.Items);
+    }
+
     private static SchedulePeriod CreateStandardPeriod() => new()
     {
         SchedulePeriodId = 1,

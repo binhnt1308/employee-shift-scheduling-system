@@ -275,6 +275,50 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         Assert.Contains("tối đa 1 ca/ngày", result.ErrorMessage);
     }
 
+    [Fact(DisplayName = "TC-FT-09 - FT đã có Sáng+Chiều, phân thêm ca Tối cùng ngày -> REJECT tối đa 2 ca/ngày")]
+    public async Task AssignEmployeeManualAsync_FullTimeThirdShiftInSameDay_ReturnsFailure()
+    {
+        var (period, emp, morning, afternoon, evening) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
+        draft.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 1,
+            WorkScheduleId = draft.WorkScheduleId,
+            EmployeeId = emp.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId,
+            Source = AssignmentSource.Manual,
+            WorkSchedule = draft
+        });
+        draft.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 2,
+            WorkScheduleId = draft.WorkScheduleId,
+            EmployeeId = emp.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = afternoon.ShiftTypeId,
+            Source = AssignmentSource.Manual,
+            WorkSchedule = draft
+        });
+
+        Assert.Equal(2, draft.ShiftAssignments.Count);
+
+        var result = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = evening.ShiftTypeId
+        }, accountId: 2);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidShiftAssignment, result.ErrorCode);
+        Assert.Contains("tối đa 2 ca/ngày", result.ErrorMessage);
+        Assert.Equal(2, draft.ShiftAssignments.Count);
+        Assert.DoesNotContain(draft.ShiftAssignments, a => a.ShiftTypeId == evening.ShiftTypeId);
+    }
+
     [Fact(DisplayName = "TC-DISPLAY-01 - GetEligibleEmployeesForShiftAsync returns clear FT/PT and Position labels")]
     public async Task GetEligibleEmployeesForShiftAsync_ReturnsEmploymentTypeAndPositionLabels()
     {
