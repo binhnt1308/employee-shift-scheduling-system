@@ -27,14 +27,28 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
             .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId))
             .ToHashSet();
         var leaveLookup = new ApprovedLeaveLookup(approvedLeaves);
-        var shiftTypeMap = shiftTypes.ToDictionary(s => s.ShiftTypeId);
+        var shiftTypeMap = shiftTypes
+            .DistinctBy(s => s.ShiftTypeId)
+            .ToDictionary(s => s.ShiftTypeId);
+
+        foreach (var req in staffingRequirements)
+        {
+            if (req.ShiftType != null && !shiftTypeMap.ContainsKey(req.ShiftTypeId))
+            {
+                shiftTypeMap[req.ShiftTypeId] = req.ShiftType;
+            }
+        }
+
         var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
 
-        // BR03: Chỉ xử lý 3 ca cố định
-        var fixedShiftIds = shiftTypes
-            .Where(s => s.IsActive && IsFixedShiftCode(s.ShiftCode))
-            .Select(s => s.ShiftTypeId)
-            .ToHashSet();
+        // BR03: Nếu kỳ đã có StaffingRequirements, lấy trực tiếp ShiftTypeId từ định mức của kỳ.
+        // Chỉ dùng tập ca cố định active làm fallback khi kỳ hoàn toàn không có StaffingRequirements.
+        var fixedShiftIds = staffingRequirements.Count > 0
+            ? staffingRequirements.Select(r => r.ShiftTypeId).ToHashSet()
+            : shiftTypes
+                .Where(s => s.IsActive && IsFixedShiftCode(s.ShiftCode))
+                .Select(s => s.ShiftTypeId)
+                .ToHashSet();
 
         var validAssignments = assignments
             .Where(a => fixedShiftIds.Contains(a.ShiftTypeId))
@@ -42,7 +56,7 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
 
         // 1. Kiểm tra định mức nhân sự từng ca (BR12, BR13)
         ValidateStaffingRequirements(
-            staffingRequirements, fixedShiftIds, validAssignments, empMap, hardErrors);
+            staffingRequirements, fixedShiftIds, validAssignments, empMap, shiftTypeMap, hardErrors);
 
         // 2. Kiểm tra phân công, khối lượng công việc và nghỉ tối thiểu
         // (BR02, BR05, BR06, BR09-BR11, BR18, BR20, BR21)
@@ -69,13 +83,15 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         HashSet<int> fixedShiftIds,
         List<ShiftAssignment> validAssignments,
         Dictionary<int, Employee> empMap,
+        Dictionary<int, ShiftType> shiftTypeMap,
         List<string> hardErrors)
     {
         var reqs = staffingRequirements.Where(r => fixedShiftIds.Contains(r.ShiftTypeId));
 
         foreach (var req in reqs)
         {
-            var shiftName = req.ShiftType?.ShiftName ?? $"Ca {req.ShiftTypeId}";
+            var shiftName = req.ShiftType?.ShiftName
+                ?? (shiftTypeMap.TryGetValue(req.ShiftTypeId, out var st) ? st.ShiftName : $"Ca {req.ShiftTypeId}");
             var shiftAssigns = validAssignments
                 .Where(a => a.WorkDate == req.WorkDate && a.ShiftTypeId == req.ShiftTypeId)
                 .ToList();

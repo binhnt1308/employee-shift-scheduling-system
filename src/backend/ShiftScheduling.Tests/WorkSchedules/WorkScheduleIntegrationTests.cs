@@ -309,4 +309,137 @@ public sealed class WorkScheduleIntegrationTests
             DisplayOrder = id,
             IsActive = true
         };
+
+    [Fact(DisplayName = "TC05-INT-09 - GetEditGridAsync với kỳ dùng ShiftType cũ (IsActive = false) thiếu định mức -> IsValid = false, HardErrors không rỗng")]
+    public async Task GetEditGridAsync_WhenPeriodUsesOldInactiveShiftsAndUnderstaffed_ReturnsInvalidValidationResult()
+    {
+        var period = CreateStandardPeriod();
+        _periodRepo.Add(period);
+
+        // Version 1 (cũ): IsActive = false
+        var oldMorning = CreateShiftType(1, "MORNING", "Ca Sáng (cũ)", 8, 12);
+        oldMorning.IsActive = false;
+        var oldAfternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều (cũ)", 12, 16);
+        oldAfternoon.IsActive = false;
+        var oldEvening = CreateShiftType(3, "EVENING", "Ca Tối (cũ)", 16, 20);
+        oldEvening.IsActive = false;
+
+        // Version 2 (mới): IsActive = true
+        var newMorning = CreateShiftType(4, "MORNING", "Ca Sáng (mới)", 7, 11);
+        newMorning.IsActive = true;
+        var newAfternoon = CreateShiftType(5, "AFTERNOON", "Ca Chiều (mới)", 11, 15);
+        newAfternoon.IsActive = true;
+        var newEvening = CreateShiftType(6, "EVENING", "Ca Tối (mới)", 15, 19);
+        newEvening.IsActive = true;
+
+        _shiftTypeRepo.ShiftTypes.AddRange(new[] { oldMorning, oldAfternoon, oldEvening, newMorning, newAfternoon, newEvening });
+
+        // Kỳ chỉ có StaffingRequirements cho ca cũ (1, 2, 3)
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldMorning.ShiftTypeId,
+            ShiftType = oldMorning,
+            RequiredSalesStaff = 2,
+            RequiredCashiers = 1
+        });
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldAfternoon.ShiftTypeId,
+            ShiftType = oldAfternoon,
+            RequiredSalesStaff = 2,
+            RequiredCashiers = 1
+        });
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldEvening.ShiftTypeId,
+            ShiftType = oldEvening,
+            RequiredSalesStaff = 1,
+            RequiredCashiers = 1
+        });
+
+        // Chỉ có 1 nhân viên Sales Level 1 và 1 phân công
+        var emp1 = CreateEmployee(1, EmploymentType.FullTime, EmployeePosition.Sales);
+        emp1.Level = EmployeeLevel.Level1;
+        _employeeRepo.Add(emp1);
+
+        var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
+        draft.ShiftAssignments.Add(new ShiftAssignment
+        {
+            WorkScheduleId = draft.WorkScheduleId,
+            EmployeeId = emp1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldMorning.ShiftTypeId
+        });
+
+        var model = await _scheduleService.GetEditGridAsync(period.SchedulePeriodId, 2);
+
+        Assert.NotNull(model);
+        Assert.False(model.ValidationResult.IsValid);
+        Assert.NotEmpty(model.ValidationResult.HardErrors);
+        Assert.Contains(model.ValidationResult.HardErrors, e => e.Contains("Thiếu"));
+    }
+
+    [Fact(DisplayName = "TC05-INT-10 - PublishScheduleAsync với kỳ dùng ShiftType cũ (IsActive = false) thiếu định mức -> Thất bại, vẫn là Draft, không công bố")]
+    public async Task PublishScheduleAsync_WhenPeriodUsesOldInactiveShiftsAndUnderstaffed_FailsAndRemainsDraft()
+    {
+        var period = CreateStandardPeriod();
+        _periodRepo.Add(period);
+
+        // Version 1 (cũ): IsActive = false
+        var oldMorning = CreateShiftType(1, "MORNING", "Ca Sáng (cũ)", 8, 12);
+        oldMorning.IsActive = false;
+        var oldAfternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều (cũ)", 12, 16);
+        oldAfternoon.IsActive = false;
+        var oldEvening = CreateShiftType(3, "EVENING", "Ca Tối (cũ)", 16, 20);
+        oldEvening.IsActive = false;
+
+        // Version 2 (mới): IsActive = true
+        var newMorning = CreateShiftType(4, "MORNING", "Ca Sáng (mới)", 7, 11);
+        newMorning.IsActive = true;
+        var newAfternoon = CreateShiftType(5, "AFTERNOON", "Ca Chiều (mới)", 11, 15);
+        newAfternoon.IsActive = true;
+        var newEvening = CreateShiftType(6, "EVENING", "Ca Tối (mới)", 15, 19);
+        newEvening.IsActive = true;
+
+        _shiftTypeRepo.ShiftTypes.AddRange(new[] { oldMorning, oldAfternoon, oldEvening, newMorning, newAfternoon, newEvening });
+
+        // Kỳ dùng ca cũ và thiếu định mức
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldMorning.ShiftTypeId,
+            ShiftType = oldMorning,
+            RequiredSalesStaff = 2,
+            RequiredCashiers = 1
+        });
+
+        var emp1 = CreateEmployee(1, EmploymentType.FullTime, EmployeePosition.Sales);
+        _employeeRepo.Add(emp1);
+
+        var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
+        // Chỉ có 1 phân công trong khi cần 2 Sales + 1 Cashier
+        draft.ShiftAssignments.Add(new ShiftAssignment
+        {
+            WorkScheduleId = draft.WorkScheduleId,
+            EmployeeId = emp1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldMorning.ShiftTypeId
+        });
+
+        var result = await _scheduleService.PublishScheduleAsync(period.SchedulePeriodId, accountId: 2);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.InvalidSchedulePublish, result.ErrorCode);
+        Assert.Contains("vi phạm bắt buộc", result.ErrorMessage);
+        Assert.Equal(ScheduleStatus.Draft, draft.Status);
+        Assert.Equal(0, _workScheduleRepo.PublishScheduleCount);
+        Assert.Empty(_notificationRepo.Items);
+    }
 }
