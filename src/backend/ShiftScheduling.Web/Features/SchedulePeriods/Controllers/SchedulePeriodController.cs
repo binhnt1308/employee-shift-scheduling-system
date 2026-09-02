@@ -45,13 +45,20 @@ public sealed class SchedulePeriodController : AuthorizedController
     [HttpGet]
     public IActionResult Create()
     {
-        var todayInVietnam = _clock.TodayInVietnam.ToDateTime(TimeOnly.MinValue);
+        var todayInVietnam = _clock.TodayInVietnam;
+        var daysUntilNextMonday = todayInVietnam.DayOfWeek switch
+        {
+            DayOfWeek.Sunday => 1,
+            _ => 8 - (int)todayInVietnam.DayOfWeek
+        };
+        var nextMonday = todayInVietnam.AddDays(daysUntilNextMonday);
+        var deadlineDate = nextMonday.AddDays(-1);
+        var deadline = deadlineDate.ToDateTime(new TimeOnly(23, 59));
+
         var model = new SchedulePeriodCreateViewModel
         {
-            // Next Monday
-            WeekStartDate = DateOnly.FromDateTime(
-                todayInVietnam.AddDays(7 - (int)todayInVietnam.DayOfWeek + 1)),
-            AvailabilityDeadline = todayInVietnam.AddDays(5).AddHours(23).AddMinutes(59)
+            WeekStartDate = nextMonday,
+            AvailabilityDeadline = deadline
         };
         return View(model);
     }

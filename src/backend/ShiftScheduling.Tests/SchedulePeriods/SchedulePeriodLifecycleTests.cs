@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using ShiftScheduling.Features.Availabilities.Services;
 using ShiftScheduling.Features.Dashboard.Services;
+using ShiftScheduling.Features.SchedulePeriods.Controllers;
 using ShiftScheduling.Features.SchedulePeriods.Services;
 using ShiftScheduling.Features.SchedulePeriods.ViewModels;
+using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 using ShiftScheduling.Models.Errors;
@@ -559,5 +562,272 @@ public sealed class SchedulePeriodLifecycleTests
         var period2 = periodRepo.SchedulePeriods[1];
         Assert.Equal(21, period2.StaffingRequirements.Count);
         Assert.All(period2.StaffingRequirements, req => Assert.Contains(req.ShiftTypeId, new[] { 4, 5, 6 }));
+    }
+
+    [Fact(DisplayName = "TC-LC-20: IsRegistrationEffectivelyOpen trả true khi Open, chưa tới deadline, chưa tới StartDate")]
+    public void IsRegistrationEffectivelyOpen_WhenOpenAndBeforeDeadlineAndBeforeStartDate_ReturnsTrue()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            RegistrationStatus = RegistrationStatus.Open,
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            AvailabilityDeadline = new DateTime(2026, 9, 5, 23, 59, 0, DateTimeKind.Utc)
+        };
+
+        var currentUtc = new DateTime(2026, 9, 4, 10, 0, 0, DateTimeKind.Utc);
+        var currentDate = new DateOnly(2026, 9, 4);
+
+        var isOpen = SchedulePeriodStatusHelper.IsRegistrationEffectivelyOpen(period, currentUtc, currentDate);
+        Assert.True(isOpen);
+    }
+
+    [Fact(DisplayName = "TC-LC-21: IsRegistrationEffectivelyOpen trả false khi kỳ đã bắt đầu dù DB lưu Open và deadline tương lai")]
+    public void IsRegistrationEffectivelyOpen_WhenPeriodStartedEvenIfDeadlineInFuture_ReturnsFalse()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            RegistrationStatus = RegistrationStatus.Open,
+            WeekStartDate = new DateOnly(2026, 8, 31),
+            AvailabilityDeadline = new DateTime(2026, 9, 6, 23, 59, 0, DateTimeKind.Utc)
+        };
+
+        var currentUtc = new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc);
+        var currentDate = new DateOnly(2026, 9, 2);
+
+        var isOpen = SchedulePeriodStatusHelper.IsRegistrationEffectivelyOpen(period, currentUtc, currentDate);
+        Assert.False(isOpen);
+    }
+
+    [Fact(DisplayName = "TC-LC-22: WorkScheduleService.GetIndexAsync với dữ liệu cũ sai -> Hiển thị 'Đã đóng đăng ký', CanSchedule = true và GetEditGridAsync tạo draft")]
+    public async Task GetIndexAsync_WhenPeriodStartedWithFutureDeadlineAndOpenStatus_DisplaysClosedAndCanSchedule()
+    {
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var workScheduleRepo = new FakeWorkScheduleRepository();
+
+        var initialDeadline = new DateTime(2026, 9, 6, 23, 59, 0, DateTimeKind.Utc);
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ 31/08 - 06/09",
+            WeekStartDate = new DateOnly(2026, 8, 31),
+            WeekEndDate = new DateOnly(2026, 9, 6),
+            AvailabilityDeadline = initialDeadline,
+            RegistrationStatus = RegistrationStatus.Open
+        };
+        periodRepo.Add(period);
+
+        // Hôm nay là 02/09/2026 (kỳ đã bắt đầu, deadline 06/09 còn ở tương lai)
+        var clock = new FakeClock(new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc));
+        var service = CreateWorkScheduleService(workScheduleRepo, periodRepo, clock);
+
+        var indexModel = await service.GetIndexAsync(1, 10);
+        var item = Assert.Single(indexModel.Periods);
+
+        Assert.NotEqual("Đang mở đăng ký", item.EffectiveRegistrationStatusName);
+        Assert.Equal("Đã đóng đăng ký", item.EffectiveRegistrationStatusName);
+        Assert.Equal("badge bg-dark", item.EffectiveRegistrationBadgeClass);
+        Assert.False(item.IsRegistrationEffectivelyOpen);
+        Assert.True(item.CanSchedule);
+
+        // GetEditGridAsync được phép vào và tạo draft
+        Assert.Empty(workScheduleRepo.Schedules);
+        var editModel = await service.GetEditGridAsync(1, 100);
+        Assert.NotNull(editModel);
+        Assert.Single(workScheduleRepo.Schedules);
+        Assert.Equal(1, workScheduleRepo.Schedules[0].SchedulePeriodId);
+
+        // Dữ liệu cũ trong repository tuyệt đối không bị thay đổi hoặc xóa
+        Assert.Equal(RegistrationStatus.Open, period.RegistrationStatus);
+        Assert.Equal(initialDeadline, period.AvailabilityDeadline);
+    }
+
+    [Fact(DisplayName = "TC-LC-23: WorkScheduleService.GetIndexAsync kỳ tương lai mở hợp lệ -> Hiển thị 'Đang mở đăng ký', CanSchedule = false, GetEditGrid trả null")]
+    public async Task GetIndexAsync_WhenUpcomingPeriodOpen_DisplaysOpenAndCannotScheduleWithoutDraft()
+    {
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var workScheduleRepo = new FakeWorkScheduleRepository();
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ tương lai",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
+            AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
+            RegistrationStatus = RegistrationStatus.Open
+        };
+        periodRepo.Add(period);
+
+        // Hôm nay là 02/09/2026
+        var clock = new FakeClock(new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc));
+        var service = CreateWorkScheduleService(workScheduleRepo, periodRepo, clock);
+
+        var indexModel = await service.GetIndexAsync(1, 10);
+        var item = Assert.Single(indexModel.Periods);
+
+        Assert.Equal("Đang mở đăng ký", item.EffectiveRegistrationStatusName);
+        Assert.Equal("badge bg-success", item.EffectiveRegistrationBadgeClass);
+        Assert.True(item.IsRegistrationEffectivelyOpen);
+        Assert.False(item.CanSchedule);
+
+        // GetEditGridAsync bị chặn và không tự tạo draft
+        var editModel = await service.GetEditGridAsync(2, 100);
+        Assert.Null(editModel);
+        Assert.Empty(workScheduleRepo.Schedules);
+    }
+
+    [Fact(DisplayName = "TC-LC-24: WorkScheduleService.GetIndexAsync kỳ Preparing -> Hiển thị 'Đang chuẩn bị', CanSchedule = false, GetEditGrid trả null")]
+    public async Task GetIndexAsync_WhenPreparingPeriod_DisplaysPreparingAndCannotSchedule()
+    {
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var workScheduleRepo = new FakeWorkScheduleRepository();
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 3,
+            PeriodName = "Kỳ đang chuẩn bị",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
+            AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
+            RegistrationStatus = RegistrationStatus.Preparing
+        };
+        periodRepo.Add(period);
+
+        var clock = new FakeClock(new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc));
+        var service = CreateWorkScheduleService(workScheduleRepo, periodRepo, clock);
+
+        var indexModel = await service.GetIndexAsync(1, 10);
+        var item = Assert.Single(indexModel.Periods);
+
+        Assert.Equal("Đang chuẩn bị", item.EffectiveRegistrationStatusName);
+        Assert.Equal("badge bg-secondary", item.EffectiveRegistrationBadgeClass);
+        Assert.False(item.IsRegistrationEffectivelyOpen);
+        Assert.False(item.CanSchedule);
+
+        // GetEditGridAsync bị chặn và không tạo draft
+        var editModel = await service.GetEditGridAsync(3, 100);
+        Assert.Null(editModel);
+        Assert.Empty(workScheduleRepo.Schedules);
+    }
+
+    [Fact(DisplayName = "TC-LC-25: SchedulePeriodController.Create GET tính default Next Monday và Sunday deadline chính xác")]
+    public void Create_DefaultGetAction_EnsuresNextMondayAndSundayDeadline_ForWednesdaySundayMonday()
+    {
+        // Case 1: Hôm nay là Thứ Tư 02/09/2026 -> Next Monday = 07/09/2026, Deadline = 06/09/2026 23:59
+        {
+            var clockWed = new FakeClock(new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc));
+            var controller = new SchedulePeriodController(null!, clockWed);
+            var result = Assert.IsType<ViewResult>(controller.Create());
+            var model = Assert.IsType<SchedulePeriodCreateViewModel>(result.Model);
+
+            Assert.Equal(new DateOnly(2026, 9, 7), model.WeekStartDate);
+            Assert.Equal(new DateTime(2026, 9, 6, 23, 59, 0), model.AvailabilityDeadline);
+            Assert.True(DateOnly.FromDateTime(model.AvailabilityDeadline) < model.WeekStartDate);
+        }
+
+        // Case 2: Hôm nay là Chủ Nhật 06/09/2026 -> Next Monday = 07/09/2026 (ngày mai), Deadline = 06/09/2026 23:59
+        {
+            var clockSun = new FakeClock(new DateTime(2026, 9, 6, 10, 0, 0, DateTimeKind.Utc));
+            var controller = new SchedulePeriodController(null!, clockSun);
+            var result = Assert.IsType<ViewResult>(controller.Create());
+            var model = Assert.IsType<SchedulePeriodCreateViewModel>(result.Model);
+
+            Assert.Equal(new DateOnly(2026, 9, 7), model.WeekStartDate);
+            Assert.Equal(new DateTime(2026, 9, 6, 23, 59, 0), model.AvailabilityDeadline);
+            Assert.True(DateOnly.FromDateTime(model.AvailabilityDeadline) < model.WeekStartDate);
+        }
+
+        // Case 3: Hôm nay là Thứ Hai 07/09/2026 -> Next Monday = 14/09/2026, Deadline = 13/09/2026 23:59
+        {
+            var clockMon = new FakeClock(new DateTime(2026, 9, 7, 10, 0, 0, DateTimeKind.Utc));
+            var controller = new SchedulePeriodController(null!, clockMon);
+            var result = Assert.IsType<ViewResult>(controller.Create());
+            var model = Assert.IsType<SchedulePeriodCreateViewModel>(result.Model);
+
+            Assert.Equal(new DateOnly(2026, 9, 14), model.WeekStartDate);
+            Assert.Equal(new DateTime(2026, 9, 13, 23, 59, 0), model.AvailabilityDeadline);
+            Assert.True(DateOnly.FromDateTime(model.AvailabilityDeadline) < model.WeekStartDate);
+        }
+    }
+
+    [Fact(DisplayName = "TC-LC-26: Kỳ tương lai vẫn Open nhưng đã có draft -> CanSchedule = true, GetEditGrid trả model và không tạo draft mới")]
+    public async Task GetEditGridAsync_WhenUpcomingPeriodOpenWithExistingDraft_ReturnsModelAndDoesNotCreateNewDraft()
+    {
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var workScheduleRepo = new FakeWorkScheduleRepository();
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 4,
+            PeriodName = "Kỳ tương lai có draft",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
+            AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
+            RegistrationStatus = RegistrationStatus.Open
+        };
+        periodRepo.Add(period);
+
+        var existingDraft = new WorkSchedule
+        {
+            WorkScheduleId = 40,
+            SchedulePeriodId = 4,
+            Status = ScheduleStatus.Draft
+        };
+        workScheduleRepo.Schedules.Add(existingDraft);
+
+        var clock = new FakeClock(new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc));
+        var service = CreateWorkScheduleService(workScheduleRepo, periodRepo, clock);
+
+        var indexModel = await service.GetIndexAsync(1, 10);
+        var item = Assert.Single(indexModel.Periods);
+        Assert.True(item.CanSchedule);
+
+        var editModel = await service.GetEditGridAsync(4, 100);
+        Assert.NotNull(editModel);
+        Assert.Equal(40, editModel.WorkScheduleId);
+        Assert.Single(workScheduleRepo.Schedules);
+    }
+
+    private static WorkScheduleService CreateWorkScheduleService(
+        FakeWorkScheduleRepository workScheduleRepo,
+        FakeSchedulePeriodRepository periodRepo,
+        FakeClock clock,
+        FakeShiftTypeRepository? shiftTypeRepo = null)
+    {
+        var validationService = new SchedulingValidationService();
+        var orToolsService = new OrToolsSchedulingService(
+            validationService,
+            NullLogger<OrToolsSchedulingService>.Instance);
+
+        var shiftRepo = shiftTypeRepo ?? CreateFixedShiftTypeRepository();
+
+        return new WorkScheduleService(
+            workScheduleRepo,
+            periodRepo,
+            shiftRepo,
+            new FakeEmployeeRepository(),
+            new FakeAvailabilityRepository(),
+            new FakeLeaveRequestRepository(),
+            validationService,
+            orToolsService,
+            new FakeNotificationRepository(),
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
+            clock,
+            NullLogger<WorkScheduleService>.Instance);
+    }
+
+    private static FakeShiftTypeRepository CreateFixedShiftTypeRepository()
+    {
+        var repo = new FakeShiftTypeRepository();
+        repo.ShiftTypes.AddRange(new[]
+        {
+            new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", StartTime = new(8, 0), EndTime = new(12, 0), ConfigurationVersion = 1, IsActive = true, DisplayOrder = 1 },
+            new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", StartTime = new(12, 0), EndTime = new(16, 0), ConfigurationVersion = 1, IsActive = true, DisplayOrder = 2 },
+            new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", StartTime = new(16, 0), EndTime = new(20, 0), ConfigurationVersion = 1, IsActive = true, DisplayOrder = 3 }
+        });
+        return repo;
     }
 }

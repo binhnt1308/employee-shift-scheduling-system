@@ -37,18 +37,7 @@
                             <td class="fw-semibold">@item.PeriodName</td>
                             <td>@item.WeekStartDate.ToString("dd/MM/yyyy") - @item.WeekEndDate.ToString("dd/MM/yyyy")</td>
                             <td>
-                                @if (item.RegistrationStatus == ShiftScheduling.Models.Enums.RegistrationStatus.Open)
-                                {
-                                    <span class="badge bg-success">Đang mở đăng ký</span>
-                                }
-                                else if (item.RegistrationStatus == ShiftScheduling.Models.Enums.RegistrationStatus.Preparing)
-                                {
-                                    <span class="badge bg-secondary">Đang chuẩn bị</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-dark">Đã đóng đăng ký</span>
-                                }
+                                <span class="@item.EffectiveRegistrationBadgeClass">@item.EffectiveRegistrationStatusName</span>
                             </td>
                             <td>
                                 @if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
@@ -68,9 +57,18 @@
                                 <span class="badge bg-info text-dark font-monospace">@item.TotalAssignmentsCount phân công</span>
                             </td>
                             <td class="text-end">
-                                <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
-                                    <i class="fa-solid fa-pen-to-square me-1"></i>Phân công / Chỉnh sửa
-                                </a>
+                                @if (item.CanSchedule)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i>Phân công / Chỉnh sửa
+                                    </a>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Chỉ có thể phân công sau khi đóng đăng ký hoặc khi kỳ đã có lịch nháp.">
+                                        Chưa thể phân công
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }

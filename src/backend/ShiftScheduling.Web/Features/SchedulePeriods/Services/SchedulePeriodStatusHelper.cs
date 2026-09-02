@@ -94,7 +94,7 @@ public static class SchedulePeriodStatusHelper
 
         if (period.RegistrationStatus == RegistrationStatus.Open)
         {
-            var isRegistrationOpen = currentUtc <= period.AvailabilityDeadline && currentDate < period.WeekStartDate;
+            var isRegistrationOpen = IsRegistrationEffectivelyOpen(period, currentUtc, currentDate);
             if (isRegistrationOpen)
             {
                 return new EffectiveStatusResult
@@ -133,5 +133,19 @@ public static class SchedulePeriodStatusHelper
             NeedsAttention = false,
             DisplayBadgeClass = "badge-pending"
         };
+    }
+
+    /// <summary>
+    /// Kiểm tra trạng thái đăng ký lịch rảnh có thực sự mở tại thời điểm hiện tại hay không.
+    /// Điều kiện: RegistrationStatus == Open AND currentUtc <= AvailabilityDeadline AND currentDate < WeekStartDate.
+    /// </summary>
+    public static bool IsRegistrationEffectivelyOpen(
+        SchedulePeriod period,
+        DateTime currentUtc,
+        DateOnly currentDate)
+    {
+        return period.RegistrationStatus == RegistrationStatus.Open
+            && currentUtc <= period.AvailabilityDeadline
+            && currentDate < period.WeekStartDate;
     }
 }
