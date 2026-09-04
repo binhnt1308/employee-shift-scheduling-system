@@ -165,7 +165,11 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
         // BR21: Bảo đảm mỗi nhân viên có ít nhất 24 giờ nghỉ liên tục trong kỳ lịch 7 ngày.
         AddWeeklyContinuousRestConstraints(model, x, activeEmployees, period, fixedShifts);
 
-        AddWorkloadObjective(model, x, activeEmployees);
+        // BR-10: Hàm mục tiêu tối ưu hóa mềm:
+        // 1. Phân bổ cân đối tổng giờ công thực tế (tính theo phút) giữa các nhân viên cùng loại hợp đồng (FT-FT, PT-PT).
+        // 2. Tôn trọng mức nguyện vọng rảnh đã đăng ký (ưu tiên Preferred hơn Normal).
+        // 3. Hạn chế xếp ca tối (EVENING) liên tiếp giữa hai ngày kề cận trong kỳ.
+        AddWorkloadObjective(model, x, activeEmployees, fixedShifts, period, availabilities, eveningIdx);
 
         return (model, x);
     }
