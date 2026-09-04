@@ -119,12 +119,21 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
 
     private static List<ShiftType>? GetFixedShifts(IReadOnlyList<ShiftType> shiftTypes)
     {
-        var fixedShifts = shiftTypes
-            .Where(s => s.IsActive && IsFixedShiftCode(s.ShiftCode))
+        var candidates = shiftTypes
+            .Where(s => IsFixedShiftCode(s.ShiftCode))
             .OrderBy(s => s.DisplayOrder)
             .ToList();
 
-        return fixedShifts.Count == 3 ? fixedShifts : null;
+        if (candidates.Count == 3)
+        {
+            return candidates;
+        }
+
+        var activeFixedShifts = candidates
+            .Where(s => s.IsActive)
+            .ToList();
+
+        return activeFixedShifts.Count == 3 ? activeFixedShifts : null;
     }
 
     private static (CpModel Model, BoolVar[,,] Variables) BuildCpModel(

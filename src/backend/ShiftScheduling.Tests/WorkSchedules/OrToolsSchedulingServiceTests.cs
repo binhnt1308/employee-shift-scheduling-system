@@ -886,6 +886,114 @@ public sealed class OrToolsSchedulingServiceTests
         var nv1Day0Evening = result.ProposedAssignments.Any(a => a.EmployeeId == 1 && a.WorkDate == day0 && a.ShiftTypeId == evening.ShiftTypeId);
         Assert.True(nv1Day0Evening, "NV1 làm ca tối ngày 0 và ngày 1 (chấp nhận tối liên tiếp để thỏa Preferred)");
     }
+
+    [Fact(DisplayName = "TC-ORT-HISTORY-01: Kỳ lịch dùng 3 ca lịch sử IsActive=false giải thành công, dùng đúng ShiftTypeId cũ")]
+    public void GenerateProposal_WhenHistoricalPeriodWithInactiveShifts_SolvesSuccessfully()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var historyShifts = new List<ShiftType>
+        {
+            new()
+            {
+                ShiftTypeId = 7,
+                ShiftCode = "MORNING",
+                ShiftName = "Ca sáng (v1)",
+                DurationHours = 4m,
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(12, 0),
+                DisplayOrder = 1,
+                IsActive = false,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 8,
+                ShiftCode = "AFTERNOON",
+                ShiftName = "Ca chiều (v1)",
+                DurationHours = 4m,
+                StartTime = new TimeOnly(12, 0),
+                EndTime = new TimeOnly(16, 0),
+                DisplayOrder = 2,
+                IsActive = false,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 9,
+                ShiftCode = "EVENING",
+                ShiftName = "Ca tối (v1)",
+                DurationHours = 4m,
+                StartTime = new TimeOnly(16, 0),
+                EndTime = new TimeOnly(20, 0),
+                DisplayOrder = 3,
+                IsActive = false,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            }
+        };
+
+        var employees = CreateSixEmployees();
+        var (avails, requirements) = CreateAvailabilitiesAndRequirements(period, historyShifts, employees);
+
+        var result = _service.GenerateProposal(
+            period, employees, avails, new List<LeaveRequest>(), requirements, historyShifts, 5);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.True(result.ValidationResult.IsValid);
+        Assert.NotEmpty(result.ProposedAssignments);
+        Assert.All(result.ProposedAssignments, a => Assert.Contains(a.ShiftTypeId, new[] { 7, 8, 9 }));
+        Assert.DoesNotContain(result.ProposedAssignments, a => a.ShiftTypeId is not (7 or 8 or 9));
+    }
+
+    [Fact(DisplayName = "TC-ORT-HISTORY-02: Đầu vào chứa cả ca lịch sử và ca active -> Fallback chọn đúng 3 ca active")]
+    public void GenerateProposal_WhenInputHasMultipleVersions_FallsBackToActiveShifts()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var historyShifts = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 7, ShiftCode = "MORNING", ShiftName = "Ca sáng (v1)", DurationHours = 4m, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DisplayOrder = 1, IsActive = false, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 8, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều (v1)", DurationHours = 4m, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DisplayOrder = 2, IsActive = false, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 9, ShiftCode = "EVENING", ShiftName = "Ca tối (v1)", DurationHours = 4m, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DisplayOrder = 3, IsActive = false, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
+        };
+
+        var activeShifts = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng (v2)", DurationHours = 4m, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DisplayOrder = 1, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều (v2)", DurationHours = 4m, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DisplayOrder = 2, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối (v2)", DurationHours = 4m, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DisplayOrder = 3, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 2 }
+        };
+
+        var allShifts = historyShifts.Concat(activeShifts).ToList();
+
+        var employees = CreateSixEmployees();
+        var (avails, requirements) = CreateAvailabilitiesAndRequirements(period, activeShifts, employees);
+
+        var result = _service.GenerateProposal(
+            period, employees, avails, new List<LeaveRequest>(), requirements, allShifts, 5);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.True(result.ValidationResult.IsValid);
+        Assert.NotEmpty(result.ProposedAssignments);
+        Assert.All(result.ProposedAssignments, a => Assert.Contains(a.ShiftTypeId, new[] { 1, 2, 3 }));
+        Assert.DoesNotContain(result.ProposedAssignments, a => a.ShiftTypeId is 7 or 8 or 9);
+    }
 }
 
 
