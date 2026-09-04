@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
@@ -993,6 +994,326 @@ public sealed class OrToolsSchedulingServiceTests
         Assert.NotEmpty(result.ProposedAssignments);
         Assert.All(result.ProposedAssignments, a => Assert.Contains(a.ShiftTypeId, new[] { 1, 2, 3 }));
         Assert.DoesNotContain(result.ProposedAssignments, a => a.ShiftTypeId is 7 or 8 or 9);
+    }
+
+    [Fact(DisplayName = "TC-ORT-BR20-01: Nghỉ giữa ca Tối ngày D và ca Sáng ngày D+1 < 12h phải được ràng buộc, không vi phạm BR20")]
+    public void GenerateProposal_WhenConsecutiveEveningAndMorningRestLessThan12Hours_SatisfiesBR20()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var shiftTypes = new List<ShiftType>
+        {
+            new()
+            {
+                ShiftTypeId = 1,
+                ShiftCode = "MORNING",
+                ShiftName = "Ca sáng",
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(12, 0),
+                DurationHours = 4m,
+                DisplayOrder = 1,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 2,
+                ShiftCode = "AFTERNOON",
+                ShiftName = "Ca chiều",
+                StartTime = new TimeOnly(12, 0),
+                EndTime = new TimeOnly(16, 0),
+                DurationHours = 4m,
+                DisplayOrder = 2,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 3,
+                ShiftCode = "EVENING",
+                ShiftName = "Ca tối",
+                StartTime = new TimeOnly(17, 0),
+                EndTime = new TimeOnly(21, 0),
+                DurationHours = 4m,
+                DisplayOrder = 3,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            }
+        };
+
+        var ftEmp = new Employee
+        {
+            EmployeeId = 1,
+            EmployeeCode = "NV01",
+            FullName = "Sales FT",
+            Position = EmployeePosition.Sales,
+            Level = EmployeeLevel.Level2,
+            EmploymentType = EmploymentType.FullTime,
+            IsActive = true
+        };
+        var ptEmp = new Employee
+        {
+            EmployeeId = 2,
+            EmployeeCode = "NV02",
+            FullName = "Sales PT",
+            Position = EmployeePosition.Sales,
+            Level = EmployeeLevel.Level2,
+            EmploymentType = EmploymentType.PartTime,
+            IsActive = true
+        };
+        var employees = new List<Employee> { ftEmp, ptEmp };
+
+        var dayD = period.WeekStartDate;
+        var dayDPlus1 = period.WeekStartDate.AddDays(1);
+
+        var avails = new List<Availability>
+        {
+            new() { EmployeeId = ftEmp.EmployeeId, WorkDate = dayD, ShiftTypeId = 3, PreferenceLevel = AvailabilityPreferenceLevel.Preferred },
+            new() { EmployeeId = ftEmp.EmployeeId, WorkDate = dayDPlus1, ShiftTypeId = 1, PreferenceLevel = AvailabilityPreferenceLevel.Preferred },
+            new() { EmployeeId = ptEmp.EmployeeId, WorkDate = dayD, ShiftTypeId = 3, PreferenceLevel = AvailabilityPreferenceLevel.Normal },
+            new() { EmployeeId = ptEmp.EmployeeId, WorkDate = dayDPlus1, ShiftTypeId = 1, PreferenceLevel = AvailabilityPreferenceLevel.Normal }
+        };
+
+        var requirements = new List<StaffingRequirement>();
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            foreach (var st in shiftTypes)
+            {
+                bool isEveningDayD = date == dayD && st.ShiftTypeId == 3;
+                bool isMorningDayDPlus1 = date == dayDPlus1 && st.ShiftTypeId == 1;
+
+                requirements.Add(new StaffingRequirement
+                {
+                    WorkDate = date,
+                    ShiftTypeId = st.ShiftTypeId,
+                    ShiftType = st,
+                    RequiredSalesStaff = (isEveningDayD || isMorningDayDPlus1) ? 1 : 0,
+                    RequiredCashiers = 0,
+                    RequiredExperiencedStaff = 0,
+                    MinimumLevel = EmployeeLevel.Level1
+                });
+            }
+        }
+
+        var result = _service.GenerateProposal(
+            period, employees, avails, new List<LeaveRequest>(), requirements, shiftTypes, 5);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.Equal(2, result.ProposedAssignments.Count);
+        Assert.True(result.ValidationResult.IsValid);
+        Assert.DoesNotContain(result.ValidationResult.HardErrors, e => e.Contains("BR20"));
+
+        foreach (var emp in employees)
+        {
+            var hasEvening = result.ProposedAssignments.Any(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == dayD && a.ShiftTypeId == 3);
+            var hasMorningNext = result.ProposedAssignments.Any(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == dayDPlus1 && a.ShiftTypeId == 1);
+            Assert.False(hasEvening && hasMorningNext, $"Nhân viên {emp.FullName} vi phạm BR20: làm cả ca tối ngày D và ca sáng ngày D+1");
+        }
+    }
+
+    [Fact(DisplayName = "TC-ORT-BR20-02: 8 nhân viên rảnh toàn bộ tuần, mỗi ca 1 Sales 1 Cashier thỏa mãn BR20 và validation")]
+    public void GenerateProposal_When8EmployeesAvailableAllWeek_GeneratesValidScheduleSatisfyingBR20()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var shiftTypes = new List<ShiftType>
+        {
+            new()
+            {
+                ShiftTypeId = 1,
+                ShiftCode = "MORNING",
+                ShiftName = "Ca sáng",
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(12, 0),
+                DurationHours = 4m,
+                DisplayOrder = 1,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 2,
+                ShiftCode = "AFTERNOON",
+                ShiftName = "Ca chiều",
+                StartTime = new TimeOnly(12, 0),
+                EndTime = new TimeOnly(16, 0),
+                DurationHours = 4m,
+                DisplayOrder = 2,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            },
+            new()
+            {
+                ShiftTypeId = 3,
+                ShiftCode = "EVENING",
+                ShiftName = "Ca tối",
+                StartTime = new TimeOnly(17, 0),
+                EndTime = new TimeOnly(21, 0),
+                DurationHours = 4m,
+                DisplayOrder = 3,
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false,
+                ConfigurationVersion = 1
+            }
+        };
+
+        var employees = new List<Employee>
+        {
+            new() { EmployeeId = 1, EmployeeCode = "NV01", FullName = "NV01", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 2, EmployeeCode = "NV02", FullName = "NV02", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 3, EmployeeCode = "NV03", FullName = "NV03", Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level3, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 4, EmployeeCode = "NV04", FullName = "NV04", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 5, EmployeeCode = "NV05", FullName = "NV05", Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.PartTime, IsActive = true },
+            new() { EmployeeId = 6, EmployeeCode = "NV06", FullName = "NV06", Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level1, EmploymentType = EmploymentType.PartTime, IsActive = true },
+            new() { EmployeeId = 7, EmployeeCode = "NV07", FullName = "NV07", Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level3, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 8, EmployeeCode = "NV08", FullName = "NV08", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level1, EmploymentType = EmploymentType.PartTime, IsActive = true }
+        };
+
+        var avails = new List<Availability>();
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = period.WeekStartDate.AddDays(d);
+                foreach (var st in shiftTypes)
+                {
+                    avails.Add(new Availability
+                    {
+                        EmployeeId = emp.EmployeeId,
+                        WorkDate = date,
+                        ShiftTypeId = st.ShiftTypeId,
+                        PreferenceLevel = AvailabilityPreferenceLevel.Normal
+                    });
+                }
+            }
+        }
+
+        var requirements = new List<StaffingRequirement>();
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            foreach (var st in shiftTypes)
+            {
+                requirements.Add(new StaffingRequirement
+                {
+                    WorkDate = date,
+                    ShiftTypeId = st.ShiftTypeId,
+                    ShiftType = st,
+                    RequiredSalesStaff = 1,
+                    RequiredCashiers = 1,
+                    RequiredExperiencedStaff = 1,
+                    MinimumLevel = EmployeeLevel.Level2
+                });
+            }
+        }
+
+        var result = _service.GenerateProposal(
+            period, employees, avails, new List<LeaveRequest>(), requirements, shiftTypes, 10);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.Equal(42, result.ProposedAssignments.Count);
+
+        var empMap = employees.ToDictionary(e => e.EmployeeId);
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            foreach (var st in shiftTypes)
+            {
+                var shiftAssignments = result.ProposedAssignments
+                    .Where(a => a.WorkDate == date && a.ShiftTypeId == st.ShiftTypeId)
+                    .ToList();
+                Assert.Equal(2, shiftAssignments.Count);
+
+                var salesCount = shiftAssignments.Count(a => empMap[a.EmployeeId].Position == EmployeePosition.Sales);
+                var cashierCount = shiftAssignments.Count(a => empMap[a.EmployeeId].Position == EmployeePosition.Cashier);
+                var lvl2PlusCount = shiftAssignments.Count(a => empMap[a.EmployeeId].Level >= EmployeeLevel.Level2);
+
+                Assert.Equal(1, salesCount);
+                Assert.Equal(1, cashierCount);
+                Assert.True(lvl2PlusCount >= 1);
+            }
+        }
+
+        foreach (var emp in employees.Where(e => e.EmploymentType == EmploymentType.PartTime))
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = period.WeekStartDate.AddDays(d);
+                var dayAssignments = result.ProposedAssignments
+                    .Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(dayAssignments <= 1, $"PT {emp.EmployeeCode} có nhiều hơn 1 ca trong ngày {date}");
+            }
+        }
+
+        foreach (var emp in employees.Where(e => e.EmploymentType == EmploymentType.FullTime))
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = period.WeekStartDate.AddDays(d);
+                var dayAssignments = result.ProposedAssignments
+                    .Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(dayAssignments <= 2, $"FT {emp.EmployeeCode} vượt 2 ca/ngày trong ngày {date}");
+            }
+        }
+
+        var shiftMap = shiftTypes.ToDictionary(s => s.ShiftTypeId);
+        foreach (var emp in employees)
+        {
+            var empAssignments = result.ProposedAssignments
+                .Where(a => a.EmployeeId == emp.EmployeeId)
+                .OrderBy(a => a.WorkDate)
+                .ThenBy(a => shiftMap[a.ShiftTypeId].StartTime)
+                .ToList();
+
+            for (int i = 0; i < empAssignments.Count; i++)
+            {
+                var cur = empAssignments[i];
+                var curShift = shiftMap[cur.ShiftTypeId];
+                var curEnd = cur.WorkDate.ToDateTime(curShift.EndTime);
+                if (curShift.EndTime <= curShift.StartTime)
+                {
+                    curEnd = curEnd.AddDays(1);
+                }
+
+                for (int j = i + 1; j < empAssignments.Count; j++)
+                {
+                    var next = empAssignments[j];
+                    if (next.WorkDate == cur.WorkDate.AddDays(1))
+                    {
+                        var nextShift = shiftMap[next.ShiftTypeId];
+                        var nextStart = next.WorkDate.ToDateTime(nextShift.StartTime);
+                        var rest = (nextStart - curEnd).TotalHours;
+                        Assert.True(rest >= SchedulingRuleConstants.MinimumDailyRestHours,
+                            $"Nhân viên {emp.EmployeeCode} vi phạm nghỉ 12h: ca ngày {cur.WorkDate} kết thúc {curEnd:HH:mm}, ca ngày {next.WorkDate} bắt đầu {nextStart:HH:mm}, khoảng nghỉ {rest}h < 12h");
+                    }
+                }
+            }
+        }
+
+        Assert.True(result.ValidationResult.IsValid);
+        Assert.Empty(result.ValidationResult.HardErrors);
     }
 }
 

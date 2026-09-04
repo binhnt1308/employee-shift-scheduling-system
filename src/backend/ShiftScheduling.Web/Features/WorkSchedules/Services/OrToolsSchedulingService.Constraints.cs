@@ -101,6 +101,31 @@ public sealed partial class OrToolsSchedulingService
 
         var (policyMax, allowSplit) = policy;
 
+        // BR20 / BRD BR-03: Xác định các cặp ca liên tiếp giữa ngày D và D+1 không đạt khoảng nghỉ tối thiểu 12 giờ
+        var invalidConsecutiveShiftPairs = new List<(int ShiftIdx1, int ShiftIdx2)>();
+        if (fixedShifts != null)
+        {
+            var baseDate = new DateOnly(2026, 1, 1);
+            for (int s1 = 0; s1 < fixedShifts.Count; s1++)
+            {
+                var endD = baseDate.ToDateTime(fixedShifts[s1].EndTime);
+                if (fixedShifts[s1].EndTime <= fixedShifts[s1].StartTime)
+                {
+                    endD = endD.AddDays(1);
+                }
+
+                for (int s2 = 0; s2 < fixedShifts.Count; s2++)
+                {
+                    var startNext = baseDate.AddDays(1).ToDateTime(fixedShifts[s2].StartTime);
+                    var restHours = (startNext - endD).TotalHours;
+                    if (restHours < SchedulingRuleConstants.MinimumDailyRestHours)
+                    {
+                        invalidConsecutiveShiftPairs.Add((s1, s2));
+                    }
+                }
+            }
+        }
+
         int empCount = activeEmployees.Count;
         for (int e = 0; e < empCount; e++)
         {
@@ -133,6 +158,15 @@ public sealed partial class OrToolsSchedulingService
                 if (emp.EmploymentType == EmploymentType.FullTime && !allowSplit)
                 {
                     model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] <= 1);
+                }
+            }
+
+            // BR20: Nghỉ tối thiểu 12 giờ giữa ca cuối ngày D và ca đầu ngày D+1
+            for (int d = 0; d < 6; d++)
+            {
+                foreach (var (s1, s2) in invalidConsecutiveShiftPairs)
+                {
+                    model.Add(x[e, d, s1] + x[e, d + 1, s2] <= 1);
                 }
             }
 
