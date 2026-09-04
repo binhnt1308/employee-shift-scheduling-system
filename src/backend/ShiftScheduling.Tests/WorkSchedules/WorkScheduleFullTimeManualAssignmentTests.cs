@@ -556,6 +556,31 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         Assert.Contains("chồng thời gian", res2.ErrorMessage);
     }
 
+    [Fact(DisplayName = "TC-MANUAL-REQ-01 - GetEligibleEmployeesForShiftAsync nạp requirements khi includeRequirements = true")]
+    public async Task GetEligibleEmployeesForShiftAsync_WhenRequirementsRequireExplicitInclude_LoadsPeriodPolicy()
+    {
+        // 1. Tạo period, employee, ba ShiftType, Availability bằng helper hiện có
+        var (period, emp, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        // 2. Lưu bản sao các StaffingRequirements của period
+        var requirements = period.StaffingRequirements.ToList();
+
+        // 3. Đưa các requirement đó vào FakeSchedulePeriodRepository.Requirements
+        _periodRepo.Requirements.AddRange(requirements);
+
+        // 4. Xóa period.StaffingRequirements để mô phỏng navigation chưa được EF load
+        period.StaffingRequirements = new List<StaffingRequirement>();
+
+        // 5. Gọi GetEligibleEmployeesForShiftAsync
+        var options = await _scheduleService.GetEligibleEmployeesForShiftAsync(
+            period.SchedulePeriodId, period.WeekStartDate, morning.ShiftTypeId);
+
+        // 6 & 7. Assertion
+        var option = Assert.Single(options, o => o.EmployeeId == emp.EmployeeId);
+        Assert.True(option.IsEligible, option.IneligibilityReason);
+        Assert.DoesNotContain("Kỳ lịch không có dữ liệu ca làm việc hoặc định mức nhân sự.", option.IneligibilityReason ?? string.Empty);
+    }
+
     private async Task<(SchedulePeriod Period, Employee Emp, ShiftType Morning, ShiftType Afternoon, ShiftType Evening)> SetupPeriodWithFullTimeEmployeeAsync()
     {
         var period = CreateStandardPeriod();

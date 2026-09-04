@@ -17,7 +17,7 @@ public partial class WorkScheduleService
         int shiftTypeId,
         CancellationToken cancellationToken = default)
     {
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null) return new List<EligibleEmployeeOptionViewModel>();
 
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
