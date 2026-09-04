@@ -56,6 +56,16 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
             };
         }
 
+        if (!DailyShiftRuleEvaluator.TryResolvePolicy(fixedShifts, out _, out var policyErrorMessage))
+        {
+            return new OrToolsProposalResultViewModel
+            {
+                Succeeded = false,
+                Status = "INVALID_CONFIGURATION",
+                Message = policyErrorMessage ?? "Chính sách ca của kỳ không hợp lệ."
+            };
+        }
+
         var (model, x) = BuildCpModel(
             period, activeEmployees, fixedShifts, availabilities, approvedLeaves, staffingRequirements);
 
@@ -89,16 +99,16 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
     {
         foreach (var shift in fixedShifts)
         {
-            if (shift.DurationHours <= 0m)
+            if (shift.DurationHours <= 0)
             {
                 errorMessage = $"Cấu hình ca '{shift.ShiftName}' có thời lượng không hợp lệ ({shift.DurationHours} giờ). Thời lượng phải lớn hơn 0.";
                 return false;
             }
 
             var totalMinutes = shift.DurationHours * 60m;
-            if (decimal.Remainder(totalMinutes, 1m) != 0m)
+            if (totalMinutes != Math.Floor(totalMinutes))
             {
-                errorMessage = $"Cấu hình ca '{shift.ShiftName}' ({shift.DurationHours} giờ) không tương ứng với số phút nguyên ({totalMinutes:0.###} phút).";
+                errorMessage = $"Thời lượng {shift.ShiftName} ({shift.DurationHours:G29}h) không tương ứng với số phút nguyên.";
                 return false;
             }
         }
@@ -140,7 +150,14 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
 
         AddAvailabilityAndLeaveConstraints(model, x, activeEmployees, period, fixedShifts, availSet, leaveSet);
         AddStaffingRequirementsConstraints(model, x, activeEmployees, period, fixedShifts, reqMap);
-        AddEmploymentWorkloadConstraints(model, x, activeEmployees, morningIdx, afternoonIdx, eveningIdx);
+        AddEmploymentWorkloadConstraints(
+            model,
+            x,
+            activeEmployees,
+            fixedShifts,
+            morningIdx,
+            afternoonIdx,
+            eveningIdx);
 
         // BR-05: Giới hạn trần tổng giờ làm trong tuần theo loại hợp đồng (tính bằng phút nguyên)
         AddWeeklyMaxHoursConstraints(model, x, activeEmployees, fixedShifts);

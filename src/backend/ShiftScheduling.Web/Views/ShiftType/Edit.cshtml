@@ -85,10 +85,79 @@
                     </span>
                     <button type="submit" class="btn btn-primary-custom px-4">
                         <i class="fa-solid fa-floppy-disk me-1"></i>
-                        Cập nhật giờ ca
+                        Cập nhật cấu hình ca
                     </button>
+                </div>
+            </div>
+
+            <div class="card card-custom shadow-sm border-0 mb-4">
+                <div class="card-header-custom py-3 fw-bold">
+                    <i class="fa-solid fa-sliders text-primary me-2"></i>
+                    Chính sách số ca làm việc trong ngày
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số ca tối đa mỗi nhân viên trong ngày</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" asp-for="MaxShiftsPerEmployeePerDay" value="1" id="maxShifts1">
+                                <label class="form-check-label" for="maxShifts1">
+                                    1 ca / ngày
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" asp-for="MaxShiftsPerEmployeePerDay" value="2" id="maxShifts2">
+                                <label class="form-check-label" for="maxShifts2">
+                                    Tối đa 2 ca / ngày
+                                </label>
+                            </div>
+                        </div>
+                        <span asp-validation-for="MaxShiftsPerEmployeePerDay" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" asp-for="AllowSplitShift" id="allowSplitShiftCheckbox">
+                            <label class="form-check-label fw-semibold" for="allowSplitShiftCheckbox">
+                                Cho phép ca gãy (Ca sáng và Ca tối)
+                            </label>
+                        </div>
+                        <span asp-validation-for="AllowSplitShift" class="text-danger small"></span>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="small text-muted">
+                            <i class="fa-solid fa-circle-info text-primary me-1"></i>
+                            Nhân viên bán thời gian luôn tối đa 1 ca/ngày theo quy định hợp đồng.
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const radio1 = document.getElementById('maxShifts1');
+            const radio2 = document.getElementById('maxShifts2');
+            const splitCheckbox = document.getElementById('allowSplitShiftCheckbox');
+
+            function updateSplitShiftState() {
+                if (radio1 && radio1.checked) {
+                    splitCheckbox.checked = false;
+                    splitCheckbox.disabled = true;
+                } else if (radio2 && radio2.checked) {
+                    splitCheckbox.disabled = false;
+                }
+            }
+
+            if (radio1 && radio2 && splitCheckbox) {
+                radio1.addEventListener('change', updateSplitShiftState);
+                radio2.addEventListener('change', updateSplitShiftState);
+                updateSplitShiftState();
+            }
+        });
+    </script>
+}

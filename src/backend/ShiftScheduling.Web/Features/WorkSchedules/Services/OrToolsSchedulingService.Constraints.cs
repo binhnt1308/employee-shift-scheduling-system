@@ -89,37 +89,65 @@ public sealed partial class OrToolsSchedulingService
         CpModel model,
         BoolVar[,,] x,
         IReadOnlyList<Employee> activeEmployees,
+        List<ShiftType> fixedShifts,
         int morningIdx,
         int afternoonIdx,
         int eveningIdx)
     {
+        if (!DailyShiftRuleEvaluator.TryResolvePolicy(fixedShifts, out var policy, out var policyError))
+        {
+            throw new InvalidOperationException(policyError ?? "Cấu hình ca của kỳ không hợp lệ.");
+        }
+
+        var (policyMax, allowSplit) = policy;
+
         int empCount = activeEmployees.Count;
         for (int e = 0; e < empCount; e++)
         {
             var emp = activeEmployees[e];
-            if (emp.EmploymentType == EmploymentType.PartTime)
+            int maxShifts = DailyShiftRuleEvaluator.GetEffectiveMaxShifts(emp.EmploymentType, policyMax);
+
+            for (int d = 0; d < 7; d++)
             {
-                for (int d = 0; d < 7; d++)
+                // Tổng ca trong ngày <= maxShifts (PT <= 1, FT <= policyMax)
+                model.Add(x[e, d, 0] + x[e, d, 1] + x[e, d, 2] <= maxShifts);
+
+                // Cấm mọi cặp ca chồng lấn thời gian
+                if (fixedShifts != null)
                 {
-                    model.Add(x[e, d, 0] + x[e, d, 1] + x[e, d, 2] <= 1);
-                }
-            }
-            else if (emp.EmploymentType == EmploymentType.FullTime)
-            {
-                for (int d = 0; d < 7; d++)
-                {
-                    model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] <= 1);
-                    model.Add(x[e, d, morningIdx] <= x[e, d, afternoonIdx]);
-                    model.Add(x[e, d, eveningIdx] <= x[e, d, afternoonIdx]);
-                    model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] == x[e, d, afternoonIdx]);
+                    for (int s1 = 0; s1 < fixedShifts.Count; s1++)
+                    {
+                        for (int s2 = s1 + 1; s2 < fixedShifts.Count; s2++)
+                        {
+                            if (DailyShiftRuleEvaluator.HasTimeOverlap(
+                                fixedShifts[s1].StartTime, fixedShifts[s1].EndTime,
+                                fixedShifts[s2].StartTime, fixedShifts[s2].EndTime))
+                            {
+                                model.Add(x[e, d, s1] + x[e, d, s2] <= 1);
+                            }
+                        }
+                    }
                 }
 
-                var ftDayVars = new List<BoolVar>();
+                // Nếu là FT và AllowSplitShift = false: cấm ca gãy (Sáng + Tối)
+                if (emp.EmploymentType == EmploymentType.FullTime && !allowSplit)
+                {
+                    model.Add(x[e, d, morningIdx] + x[e, d, eveningIdx] <= 1);
+                }
+            }
+
+            // FT tối đa 6 ngày làm việc trong tuần (không ép buộc làm đủ 2 ca mỗi ngày)
+            if (emp.EmploymentType == EmploymentType.FullTime)
+            {
+                var workDayVars = new List<BoolVar>();
                 for (int d = 0; d < 7; d++)
                 {
-                    ftDayVars.Add(x[e, d, afternoonIdx]);
+                    var isWorkingDay = model.NewBoolVar($"isWorking_{emp.EmployeeId}_{d}");
+                    model.Add(x[e, d, 0] + x[e, d, 1] + x[e, d, 2] >= 1).OnlyEnforceIf(isWorkingDay);
+                    model.Add(x[e, d, 0] + x[e, d, 1] + x[e, d, 2] == 0).OnlyEnforceIf(isWorkingDay.Not());
+                    workDayVars.Add(isWorkingDay);
                 }
-                model.Add(LinearExpr.Sum(ftDayVars) <= 6);
+                model.Add(LinearExpr.Sum(workDayVars) <= 6);
             }
         }
     }

@@ -56,5 +56,13 @@ public sealed class ShiftConfigurationItemViewModel
 public sealed class ShiftConfigurationEditViewModel
 {
     public int ExpectedConfigurationVersion { get; set; }
+
+    [Display(Name = "Số ca tối đa mỗi nhân viên trong ngày")]
+    [Range(1, 2, ErrorMessage = "Số ca tối đa mỗi nhân viên trong ngày chỉ có thể là 1 hoặc 2.")]
+    public int MaxShiftsPerEmployeePerDay { get; set; } = 1;
+
+    [Display(Name = "Cho phép ca gãy (Ca sáng và Ca tối)")]
+    public bool AllowSplitShift { get; set; }
+
     public List<ShiftConfigurationItemViewModel> Shifts { get; set; } = new();
 }

@@ -449,6 +449,11 @@ namespace ShiftScheduling.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftTypeId"));
 
+                    b.Property<bool>("AllowSplitShift")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("ConfigurationVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -466,6 +471,11 @@ namespace ShiftScheduling.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<int>("MaxShiftsPerEmployeePerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<string>("ShiftCode")
                         .IsRequired()
@@ -489,17 +499,22 @@ namespace ShiftScheduling.Migrations
                     b.HasIndex("ShiftCode", "ConfigurationVersion")
                         .IsUnique();
 
-                    b.ToTable("ShiftTypes", (string)null);
+                    b.ToTable("ShiftTypes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ShiftTypes_MaxShiftsPerEmployeePerDay", "[MaxShiftsPerEmployeePerDay] IN (1, 2)");
+                        });
 
                     b.HasData(
                         new
                         {
                             ShiftTypeId = 1,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 1,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "MORNING",
                             ShiftName = "Ca sáng",
                             StartTime = new TimeOnly(8, 0, 0)
@@ -507,11 +522,13 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 2,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 2,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(16, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "AFTERNOON",
                             ShiftName = "Ca chiều",
                             StartTime = new TimeOnly(12, 0, 0)
@@ -519,11 +536,13 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 3,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 3,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(20, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "EVENING",
                             ShiftName = "Ca tối",
                             StartTime = new TimeOnly(16, 0, 0)

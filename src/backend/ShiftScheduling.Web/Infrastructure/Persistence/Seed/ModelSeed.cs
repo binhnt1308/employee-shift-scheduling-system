@@ -84,7 +84,9 @@ public static class ModelSeed
                 EndTime = new TimeOnly(12, 0),
                 DurationHours = 4,
                 DisplayOrder = 1,
-                IsActive = true
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false
             },
             new ShiftType
             {
@@ -95,7 +97,9 @@ public static class ModelSeed
                 EndTime = new TimeOnly(16, 0),
                 DurationHours = 4,
                 DisplayOrder = 2,
-                IsActive = true
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false
             },
             new ShiftType
             {
@@ -106,7 +110,9 @@ public static class ModelSeed
                 EndTime = new TimeOnly(20, 0),
                 DurationHours = 4,
                 DisplayOrder = 3,
-                IsActive = true
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2,
+                AllowSplitShift = false
             }
         ];
     }

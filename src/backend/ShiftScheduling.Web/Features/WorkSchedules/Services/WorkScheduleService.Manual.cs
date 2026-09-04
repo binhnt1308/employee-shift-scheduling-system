@@ -33,10 +33,24 @@ public partial class WorkScheduleService
         var availSet = availabilities.Select(a => a.EmployeeId).ToHashSet();
         var leaveSet = leaves.Where(l => l.Status == LeaveRequestStatus.Approved).ToList();
         var shiftTypeMap = allShifts.ToDictionary(s => s.ShiftTypeId);
+        var periodShifts = DailyShiftRuleEvaluator.ExtractPeriodShifts(period.StaffingRequirements, allShifts);
+        var hasValidPolicy = DailyShiftRuleEvaluator.TryResolvePolicy(periodShifts, out var policy, out var policyError);
+        var (policyMax, allowSplit) = hasValidPolicy ? policy : (1, false);
 
-        var result = activeEmployees.Select(emp => BuildEligibleEmployeeOption(
-            emp, workDate, shiftTypeId, period.WeekStartDate,
-            availSet, leaveSet, currentAssignments, shiftTypeMap)).ToList();
+        var result = activeEmployees.Select(emp =>
+        {
+            var option = BuildEligibleEmployeeOption(
+                emp, workDate, shiftTypeId, period.WeekStartDate,
+                availSet, leaveSet, currentAssignments, shiftTypeMap, policyMax, allowSplit);
+
+            if (!hasValidPolicy)
+            {
+                option.IsEligible = false;
+                option.IneligibilityReason = policyError ?? "Cấu hình ca của kỳ lịch không hợp lệ.";
+            }
+
+            return option;
+        }).ToList();
 
         return result.OrderByDescending(e => e.IsEligible)
                      .ThenBy(e => e.Position)
@@ -52,7 +66,9 @@ public partial class WorkScheduleService
         HashSet<int> availSet,
         List<LeaveRequest> leaveSet,
         List<ShiftAssignment> currentAssignments,
-        Dictionary<int, ShiftType> shiftTypeMap)
+        Dictionary<int, ShiftType> shiftTypeMap,
+        int policyMax,
+        bool allowSplit)
     {
         var hasAvail = availSet.Contains(emp.EmployeeId);
         var hasLeave = leaveSet.Any(l => l.EmployeeId == emp.EmployeeId && l.LeaveDate == workDate
@@ -60,10 +76,44 @@ public partial class WorkScheduleService
         var hasOverlap = currentAssignments.Any(a => a.EmployeeId == emp.EmployeeId
             && a.WorkDate == workDate && a.ShiftTypeId == shiftTypeId);
 
+        var existingDayAssigns = currentAssignments
+            .Where(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == workDate)
+            .ToList();
+        var existingDayShifts = existingDayAssigns
+            .Select(a => shiftTypeMap.TryGetValue(a.ShiftTypeId, out var st) ? st : null)
+            .Where(st => st != null)
+            .Select(st => st!)
+            .ToList();
+
+        shiftTypeMap.TryGetValue(shiftTypeId, out var targetShift);
+
         var reasons = new List<string>();
         if (!hasAvail) reasons.Add("Chưa đăng ký rảnh");
         if (hasLeave) reasons.Add("Có đơn nghỉ đã duyệt");
         if (hasOverlap) reasons.Add("Đã được phân vào ca này");
+
+        var effectiveMax = DailyShiftRuleEvaluator.GetEffectiveMaxShifts(emp.EmploymentType, policyMax);
+        if (!hasOverlap && existingDayShifts.Count >= effectiveMax)
+        {
+            reasons.Add(emp.EmploymentType == EmploymentType.PartTime
+                ? "Đã đạt tối đa 1 ca/ngày"
+                : $"Đã đạt tối đa {effectiveMax} ca/ngày");
+        }
+
+        var hasTimeOverlap = false;
+        if (!hasOverlap && targetShift != null)
+        {
+            var candidateDayShifts = existingDayShifts.Append(targetShift).ToList();
+            if (DailyShiftRuleEvaluator.HasAnyShiftOverlap(candidateDayShifts))
+            {
+                hasTimeOverlap = true;
+                reasons.Add("Trùng hoặc chồng giờ làm việc");
+            }
+            if (emp.EmploymentType == EmploymentType.FullTime && DailyShiftRuleEvaluator.IsForbiddenSplitShift(candidateDayShifts, allowSplit))
+            {
+                reasons.Add("Không được phân ca gãy (Sáng-Tối)");
+            }
+        }
 
         var empAssignments = currentAssignments.Where(a => a.EmployeeId == emp.EmployeeId).ToList();
         empAssignments.Add(new ShiftAssignment
@@ -76,7 +126,7 @@ public partial class WorkScheduleService
             emp, empAssignments, shiftTypeMap, weekStartDate);
         if (restErrors.Count > 0) reasons.Add("Vi phạm thời gian nghỉ tối thiểu (BR20/BR21)");
 
-        var isEligible = hasAvail && !hasLeave && !hasOverlap && restErrors.Count == 0;
+        var isEligible = hasAvail && !hasLeave && !hasOverlap && !hasTimeOverlap && reasons.Count == 0 && restErrors.Count == 0;
         return new EligibleEmployeeOptionViewModel
         {
             EmployeeId = emp.EmployeeId,
@@ -87,7 +137,7 @@ public partial class WorkScheduleService
             Level = emp.Level,
             HasAvailability = hasAvail,
             HasApprovedLeave = hasLeave,
-            HasOverlappingShift = hasOverlap,
+            HasOverlappingShift = hasOverlap || hasTimeOverlap,
             IsEligible = isEligible,
             IneligibilityReason = isEligible ? null : string.Join(", ", reasons)
         };
@@ -205,7 +255,14 @@ public partial class WorkScheduleService
         var empValidationErrors = new List<string>();
         var userAssigns = candidateAssignments.Where(a => a.EmployeeId == employee.EmployeeId).ToList();
 
-        ValidateEmployeeWorkloadRules(employee, userAssigns, allShifts, empValidationErrors);
+        var periodShifts = DailyShiftRuleEvaluator.ExtractPeriodShifts(period.StaffingRequirements, allShifts);
+        if (!DailyShiftRuleEvaluator.TryResolvePolicy(periodShifts, out var policy, out var policyError))
+        {
+            return (false, ServiceResult.Failure(ErrorCodes.ShiftConfigurationInvalid, policyError ?? "Cấu hình ca của kỳ lịch không hợp lệ."));
+        }
+
+        var (policyMax, allowSplit) = policy;
+        ValidateEmployeeWorkloadRules(employee, userAssigns, allShifts, policyMax, allowSplit, empValidationErrors);
         if (empValidationErrors.Any())
             return (false, ServiceResult.Failure(ErrorCodes.InvalidShiftAssignment, empValidationErrors.First()));
 
@@ -318,69 +375,27 @@ public partial class WorkScheduleService
         Employee emp,
         List<ShiftAssignment> userAssigns,
         IReadOnlyList<ShiftType> shiftTypes,
+        int policyMax,
+        bool allowSplit,
         List<string> hardErrors)
     {
         var dayGroups = userAssigns.GroupBy(a => a.WorkDate).ToList();
-        if (emp.EmploymentType == EmploymentType.PartTime)
-            ValidatePartTimeWorkloadRules(emp, dayGroups, hardErrors);
-        else if (emp.EmploymentType == EmploymentType.FullTime)
-            ValidateFullTimeWorkloadRules(emp, dayGroups, shiftTypes, hardErrors);
-    }
 
-    private static void ValidatePartTimeWorkloadRules(
-        Employee emp,
-        List<IGrouping<DateOnly, ShiftAssignment>> dayGroups,
-        List<string> hardErrors)
-    {
-        foreach (var group in dayGroups)
-        {
-            if (group.Count() > 1)
-            {
-                hardErrors.Add($"Nhân viên PT {emp.FullName} ({emp.EmployeeCode})"
-                    + " chỉ được phân tối đa 1 ca/ngày.");
-            }
-        }
-    }
-
-    private static void ValidateFullTimeWorkloadRules(
-        Employee emp,
-        List<IGrouping<DateOnly, ShiftAssignment>> dayGroups,
-        IReadOnlyList<ShiftType> shiftTypes,
-        List<string> hardErrors)
-    {
-        if (dayGroups.Count > 6)
+        if (emp.EmploymentType == EmploymentType.FullTime && dayGroups.Count > 6)
         {
             hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode})"
                 + " bị vượt quá 6 ngày làm việc trong tuần.");
         }
 
-        var shiftCodeMap = shiftTypes.ToDictionary(s => s.ShiftTypeId, s => s.ShiftCode);
+        var shiftTypeMap = shiftTypes.ToDictionary(s => s.ShiftTypeId);
         foreach (var group in dayGroups)
         {
-            var count = group.Count();
-            if (count > 2)
-            {
-                hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode}) " +
-                    "chỉ được phân tối đa 2 ca/ngày.");
-                continue;
-            }
+            var dayShifts = group
+                .Select(a => shiftTypeMap.TryGetValue(a.ShiftTypeId, out var sc) ? sc : null)
+                .Where(s => s != null)
+                .ToList();
 
-            if (count == 1)
-            {
-                continue;
-            }
-
-            var codes = group.Select(a => shiftCodeMap.TryGetValue(a.ShiftTypeId, out var sc) ? sc : "").ToHashSet();
-            var isMorningAfternoon = codes.Contains(ShiftTypeConstants.MorningCode)
-                && codes.Contains(ShiftTypeConstants.AfternoonCode) && codes.Count == 2;
-            var isAfternoonEvening = codes.Contains(ShiftTypeConstants.AfternoonCode)
-                && codes.Contains(ShiftTypeConstants.EveningCode) && codes.Count == 2;
-
-            if (!isMorningAfternoon && !isAfternoonEvening)
-            {
-                hardErrors.Add($"Nhân viên FT {emp.FullName} ({emp.EmployeeCode}) " +
-                    "trong ngày phải làm 2 ca liên tiếp (Sáng-Chiều hoặc Chiều-Tối).");
-            }
+            DailyShiftRuleEvaluator.ValidateDailyAssignments(emp, group.Key, dayShifts!, policyMax, allowSplit, hardErrors);
         }
     }
 }

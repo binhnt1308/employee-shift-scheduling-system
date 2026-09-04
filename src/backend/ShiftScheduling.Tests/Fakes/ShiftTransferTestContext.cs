@@ -25,6 +25,9 @@ internal sealed class ShiftTransferTestContext
         Morning = CreateShift(1, "MORNING", "Ca sáng", 8, 12);
         Afternoon = CreateShift(2, "AFTERNOON", "Ca chiều", 12, 16);
         Evening = CreateShift(3, "EVENING", "Ca tối", 16, 20);
+        Period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = Period.SchedulePeriodId, WorkDate = new DateOnly(2026, 8, 10), ShiftTypeId = Morning.ShiftTypeId, ShiftType = Morning });
+        Period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = Period.SchedulePeriodId, WorkDate = new DateOnly(2026, 8, 10), ShiftTypeId = Afternoon.ShiftTypeId, ShiftType = Afternoon });
+        Period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = Period.SchedulePeriodId, WorkDate = new DateOnly(2026, 8, 10), ShiftTypeId = Evening.ShiftTypeId, ShiftType = Evening });
         Schedule = new WorkSchedule
         {
             WorkScheduleId = 1,
@@ -228,7 +231,9 @@ internal sealed class ShiftTransferTestContext
             EndTime = new TimeOnly(endHour, 0),
             DurationHours = endHour >= startHour ? (endHour - startHour) : (endHour + 24 - startHour),
             DisplayOrder = id,
-            IsActive = true
+            IsActive = true,
+            MaxShiftsPerEmployeePerDay = 2,
+            AllowSplitShift = false
         };
     }
 }

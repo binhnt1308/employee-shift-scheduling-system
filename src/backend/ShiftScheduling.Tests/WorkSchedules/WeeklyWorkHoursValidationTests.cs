@@ -21,7 +21,7 @@ public sealed class WeeklyWorkHoursValidationTests
 
         var result = _validationService.ValidateSchedule(
             period, new[] { ft }, availabilities, new List<LeaveRequest>(),
-            new List<StaffingRequirement>(), assignments, shifts);
+            CreateRequirementsFromAssignments(assignments, shifts), assignments, shifts);
 
         Assert.True(result.IsValid);
         Assert.Empty(result.HardErrors);
@@ -39,7 +39,7 @@ public sealed class WeeklyWorkHoursValidationTests
 
         var result = _validationService.ValidateSchedule(
             period, new[] { ft }, availabilities, new List<LeaveRequest>(),
-            new List<StaffingRequirement>(), assignments, shifts);
+            CreateRequirementsFromAssignments(assignments, shifts), assignments, shifts);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.HardErrors, e => e.Contains("BR-05") && e.Contains("48"));
@@ -72,7 +72,7 @@ public sealed class WeeklyWorkHoursValidationTests
 
         var result = _validationService.ValidateSchedule(
             period, new[] { pt }, avails, new List<LeaveRequest>(),
-            new List<StaffingRequirement>(), assignments, shifts);
+            CreateRequirementsFromAssignments(assignments, shifts), assignments, shifts);
 
         Assert.True(result.IsValid);
         Assert.Empty(result.HardErrors);
@@ -110,7 +110,7 @@ public sealed class WeeklyWorkHoursValidationTests
 
         var result = _validationService.ValidateSchedule(
             period, new[] { pt }, availabilities, new List<LeaveRequest>(),
-            new List<StaffingRequirement>(), assignments, shifts);
+            CreateRequirementsFromAssignments(assignments, shifts), assignments, shifts);
 
         Assert.True(result.IsValid);
         Assert.Empty(result.HardErrors);
@@ -160,9 +160,9 @@ public sealed class WeeklyWorkHoursValidationTests
         var pt = CreateEmployee(1, "PT01", "PartTime Emp", EmploymentType.PartTime);
         var shifts = new List<ShiftType>
         {
-            new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 5h", DurationHours = 5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(13, 0) },
-            new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(13, 0), EndTime = new TimeOnly(17, 0) },
-            new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(17, 0), EndTime = new TimeOnly(21, 0) }
+            new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 5h", DurationHours = 5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(13, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(13, 0), EndTime = new TimeOnly(17, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(17, 0), EndTime = new TimeOnly(21, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
         };
 
         var assignments = new List<ShiftAssignment>();
@@ -176,7 +176,7 @@ public sealed class WeeklyWorkHoursValidationTests
 
         var result = _validationService.ValidateSchedule(
             period, new[] { pt }, avails, new List<LeaveRequest>(),
-            new List<StaffingRequirement>(), assignments, shifts);
+            CreateRequirementsFromAssignments(assignments, shifts), assignments, shifts);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.HardErrors, e => e.Contains("BR-05") && e.Contains("30") && e.Contains("28"));
@@ -210,9 +210,9 @@ public sealed class WeeklyWorkHoursValidationTests
         var ft2 = CreateEmployee(2, "FT02", "FullTime Emp 2", EmploymentType.FullTime);
         var shifts = new List<ShiftType>
         {
-            new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 4.5h", DurationHours = 4.5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(7, 30), EndTime = new TimeOnly(12, 0) },
-            new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều 4.5h", DurationHours = 4.5m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 30) },
-            new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối 4h", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 30), EndTime = new TimeOnly(20, 30) }
+            new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 4.5h", DurationHours = 4.5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(7, 30), EndTime = new TimeOnly(12, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều 4.5h", DurationHours = 4.5m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 30), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối 4h", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 30), EndTime = new TimeOnly(20, 30), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
         };
 
         var avails = new List<Availability>();
@@ -230,7 +230,8 @@ public sealed class WeeklyWorkHoursValidationTests
         var reqs = new List<StaffingRequirement>
         {
             new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1, RequiredSalesStaff = 1, RequiredCashiers = 0 },
-            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 2, RequiredSalesStaff = 1, RequiredCashiers = 0 }
+            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 2, RequiredSalesStaff = 1, RequiredCashiers = 0 },
+            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 3, RequiredSalesStaff = 0, RequiredCashiers = 0 }
         };
 
         var solver = new OrToolsSchedulingService(_validationService, NullLogger<OrToolsSchedulingService>.Instance);
@@ -282,10 +283,44 @@ public sealed class WeeklyWorkHoursValidationTests
 
     private static List<ShiftType> CreateFixedShifts() => new()
     {
-        new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0) },
-        new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0) },
-        new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0) }
+        new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+        new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+        new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
     };
+
+    private static List<StaffingRequirement> CreateRequirementsFromAssignments(
+        IEnumerable<ShiftAssignment> assignments,
+        IEnumerable<ShiftType> shifts)
+    {
+        var shiftList = shifts.ToList();
+        var reqs = new List<StaffingRequirement>();
+        var assignGroup = assignments
+            .GroupBy(a => (a.WorkDate, a.ShiftTypeId))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var dates = assignments.Select(a => a.WorkDate).Distinct().ToList();
+        if (dates.Count == 0) dates.Add(new DateOnly(2026, 8, 10));
+
+        foreach (var date in dates)
+        {
+            foreach (var s in shiftList)
+            {
+                int count = assignGroup.TryGetValue((date, s.ShiftTypeId), out var c) ? c : 0;
+                reqs.Add(new StaffingRequirement
+                {
+                    SchedulePeriodId = 1,
+                    WorkDate = date,
+                    ShiftTypeId = s.ShiftTypeId,
+                    ShiftType = s,
+                    RequiredSalesStaff = count,
+                    RequiredCashiers = 0,
+                    RequiredExperiencedStaff = count > 0 ? 1 : 0,
+                    MinimumLevel = EmployeeLevel.Level2
+                });
+            }
+        }
+        return reqs;
+    }
 
     private static (List<ShiftAssignment>, List<Availability>) CreatePtAssignments(Employee pt, DateOnly start, int dayCount)
     {

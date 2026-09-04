@@ -77,7 +77,47 @@ public sealed class WorkScheduleIntegrationTests
         _employeeRepo.Employees.Add(emp);
 
         var morning = CreateShiftType(1, "MORNING", "Ca Sáng", 8, 12);
-        _shiftTypeRepo.ShiftTypes.Add(morning);
+        var afternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều", 12, 16);
+        var evening = CreateShiftType(3, "EVENING", "Ca Tối", 16, 20);
+        _shiftTypeRepo.ShiftTypes.AddRange(new[] { morning, afternoon, evening });
+
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = morning.ShiftTypeId,
+                ShiftType = morning,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 1,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = afternoon.ShiftTypeId,
+                ShiftType = afternoon,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = evening.ShiftTypeId,
+                ShiftType = evening,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+        }
 
         var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
 
@@ -118,7 +158,47 @@ public sealed class WorkScheduleIntegrationTests
         _employeeRepo.Employees.Add(emp);
 
         var morning = CreateShiftType(1, "MORNING", "Ca Sáng", 8, 12);
-        _shiftTypeRepo.ShiftTypes.Add(morning);
+        var afternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều", 12, 16);
+        var evening = CreateShiftType(3, "EVENING", "Ca Tối", 16, 20);
+        _shiftTypeRepo.ShiftTypes.AddRange(new[] { morning, afternoon, evening });
+
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = morning.ShiftTypeId,
+                ShiftType = morning,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 1,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = afternoon.ShiftTypeId,
+                ShiftType = afternoon,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+            period.StaffingRequirements.Add(new StaffingRequirement
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                WorkDate = date,
+                ShiftTypeId = evening.ShiftTypeId,
+                ShiftType = evening,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+        }
 
         var draft = await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
 
@@ -207,7 +287,11 @@ public sealed class WorkScheduleIntegrationTests
         var employees = new List<Employee>
         {
             CreateEmployee(1, EmploymentType.PartTime, EmployeePosition.Sales),
-            CreateEmployee(2, EmploymentType.PartTime, EmployeePosition.Cashier)
+            CreateEmployee(2, EmploymentType.PartTime, EmployeePosition.Sales),
+            CreateEmployee(3, EmploymentType.PartTime, EmployeePosition.Sales),
+            CreateEmployee(4, EmploymentType.PartTime, EmployeePosition.Cashier),
+            CreateEmployee(5, EmploymentType.PartTime, EmployeePosition.Cashier),
+            CreateEmployee(6, EmploymentType.PartTime, EmployeePosition.Cashier)
         };
         _employeeRepo.Employees.AddRange(employees);
 
@@ -216,6 +300,18 @@ public sealed class WorkScheduleIntegrationTests
             var date = period.WeekStartDate.AddDays(d);
             foreach (var st in shiftTypes)
             {
+                period.StaffingRequirements.Add(new StaffingRequirement
+                {
+                    SchedulePeriodId = period.SchedulePeriodId,
+                    WorkDate = date,
+                    ShiftTypeId = st.ShiftTypeId,
+                    ShiftType = st,
+                    RequiredSalesStaff = 1,
+                    RequiredCashiers = 1,
+                    RequiredExperiencedStaff = 1,
+                    MinimumLevel = EmployeeLevel.Level2
+                });
+
                 foreach (var emp in employees)
                 {
                     _availRepo.Availabilities.Add(new Availability
@@ -298,7 +394,7 @@ public sealed class WorkScheduleIntegrationTests
         };
 
     private static ShiftType CreateShiftType(
-        int id, string code, string name, int start, int end) => new()
+        int id, string code, string name, int start, int end, int maxShifts = 2, bool allowSplit = false, int version = 1) => new()
         {
             ShiftTypeId = id,
             ShiftCode = code,
@@ -307,7 +403,10 @@ public sealed class WorkScheduleIntegrationTests
             EndTime = new TimeOnly(end, 0),
             DurationHours = end - start,
             DisplayOrder = id,
-            IsActive = true
+            IsActive = true,
+            MaxShiftsPerEmployeePerDay = maxShifts,
+            AllowSplitShift = allowSplit,
+            ConfigurationVersion = version
         };
 
     [Fact(DisplayName = "TC05-INT-09 - GetEditGridAsync với kỳ dùng ShiftType cũ (IsActive = false) thiếu định mức -> IsValid = false, HardErrors không rỗng")]
@@ -418,6 +517,24 @@ public sealed class WorkScheduleIntegrationTests
             ShiftType = oldMorning,
             RequiredSalesStaff = 2,
             RequiredCashiers = 1
+        });
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldAfternoon.ShiftTypeId,
+            ShiftType = oldAfternoon,
+            RequiredSalesStaff = 0,
+            RequiredCashiers = 0
+        });
+        period.StaffingRequirements.Add(new StaffingRequirement
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = oldEvening.ShiftTypeId,
+            ShiftType = oldEvening,
+            RequiredSalesStaff = 0,
+            RequiredCashiers = 0
         });
 
         var emp1 = CreateEmployee(1, EmploymentType.FullTime, EmployeePosition.Sales);

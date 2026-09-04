@@ -91,27 +91,13 @@ public sealed class OrToolsSchedulingServiceTests
         };
 
         var shiftTypes = CreateThreeFixedShifts();
-        var employees = new List<Employee>
-        {
-            new Employee
-            {
-                EmployeeId = 1, EmployeeCode = "NV01", FullName = "NV 1",
-                Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime, IsActive = true
-            },
-            new Employee
-            {
-                EmployeeId = 2, EmployeeCode = "NV02", FullName = "NV 2",
-                Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level2,
-                EmploymentType = EmploymentType.PartTime, IsActive = true
-            }
-        };
+        var employees = CreateSixEmployees();
 
-        var (avails, _) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
+        var (avails, requirements) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
 
         var result = _service.GenerateProposal(
             period, employees, avails,
-            new List<LeaveRequest>(), new List<StaffingRequirement>(),
+            new List<LeaveRequest>(), requirements,
             shiftTypes, 5);
 
         Assert.NotNull(result);
@@ -185,21 +171,24 @@ public sealed class OrToolsSchedulingServiceTests
                 ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng",
                 StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0),
                 DurationHours = 4m,
-                DisplayOrder = 1, IsActive = true
+                DisplayOrder = 1, IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1
             },
             new ShiftType
             {
                 ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều",
                 StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0),
                 DurationHours = 4m,
-                DisplayOrder = 2, IsActive = true
+                DisplayOrder = 2, IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1
             },
             new ShiftType
             {
                 ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối",
                 StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0),
                 DurationHours = 4m,
-                DisplayOrder = 3, IsActive = true
+                DisplayOrder = 3, IsActive = true,
+                MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1
             }
         };
     }
@@ -216,6 +205,7 @@ public sealed class OrToolsSchedulingServiceTests
 
         var shiftTypes = CreateThreeFixedShifts();
         var morning = shiftTypes.Single(s => s.ShiftCode == "MORNING");
+        var afternoon = shiftTypes.Single(s => s.ShiftCode == "AFTERNOON");
         var evening = shiftTypes.Single(s => s.ShiftCode == "EVENING");
 
         var employees = new List<Employee>
@@ -254,6 +244,16 @@ public sealed class OrToolsSchedulingServiceTests
                 RequiredSalesStaff = 1,
                 RequiredCashiers = 0,
                 RequiredExperiencedStaff = 1,
+                MinimumLevel = EmployeeLevel.Level2
+            });
+            requirements.Add(new StaffingRequirement
+            {
+                WorkDate = date,
+                ShiftTypeId = afternoon.ShiftTypeId,
+                ShiftType = afternoon,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
                 MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
@@ -306,6 +306,206 @@ public sealed class OrToolsSchedulingServiceTests
             validAlternativeAssignments, shiftTypes);
 
         Assert.True(altValidationResult.IsValid);
+    }
+
+    [Fact(DisplayName = "TC-BR01-OR-01 - OR-Tools tuân thủ Max=1: Mỗi nhân viên tối đa 1 ca/ngày")]
+    public void GenerateProposal_WhenPolicyMax1_FullTimeAssignedAtMostOneShiftPerDay()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var shiftTypes = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new(8, 0), EndTime = new(12, 0), MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new(12, 0), EndTime = new(16, 0), MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new(16, 0), EndTime = new(20, 0), MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false }
+        };
+
+        var employees = new List<Employee>
+        {
+            new() { EmployeeId = 1, EmployeeCode = "NV01", FullName = "NV FT 1", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.FullTime, IsActive = true },
+            new() { EmployeeId = 2, EmployeeCode = "NV02", FullName = "NV FT 2", Position = EmployeePosition.Sales, Level = EmployeeLevel.Level2, EmploymentType = EmploymentType.FullTime, IsActive = true }
+        };
+
+        var avails = new List<Availability>();
+        int id = 1;
+        for (int d = 0; d < 7; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            for (int s = 1; s <= 3; s++)
+            {
+                avails.Add(new Availability { AvailabilityId = id++, EmployeeId = 1, SchedulePeriodId = 1, WorkDate = date, ShiftTypeId = s });
+                avails.Add(new Availability { AvailabilityId = id++, EmployeeId = 2, SchedulePeriodId = 1, WorkDate = date, ShiftTypeId = s });
+            }
+        }
+
+        // Định mức ca trong ngày: Sáng cần 1, Chiều cần 1, Tối cần 0
+        var requirements = new List<StaffingRequirement>
+        {
+            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 1, ShiftType = shiftTypes[0], RequiredSalesStaff = 1, RequiredCashiers = 0 },
+            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 2, ShiftType = shiftTypes[1], RequiredSalesStaff = 1, RequiredCashiers = 0 },
+            new() { SchedulePeriodId = 1, WorkDate = period.WeekStartDate, ShiftTypeId = 3, ShiftType = shiftTypes[2], RequiredSalesStaff = 0, RequiredCashiers = 0 }
+        };
+
+        var result = _service.GenerateProposal(period, employees, avails, new List<LeaveRequest>(), requirements, shiftTypes, 5);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.True(result.ValidationResult.IsValid);
+
+        // Kiểm tra mỗi nhân viên không quá 1 ca/ngày
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = period.WeekStartDate.AddDays(d);
+                var dailyCount = result.ProposedAssignments.Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(dailyCount <= 1, $"Employee {emp.EmployeeId} has {dailyCount} shifts on {date}");
+            }
+        }
+    }
+
+    [Fact(DisplayName = "TC-BR01-OR-02 - OR-Tools khi AllowSplitShift=false không bao giờ xếp Sáng và Tối cùng ngày")]
+    public void GenerateProposal_WhenSplitShiftNotAllowed_NeverAssignsMorningAndEveningTogether()
+    {
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+
+        var shiftTypes = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new(8, 0), EndTime = new(12, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new(12, 0), EndTime = new(16, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new(16, 0), EndTime = new(20, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false }
+        };
+
+        var employees = CreateSixEmployees();
+        var (avails, requirements) = CreateAvailabilitiesAndRequirements(period, shiftTypes, employees);
+
+        var result = _service.GenerateProposal(period, employees, avails, new List<LeaveRequest>(), requirements, shiftTypes, 5);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.True(result.ValidationResult.IsValid);
+
+        // Xác nhận không có nhân viên nào bị xếp cả Sáng (id=1) và Tối (id=3) trong cùng 1 ngày
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = period.WeekStartDate.AddDays(d);
+                var hasMorning = result.ProposedAssignments.Any(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date && a.ShiftTypeId == 1);
+                var hasEvening = result.ProposedAssignments.Any(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date && a.ShiftTypeId == 3);
+                Assert.False(hasMorning && hasEvening, $"Employee {emp.EmployeeId} was assigned both Morning and Evening on {date}");
+            }
+        }
+    }
+
+    [Fact(DisplayName = "TC-BR01-OR-03 - OR-Tools goi lien tiep hai ky voi policy khac nhau khong ro policy")]
+    public void GenerateProposal_SequentialCallsDifferentPolicy_NoPolicyLeak()
+    {
+        var periodA = new SchedulePeriod { SchedulePeriodId = 1, WeekStartDate = new DateOnly(2026, 8, 10), WeekEndDate = new DateOnly(2026, 8, 16) };
+        var periodB = new SchedulePeriod { SchedulePeriodId = 2, WeekStartDate = new DateOnly(2026, 8, 17), WeekEndDate = new DateOnly(2026, 8, 23) };
+
+        var shiftsA = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, StartTime = new(8, 0), EndTime = new(12, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, StartTime = new(12, 0), EndTime = new(16, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, StartTime = new(16, 0), EndTime = new(20, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 }
+        };
+
+        var shiftsB = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, StartTime = new(8, 0), EndTime = new(12, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, StartTime = new(12, 0), EndTime = new(16, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, StartTime = new(16, 0), EndTime = new(20, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
+        };
+
+        var employees = CreateSixEmployees();
+        var (availsA, reqsA) = CreateAvailabilitiesAndRequirements(periodA, shiftsA, employees);
+        var (availsB, reqsB) = CreateAvailabilitiesAndRequirements(periodB, shiftsB, employees);
+
+        // Lần 1: Kỳ A Max=1
+        var resA1 = _service.GenerateProposal(periodA, employees, availsA, new List<LeaveRequest>(), reqsA, shiftsA, 5);
+        Assert.True(resA1.Succeeded);
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = periodA.WeekStartDate.AddDays(d);
+                var count = resA1.ProposedAssignments.Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(count <= 1, $"Kỳ A: Employee {emp.EmployeeId} has {count} shifts on {date}");
+            }
+        }
+
+        // Lần 2: Kỳ B Max=2
+        var resB = _service.GenerateProposal(periodB, employees, availsB, new List<LeaveRequest>(), reqsB, shiftsB, 5);
+        Assert.True(resB.Succeeded);
+
+        // Lần 3: Gọi lại Kỳ A Max=1 -> không bị rò Max=2 từ kỳ B
+        var resA2 = _service.GenerateProposal(periodA, employees, availsA, new List<LeaveRequest>(), reqsA, shiftsA, 5);
+        Assert.True(resA2.Succeeded);
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = periodA.WeekStartDate.AddDays(d);
+                var count = resA2.ProposedAssignments.Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(count <= 1, $"Kỳ A lần 2: Employee {emp.EmployeeId} has {count} shifts on {date}");
+            }
+        }
+    }
+
+    [Fact(DisplayName = "TC-BR01-OR-04 - OR-Tools chay song song hai ky khong dung shared mutable state")]
+    public async Task GenerateProposal_ConcurrentCallsDifferentPolicy_NoSharedStateLeak()
+    {
+        var periodA = new SchedulePeriod { SchedulePeriodId = 1, WeekStartDate = new DateOnly(2026, 8, 10), WeekEndDate = new DateOnly(2026, 8, 16) };
+        var periodB = new SchedulePeriod { SchedulePeriodId = 2, WeekStartDate = new DateOnly(2026, 8, 17), WeekEndDate = new DateOnly(2026, 8, 23) };
+
+        var shiftsA = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, StartTime = new(8, 0), EndTime = new(12, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, StartTime = new(12, 0), EndTime = new(16, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, StartTime = new(16, 0), EndTime = new(20, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false, ConfigurationVersion = 2 }
+        };
+
+        var shiftsB = new List<ShiftType>
+        {
+            new() { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", DurationHours = 4m, StartTime = new(8, 0), EndTime = new(12, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", DurationHours = 4m, StartTime = new(12, 0), EndTime = new(16, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+            new() { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", DurationHours = 4m, StartTime = new(16, 0), EndTime = new(20, 0), IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
+        };
+
+        var employees = CreateSixEmployees();
+        var (availsA, reqsA) = CreateAvailabilitiesAndRequirements(periodA, shiftsA, employees);
+        var (availsB, reqsB) = CreateAvailabilitiesAndRequirements(periodB, shiftsB, employees);
+
+        var taskA = Task.Run(() => _service.GenerateProposal(periodA, employees, availsA, new List<LeaveRequest>(), reqsA, shiftsA, 5));
+        var taskB = Task.Run(() => _service.GenerateProposal(periodB, employees, availsB, new List<LeaveRequest>(), reqsB, shiftsB, 5));
+
+        await Task.WhenAll(taskA, taskB);
+
+        var resA = await taskA;
+        var resB = await taskB;
+
+        Assert.True(resA.Succeeded);
+        Assert.True(resB.Succeeded);
+
+        // Kỳ A phải luôn bảo đảm mỗi nhân viên <= 1 ca/ngày
+        foreach (var emp in employees)
+        {
+            for (int d = 0; d < 7; d++)
+            {
+                var date = periodA.WeekStartDate.AddDays(d);
+                var count = resA.ProposedAssignments.Count(a => a.EmployeeId == emp.EmployeeId && a.WorkDate == date);
+                Assert.True(count <= 1, $"Song song: Kỳ A Employee {emp.EmployeeId} has {count} shifts on {date}");
+            }
+        }
     }
 }
 

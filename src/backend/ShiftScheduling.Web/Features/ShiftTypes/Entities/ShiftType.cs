@@ -11,6 +11,8 @@ public class ShiftType
     public int DisplayOrder { get; set; }
     public int ConfigurationVersion { get; set; } = 1;
     public bool IsActive { get; set; } = true;
+    public int MaxShiftsPerEmployeePerDay { get; set; } = 1;
+    public bool AllowSplitShift { get; set; } = false;
 
     public ICollection<StaffingRequirement> StaffingRequirements { get; set; } = new List<StaffingRequirement>();
     public ICollection<Availability> Availabilities { get; set; } = new List<Availability>();

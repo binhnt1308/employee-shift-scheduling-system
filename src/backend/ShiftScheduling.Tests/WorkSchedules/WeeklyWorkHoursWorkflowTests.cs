@@ -179,9 +179,19 @@ public sealed class WeeklyWorkHoursWorkflowTests
         var ft = CreateEmployee(1, "FT01", "FullTime Emp", EmploymentType.FullTime);
         _employeeRepo.Employees.Add(ft);
 
-        var morning5h = new ShiftType { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 5h", DurationHours = 5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(12, 0) };
-        var afternoon5h = new ShiftType { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều 5h", DurationHours = 5m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(17, 0) };
-        _shiftTypeRepo.ShiftTypes.AddRange(new[] { morning5h, afternoon5h });
+        var morning5h = new ShiftType { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng 5h", DurationHours = 5m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(7, 0), EndTime = new TimeOnly(12, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 };
+        var afternoon5h = new ShiftType { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều 5h", DurationHours = 5m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(17, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 };
+        var evening5h = new ShiftType { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối 4h", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(17, 0), EndTime = new TimeOnly(21, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 };
+        _shiftTypeRepo.ShiftTypes.AddRange(new[] { morning5h, afternoon5h, evening5h });
+
+        period.StaffingRequirements.Clear();
+        for (int d = 0; d < 5; d++)
+        {
+            var date = period.WeekStartDate.AddDays(d);
+            period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 1, ShiftType = morning5h, RequiredSalesStaff = 1, RequiredCashiers = 0, RequiredExperiencedStaff = 1, MinimumLevel = EmployeeLevel.Level2 });
+            period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 2, ShiftType = afternoon5h, RequiredSalesStaff = 1, RequiredCashiers = 0, RequiredExperiencedStaff = 1, MinimumLevel = EmployeeLevel.Level2 });
+            period.StaffingRequirements.Add(new StaffingRequirement { SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 3, ShiftType = evening5h, RequiredSalesStaff = 0, RequiredCashiers = 0, RequiredExperiencedStaff = 0, MinimumLevel = EmployeeLevel.Level2 });
+        }
 
         var schedule = new WorkSchedule { WorkScheduleId = 1, SchedulePeriodId = period.SchedulePeriodId, Status = ScheduleStatus.Draft };
         for (int d = 0; d < 5; d++)
@@ -356,13 +366,35 @@ public sealed class WeeklyWorkHoursWorkflowTests
         }
     }
 
-    private static SchedulePeriod CreateWeekPeriod() => new()
+    private static SchedulePeriod CreateWeekPeriod()
     {
-        SchedulePeriodId = 1,
-        PeriodName = "Tuần 1",
-        WeekStartDate = new DateOnly(2026, 8, 10),
-        WeekEndDate = new DateOnly(2026, 8, 16)
-    };
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            PeriodName = "Tuần 1",
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
+        var shifts = CreateFixedShifts();
+        for (int d = 0; d < 7; d++)
+        {
+            foreach (var s in shifts)
+            {
+                period.StaffingRequirements.Add(new StaffingRequirement
+                {
+                    SchedulePeriodId = 1,
+                    WorkDate = period.WeekStartDate.AddDays(d),
+                    ShiftTypeId = s.ShiftTypeId,
+                    ShiftType = s,
+                    RequiredSalesStaff = 1,
+                    RequiredCashiers = 0,
+                    RequiredExperiencedStaff = 1,
+                    MinimumLevel = EmployeeLevel.Level2
+                });
+            }
+        }
+        return period;
+    }
 
     private static Employee CreateEmployee(int id, string code, string name, EmploymentType type) => new()
     {
@@ -377,8 +409,8 @@ public sealed class WeeklyWorkHoursWorkflowTests
 
     private static List<ShiftType> CreateFixedShifts() => new()
     {
-        new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0) },
-        new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0) },
-        new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0) }
+        new() { ShiftTypeId = 1, ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca Sáng", DurationHours = 4m, DisplayOrder = 1, IsActive = true, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+        new() { ShiftTypeId = 2, ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca Chiều", DurationHours = 4m, DisplayOrder = 2, IsActive = true, StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 },
+        new() { ShiftTypeId = 3, ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca Tối", DurationHours = 4m, DisplayOrder = 3, IsActive = true, StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1 }
     };
 }
