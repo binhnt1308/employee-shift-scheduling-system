@@ -581,6 +581,231 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         Assert.DoesNotContain("Kỳ lịch không có dữ liệu ca làm việc hoặc định mức nhân sự.", option.IneligibilityReason ?? string.Empty);
     }
 
+    [Fact(DisplayName = "TC-STAFF-CAP-01: Định mức Sales=1, đã có 1 Sales -> Sales thứ hai có Avail hợp lệ bị đánh dấu không đủ điều kiện với lý do đã đủ định mức")]
+    public async Task GetEligibleEmployeesForShiftAsync_WhenSalesQuotaReached_MarksSecondSalesIneligible()
+    {
+        var (period, emp1, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var emp2 = CreateEmployee(2, EmploymentType.FullTime);
+        _employeeRepo.Employees.Add(emp2);
+        _availRepo.Availabilities.Add(new Availability
+        {
+            EmployeeId = emp2.EmployeeId,
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        });
+
+        await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        var options = await _scheduleService.GetEligibleEmployeesForShiftAsync(
+            period.SchedulePeriodId, period.WeekStartDate, morning.ShiftTypeId);
+
+        var opt2 = Assert.Single(options, o => o.EmployeeId == emp2.EmployeeId);
+        Assert.False(opt2.IsEligible);
+        Assert.Contains("đã đủ định mức nhân viên Tư vấn (1/1)", opt2.IneligibilityReason);
+    }
+
+    [Fact(DisplayName = "TC-STAFF-CAP-02: Gửi POST thêm Sales thứ hai khi đã đủ định mức -> Trả về thất bại, assignment không đổi")]
+    public async Task AssignEmployeeManualAsync_WhenSalesQuotaReached_ReturnsFailureAndDoesNotSave()
+    {
+        var (period, emp1, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var emp2 = CreateEmployee(2, EmploymentType.FullTime);
+        _employeeRepo.Employees.Add(emp2);
+        _availRepo.Availabilities.Add(new Availability
+        {
+            EmployeeId = emp2.EmployeeId,
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        });
+
+        var res1 = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+        Assert.True(res1.Succeeded);
+
+        var res2 = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp2.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        Assert.False(res2.Succeeded);
+        Assert.Contains("đã đủ định mức nhân viên Tư vấn (1/1)", res2.ErrorMessage);
+
+        var schedule = await _workScheduleRepo.GetByPeriodIdAsync(period.SchedulePeriodId, false, true);
+        var morningAssigns = schedule!.ShiftAssignments
+            .Where(a => a.WorkDate == period.WeekStartDate && a.ShiftTypeId == morning.ShiftTypeId)
+            .ToList();
+        Assert.Single(morningAssigns);
+        Assert.Equal(emp1.EmployeeId, morningAssigns[0].EmployeeId);
+    }
+
+    [Fact(DisplayName = "TC-STAFF-CAP-03: Sales đã đủ 1/1, Cashier đang 0/1 -> Cashier có Avail vẫn đủ điều kiện và phân công thành công")]
+    public async Task AssignEmployeeManualAsync_WhenSalesFullButCashierMissing_AllowsCashier()
+    {
+        var (period, empSales, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var req = period.StaffingRequirements.First(r => r.WorkDate == period.WeekStartDate && r.ShiftTypeId == morning.ShiftTypeId);
+        req.RequiredSalesStaff = 1;
+        req.RequiredCashiers = 1;
+
+        var empCashier = new Employee
+        {
+            EmployeeId = 2,
+            EmployeeCode = "NV02",
+            FullName = "Cashier 2",
+            EmploymentType = EmploymentType.FullTime,
+            Position = EmployeePosition.Cashier,
+            Level = EmployeeLevel.Level1,
+            IsActive = true
+        };
+        _employeeRepo.Employees.Add(empCashier);
+        _availRepo.Availabilities.Add(new Availability
+        {
+            EmployeeId = empCashier.EmployeeId,
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        });
+
+        await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = empSales.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        var options = await _scheduleService.GetEligibleEmployeesForShiftAsync(
+            period.SchedulePeriodId, period.WeekStartDate, morning.ShiftTypeId);
+        var optCashier = Assert.Single(options, o => o.EmployeeId == empCashier.EmployeeId);
+        Assert.True(optCashier.IsEligible, optCashier.IneligibilityReason);
+
+        var resCashier = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = empCashier.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        Assert.True(resCashier.Succeeded, resCashier.ErrorMessage);
+    }
+
+    [Fact(DisplayName = "TC-STAFF-CAP-04: Định mức Cashier=1, đã có 1 Cashier -> Cashier thứ hai bị chặn")]
+    public async Task AssignEmployeeManualAsync_WhenCashierQuotaReached_RejectsSecondCashier()
+    {
+        var (period, _, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var req = period.StaffingRequirements.First(r => r.WorkDate == period.WeekStartDate && r.ShiftTypeId == morning.ShiftTypeId);
+        req.RequiredSalesStaff = 0;
+        req.RequiredCashiers = 1;
+
+        var cashier1 = new Employee { EmployeeId = 10, EmployeeCode = "TN01", FullName = "Thu ngân 1", EmploymentType = EmploymentType.FullTime, Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level2, IsActive = true };
+        var cashier2 = new Employee { EmployeeId = 11, EmployeeCode = "TN02", FullName = "Thu ngân 2", EmploymentType = EmploymentType.FullTime, Position = EmployeePosition.Cashier, Level = EmployeeLevel.Level1, IsActive = true };
+        _employeeRepo.Employees.AddRange(new[] { cashier1, cashier2 });
+
+        _availRepo.Availabilities.Add(new Availability { EmployeeId = cashier1.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = morning.ShiftTypeId });
+        _availRepo.Availabilities.Add(new Availability { EmployeeId = cashier2.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = morning.ShiftTypeId });
+
+        var res1 = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = cashier1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+        Assert.True(res1.Succeeded);
+
+        var res2 = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = cashier2.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        Assert.False(res2.Succeeded);
+        Assert.Contains("đã đủ định mức nhân viên Thu ngân (1/1)", res2.ErrorMessage);
+    }
+
+    [Fact(DisplayName = "TC-STAFF-CAP-05: RequiredSalesStaff=0 -> Thêm một Sales phải bị chặn")]
+    public async Task AssignEmployeeManualAsync_WhenRequiredSalesZero_RejectsSales()
+    {
+        var (period, empSales, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var req = period.StaffingRequirements.First(r => r.WorkDate == period.WeekStartDate && r.ShiftTypeId == morning.ShiftTypeId);
+        req.RequiredSalesStaff = 0;
+        req.RequiredCashiers = 1;
+
+        var res = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = empSales.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        Assert.False(res.Succeeded);
+        Assert.Contains("đã đủ định mức nhân viên Tư vấn (0/0)", res.ErrorMessage);
+    }
+
+    [Fact(DisplayName = "TC-STAFF-CAP-06: Thay thế một Sales hiện tại bằng Sales khác -> Assignment cũ được loại trước khi đếm, thay thế thành công")]
+    public async Task AssignEmployeeManualAsync_WhenReplacingExistingSales_AllowsValidReplacement()
+    {
+        var (period, emp1, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
+
+        var emp2 = CreateEmployee(2, EmploymentType.FullTime);
+        _employeeRepo.Employees.Add(emp2);
+        _availRepo.Availabilities.Add(new Availability
+        {
+            EmployeeId = emp2.EmployeeId,
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        });
+
+        await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp1.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId
+        }, accountId: 2);
+
+        var schedule = await _workScheduleRepo.GetByPeriodIdAsync(period.SchedulePeriodId, false, true);
+        var existingAssign = schedule!.ShiftAssignments.First(a => a.EmployeeId == emp1.EmployeeId);
+
+        var replaceRes = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
+        {
+            SchedulePeriodId = period.SchedulePeriodId,
+            EmployeeId = emp2.EmployeeId,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = morning.ShiftTypeId,
+            ReplaceShiftAssignmentId = existingAssign.ShiftAssignmentId
+        }, accountId: 2);
+
+        Assert.True(replaceRes.Succeeded, replaceRes.ErrorMessage);
+        var lastSaved = _workScheduleRepo.SavedAssignments.Last();
+        Assert.Equal(emp2.EmployeeId, lastSaved.EmployeeId);
+        Assert.Equal(morning.ShiftTypeId, lastSaved.ShiftTypeId);
+    }
+
     private async Task<(SchedulePeriod Period, Employee Emp, ShiftType Morning, ShiftType Afternoon, ShiftType Evening)> SetupPeriodWithFullTimeEmployeeAsync()
     {
         var period = CreateStandardPeriod();

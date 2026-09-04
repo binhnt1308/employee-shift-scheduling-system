@@ -112,10 +112,20 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
                 hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
                     $"Thiếu {req.RequiredSalesStaff - salesCount} nhân viên Tư vấn.");
             }
+            if (salesCount > req.RequiredSalesStaff)
+            {
+                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
+                    $"Dư {salesCount - req.RequiredSalesStaff} nhân viên Tư vấn.");
+            }
             if (cashierCount < req.RequiredCashiers)
             {
                 hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
                     $"Thiếu {req.RequiredCashiers - cashierCount} nhân viên Thu ngân.");
+            }
+            if (cashierCount > req.RequiredCashiers)
+            {
+                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
+                    $"Dư {cashierCount - req.RequiredCashiers} nhân viên Thu ngân.");
             }
 
             // BR13: Mỗi ca phải có ít nhất 1 nhân viên Level 2+ khi ca có yêu cầu nhân sự

@@ -266,8 +266,8 @@ public partial class WorkScheduleService : IWorkScheduleService
                     MissingSales = Math.Max(0, reqSales - assignedSales),
                     MissingCashier = Math.Max(0, reqCashier - assignedCashier),
                     HasLevel2Plus = hasLevel2Plus,
-                    IsSatisfied = assignedSales >= reqSales
-                        && assignedCashier >= reqCashier
+                    IsSatisfied = assignedSales == reqSales
+                        && assignedCashier == reqCashier
                         && (hasLevel2Plus || reqSales + reqCashier == 0),
                     AssignedEmployees = assignedItems
                 });

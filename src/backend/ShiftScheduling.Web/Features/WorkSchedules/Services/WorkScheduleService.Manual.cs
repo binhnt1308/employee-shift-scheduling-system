@@ -37,11 +37,28 @@ public partial class WorkScheduleService
         var hasValidPolicy = DailyShiftRuleEvaluator.TryResolvePolicy(periodShifts, out var policy, out var policyError);
         var (policyMax, allowSplit) = hasValidPolicy ? policy : (1, false);
 
+        var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
+        var req = period.StaffingRequirements.FirstOrDefault(r =>
+            r.WorkDate == workDate && r.ShiftTypeId == shiftTypeId);
+
+        var currentShiftAssigns = currentAssignments
+            .Where(a => a.WorkDate == workDate && a.ShiftTypeId == shiftTypeId)
+            .ToList();
+
+        var assignedSales = currentShiftAssigns.Count(a =>
+            (empMap.TryGetValue(a.EmployeeId, out var e) && e.Position == EmployeePosition.Sales)
+            || (a.Employee != null && a.Employee.Position == EmployeePosition.Sales));
+
+        var assignedCashier = currentShiftAssigns.Count(a =>
+            (empMap.TryGetValue(a.EmployeeId, out var e) && e.Position == EmployeePosition.Cashier)
+            || (a.Employee != null && a.Employee.Position == EmployeePosition.Cashier));
+
         var result = activeEmployees.Select(emp =>
         {
             var option = BuildEligibleEmployeeOption(
                 emp, workDate, shiftTypeId, period.WeekStartDate,
-                availSet, leaveSet, currentAssignments, shiftTypeMap, policyMax, allowSplit);
+                availSet, leaveSet, currentAssignments, shiftTypeMap, policyMax, allowSplit,
+                req, assignedSales, assignedCashier);
 
             if (!hasValidPolicy)
             {
@@ -68,7 +85,10 @@ public partial class WorkScheduleService
         List<ShiftAssignment> currentAssignments,
         Dictionary<int, ShiftType> shiftTypeMap,
         int policyMax,
-        bool allowSplit)
+        bool allowSplit,
+        StaffingRequirement? req,
+        int assignedSales,
+        int assignedCashier)
     {
         var hasAvail = availSet.Contains(emp.EmployeeId);
         var hasLeave = leaveSet.Any(l => l.EmployeeId == emp.EmployeeId && l.LeaveDate == workDate
@@ -91,6 +111,22 @@ public partial class WorkScheduleService
         if (!hasAvail) reasons.Add("Chưa đăng ký rảnh");
         if (hasLeave) reasons.Add("Có đơn nghỉ đã duyệt");
         if (hasOverlap) reasons.Add("Đã được phân vào ca này");
+
+        if (req is null)
+        {
+            reasons.Add("Kỳ lịch không có dữ liệu định mức nhân sự cho ca này.");
+        }
+        else
+        {
+            if (emp.Position == EmployeePosition.Sales && assignedSales >= req.RequiredSalesStaff)
+            {
+                reasons.Add($"Ca này đã đủ định mức nhân viên Tư vấn ({req.RequiredSalesStaff}/{req.RequiredSalesStaff}).");
+            }
+            else if (emp.Position == EmployeePosition.Cashier && assignedCashier >= req.RequiredCashiers)
+            {
+                reasons.Add($"Ca này đã đủ định mức nhân viên Thu ngân ({req.RequiredCashiers}/{req.RequiredCashiers}).");
+            }
+        }
 
         var effectiveMax = DailyShiftRuleEvaluator.GetEffectiveMaxShifts(emp.EmploymentType, policyMax);
         if (!hasOverlap && existingDayShifts.Count >= effectiveMax)
@@ -181,6 +217,66 @@ public partial class WorkScheduleService
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
         var ruleCheck = ValidateCandidateRules(period, employee, candidateList, allShifts);
         if (!ruleCheck.Succeeded) return ruleCheck.Result!;
+
+        var req = period.StaffingRequirements.FirstOrDefault(r =>
+            r.WorkDate == model.WorkDate && r.ShiftTypeId == model.ShiftTypeId);
+        if (req is null)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidShiftAssignment,
+                "Không tìm thấy định mức nhân sự cho ca này.");
+        }
+
+        var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
+        var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
+
+        var shiftCandidates = candidateList
+            .Where(c => c.WorkDate == model.WorkDate && c.ShiftTypeId == model.ShiftTypeId)
+            .ToList();
+
+        int candidateSales = 0;
+        int candidateCashiers = 0;
+
+        foreach (var c in shiftCandidates)
+        {
+            EmployeePosition pos;
+            if (c.EmployeeId == employee.EmployeeId)
+            {
+                pos = employee.Position;
+            }
+            else if (empMap.TryGetValue(c.EmployeeId, out var emp))
+            {
+                pos = emp.Position;
+            }
+            else
+            {
+                var fetched = await _employeeRepository.GetByIdAsync(c.EmployeeId, false, cancellationToken);
+                if (fetched is null)
+                {
+                    return ServiceResult.Failure(
+                        ErrorCodes.InvalidShiftAssignment,
+                        "Không thể xác định vị trí làm việc của nhân viên trong ca.");
+                }
+                pos = fetched.Position;
+            }
+
+            if (pos == EmployeePosition.Sales) candidateSales++;
+            else if (pos == EmployeePosition.Cashier) candidateCashiers++;
+        }
+
+        if (candidateSales > req.RequiredSalesStaff)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidShiftAssignment,
+                $"Ca này đã đủ định mức nhân viên Tư vấn ({req.RequiredSalesStaff}/{req.RequiredSalesStaff}).");
+        }
+
+        if (candidateCashiers > req.RequiredCashiers)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidShiftAssignment,
+                $"Ca này đã đủ định mức nhân viên Thu ngân ({req.RequiredCashiers}/{req.RequiredCashiers}).");
+        }
 
         return await SaveManualAssignmentAsync(schedule, employee, model, candidateList, accountId, cancellationToken);
     }
