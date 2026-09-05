@@ -256,3 +256,19 @@ Mỗi testcase giữ đúng 9 trường theo TC-03:
 Bộ test case đã được hoàn thiện đầy đủ cho Tuần 8, bao phủ toàn diện các chức năng nghiệp vụ, phân quyền vai trò (TC-12), kiểm thử form âm (TC-11), chỉ số tỷ lệ phủ ca (NC-08), và giới hạn trần tổng giờ làm việc trong tuần theo loại hợp đồng (NC-01 / BR-05).
 
 Toàn bộ 185 test case hợp lệ đã được thực thi và xác nhận Pass (bao gồm 8 test case được kiểm chứng thực tế qua giao diện Manual Smoke trên commit 779e73d / 992e885 và 177 test case tự động xUnit trên commit c8505df). 5 trường hợp liên quan đến concurrency token review tiếp tục được duy trì ở trạng thái Blocked (EXPECTED_RESULT_REVIEW_REQUIRED) theo đúng yêu cầu kiểm soát chất lượng. Không có test case nào bị Fail hoặc ở trạng thái chưa chạy.
+
+## 5. Kiểm thử tích hợp các luồng nghiệp vụ chính
+
+Trong tuần này, hệ thống được bổ sung 5 kiểm thử tích hợp cho một số luồng nghiệp vụ chính. Các test gọi trực tiếp action của ASP.NET Core MVC Controller và sử dụng các Service, Repository, ApplicationDbContext cùng SQL Server LocalDB test database riêng `ShiftSchedulingDb_IntegrationTest`. Phạm vi kiểm thử tập trung vào sự phối hợp giữa các tầng ứng dụng và việc ghi, đọc dữ liệu thực tế trên cơ sở dữ liệu kiểm thử.
+
+| Mã | Luồng kiểm thử | Điểm vào | Nội dung kiểm chứng | Kết quả |
+|---|---|---|---|---|
+| **IT-01** | Tạo kỳ lịch | `SchedulePeriodController.Create` | - Tạo kỳ lịch thành công<br>- Tạo đúng 21 StaffingRequirement<br>- AuditLog được lưu | Pass |
+| **IT-02** | Đăng ký lịch rảnh | `AvailabilityController.Register` | - Dữ liệu lịch rảnh được lưu<br>- Mức độ ưu tiên được lưu đúng<br>- AuditLog được lưu | Pass |
+| **IT-03** | Gửi và duyệt đơn xin nghỉ | `LeaveRequestController.Create`<br>`LeaveRequestController.Review` | - Nhân viên gửi đơn ở trạng thái Pending<br>- Quản lý duyệt<br>- Trạng thái chuyển thành Approved<br>- Thông tin xử lý và AuditLog được lưu | Pass |
+| **IT-04** | Phân công ca thủ công | `WorkScheduleController.AssignManual` | - ShiftAssignment được lưu<br>- Source = Manual<br>- AuditLog được lưu | Pass |
+| **IT-05** | Điều chỉnh giờ công thực tế | `ReportController.AdjustWorkdayHours` | - Giờ kế hoạch 4 giờ<br>- Điều chỉnh thực tế thành 5 giờ với lý do<br>- Dữ liệu được lưu vào database<br>- WorkReportService phản ánh 5 giờ thực tế | Pass |
+
+Bộ 5 kiểm thử tích hợp được thực thi trên môi trường Windows sử dụng SQL Server LocalDB và database kiểm thử riêng `ShiftSchedulingDb_IntegrationTest`. Hai lượt thực thi chính thức đều đạt 5/5 test Pass, không ghi nhận lỗi nghiệp vụ mới trong các luồng được kiểm thử.
+
+Các test trên gọi trực tiếp Controller nên phạm vi kiểm thử không bao gồm toàn bộ HTTP pipeline như routing, middleware và antiforgery ở runtime. Kết quả chỉ phản ánh các luồng tích hợp được kiểm tra trong môi trường nêu trên.
