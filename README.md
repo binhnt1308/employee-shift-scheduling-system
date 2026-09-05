@@ -414,3 +414,16 @@ dotnet test src/backend/ShiftScheduling.sln `
 - **Sinh viên thực hiện:** Nguyễn Thanh Bình
 - **MSSV:** 2354050017
 - **Giảng viên hướng dẫn:** Th.S Võ Việt Khoa
+
+### Lưu ý khi chạy SQL Server LocalDB
+
+Ứng dụng sử dụng SQL Server LocalDB với instance `MSSQLLocalDB`.
+Khi khởi động, ứng dụng tự động áp dụng các EF Core migration còn thiếu.
+
+Nếu xuất hiện lỗi không thể kết nối tới `(localdb)\MSSQLLocalDB`,
+kiểm tra và khởi động lại LocalDB:
+
+```powershell
+sqllocaldb info MSSQLLocalDB
+sqllocaldb start MSSQLLocalDB
+```
