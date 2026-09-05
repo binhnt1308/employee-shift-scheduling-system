@@ -345,6 +345,9 @@ namespace ShiftScheduling.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftAssignmentId"));
 
+                    b.Property<decimal?>("ActualWorkedHours")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -365,6 +368,10 @@ namespace ShiftScheduling.Migrations
 
                     b.Property<int>("WorkScheduleId")
                         .HasColumnType("int");
+
+                    b.Property<string>("WorkdayAdjustmentReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("ShiftAssignmentId");
 

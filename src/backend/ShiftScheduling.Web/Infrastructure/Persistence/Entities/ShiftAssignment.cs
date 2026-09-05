@@ -13,6 +13,9 @@ public class ShiftAssignment
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
+    public decimal? ActualWorkedHours { get; set; }
+    public string? WorkdayAdjustmentReason { get; set; }
+
     public WorkSchedule WorkSchedule { get; set; } = null!;
     public Employee Employee { get; set; } = null!;
     public ShiftType ShiftType { get; set; } = null!;
