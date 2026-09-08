@@ -201,89 +201,29 @@ Features/
 
 ## Kiểm thử gần nhất
 
-Automated test được chạy trên branch `tuan-08`.
+Các automated test được duy trì trong project `ShiftScheduling.Tests`.
+Nhóm test không phụ thuộc SQL Server LocalDB được chạy trong GitHub Actions.
+Các Controller–Service–Repository–Database Integration Test sử dụng database LocalDB riêng và được chạy trên môi trường Windows.
 
-```text
-Build:
-0 warnings
-0 errors
+### Chạy Integration Test với SQL Server LocalDB
 
-Tests:
-234 total
-234 passed
-0 failed
-0 skipped
+Năm Controller–Service–Repository–Database Integration Test sử dụng database `ShiftSchedulingDb_IntegrationTest`.
+
+Thiết lập biến môi trường trong phiên PowerShell hiện tại:
+
+```powershell
+$env:SHIFT_SCHEDULING_TEST_CONNECTION="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb_IntegrationTest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 ```
 
-Các nhóm kiểm thử chính:
+Sau đó chạy:
 
-- Authentication và Authorization.
-- Employee lifecycle.
-- Kỳ lịch và ba ca làm việc trong ngày.
-- Availability.
-- Phân công thủ công.
-- Quy tắc Part-time / Full-time.
-- BR20 — nghỉ tối thiểu 12 giờ.
-- BR21 — nghỉ liên tục tối thiểu 24 giờ.
-- OR-Tools:
-  - Phương án khả thi.
-  - INFEASIBLE.
-  - Proposal-only.
-  - Không tự động Publish.
-- Publish validation.
-- Đơn xin nghỉ.
-- Đổi ca.
-- Báo cáo và xuất CSV.
-- Concurrency.
-- Các trường hợp biên ngày tháng.
-
-> **Lưu ý:** Kết quả automated test và kết quả kiểm thử HTTP/UI được quản lý độc lập. Không tự động xem testcase HTTP/UI là Pass chỉ vì automated test tương ứng đang Pass.
-
-### Tài liệu kiểm thử
-
-Các tài liệu kiểm thử chính:
-
-```text
-docs/kiem-thu/
-├── testcase.md
-├── matrantruyvet.md
-└── BR_Test Coverage.md
+```powershell
+dotnet test src/backend/ShiftScheduling.sln `
+  --configuration Release `
+  --no-build `
+  --filter "FullyQualifiedName~ControllerDatabaseIntegrationTests" `
+  --verbosity normal
 ```
-
-Trong đó:
-
-- `testcase.md`: Mô tả chi tiết các testcase chính.
-- `matrantruyvet.md`: Truy vết FR / BR → testcase theo TC-08.
-- `BR_Test Coverage.md`: Kiểm tra nhanh coverage theo từng Business Rule.
-
-### Kỹ thuật kiểm thử
-
-Các kỹ thuật kiểm thử được sử dụng:
-
-- Phân hoạch tương đương.
-- Phân tích giá trị biên.
-- Bảng quyết định.
-- Kiểm thử chuyển trạng thái.
-- Kiểm thử hồi quy.
-
----
-
-Các luồng chính đã được kiểm tra:
-
-- Đăng ký và cập nhật lịch rảnh.
-- Phân công thủ công Add / Remove / Replace.
-- Kiểm tra các ràng buộc phân ca.
-- OR-Tools sinh lịch hợp lệ.
-- OR-Tools xử lý trường hợp `INFEASIBLE`.
-- Chặn Publish khi Draft chưa hợp lệ.
-- Kiểm tra lại dữ liệu mới nhất trước khi Publish.
-- Phân quyền theo vai trò.
-- Đơn xin nghỉ.
-- Đổi ca.
-- Báo cáo và xuất CSV.
-
----
-
 ## Cài đặt và chạy
 
 > **Lưu ý cấu hình:** File `src/backend/ShiftScheduling.Web/appsettings.Example.json` chỉ là mẫu tham khảo và không được ASP.NET Core tự động nạp. Hãy cấu hình chuỗi kết nối bằng User Secrets trước khi chạy migration và khởi động ứng dụng.
@@ -405,8 +345,7 @@ dotnet test src/backend/ShiftScheduling.sln `
 ## Repository
 
 - **GitHub:** https://github.com/binhnt1308/employee-shift-scheduling-system
-- **Branch phát triển:** `tuan-08`
-
+- **Branch phát triển:** `tuan-10`
 ---
 
 ## Thông tin sinh viên
