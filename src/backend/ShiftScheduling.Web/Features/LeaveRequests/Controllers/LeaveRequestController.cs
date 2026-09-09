@@ -85,6 +85,21 @@ public sealed class LeaveRequestController : AuthorizedController
     }
 
     /// <summary>
+    /// Hủy đơn xin nghỉ khi đơn còn ở trạng thái Chờ duyệt.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Employee)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
+    {
+        var result = await _leaveRequestService.CancelAsync(id, CurrentAccountId, cancellationToken);
+        TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
+            ? "Đã hủy đơn xin nghỉ."
+            : result.ErrorMessage;
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
     /// Hiển thị chi tiết đơn, có kiểm tra phạm vi dữ liệu của Nhân viên.
     /// </summary>
     [HttpGet]

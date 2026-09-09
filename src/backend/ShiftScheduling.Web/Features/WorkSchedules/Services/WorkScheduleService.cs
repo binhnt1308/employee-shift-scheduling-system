@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Constants;
+using ShiftScheduling.Common.Email;
 using ShiftScheduling.Common.Notifications;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.Availabilities.Repositories;
@@ -38,6 +39,7 @@ public partial class WorkScheduleService : IWorkScheduleService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
     private readonly ILogger<WorkScheduleService> _logger;
+    private readonly IEmailSender? _emailSender;
 
     public WorkScheduleService(
         IWorkScheduleRepository workScheduleRepository,
@@ -52,7 +54,8 @@ public partial class WorkScheduleService : IWorkScheduleService
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClock clock,
-        ILogger<WorkScheduleService> logger)
+        ILogger<WorkScheduleService> logger,
+        IEmailSender? emailSender = null)
     {
         _workScheduleRepository = workScheduleRepository;
         _periodRepository = periodRepository;
@@ -67,6 +70,7 @@ public partial class WorkScheduleService : IWorkScheduleService
         _unitOfWork = unitOfWork;
         _clock = clock;
         _logger = logger;
+        _emailSender = emailSender;
     }
 
     /// <inheritdoc />

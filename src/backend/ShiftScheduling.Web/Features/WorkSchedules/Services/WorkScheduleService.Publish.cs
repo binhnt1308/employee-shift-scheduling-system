@@ -115,6 +115,35 @@ public partial class WorkScheduleService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        if (_emailSender is not null)
+        {
+            var assignedEmployees = activeEmployees
+                .Where(e => assignedEmpIds.Contains(e.EmployeeId) && !string.IsNullOrWhiteSpace(e.Email))
+                .DistinctBy(e => e.Email!.Trim().ToLowerInvariant())
+                .ToList();
+
+            var subject = "Lịch làm việc đã được công bố";
+            var startFormatted = period.WeekStartDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            var endFormatted = period.WeekEndDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            var body = $"Quản lý đã công bố chính thức lịch làm việc cho {period.PeriodName} ({startFormatted} - {endFormatted}). Vui lòng đăng nhập hệ thống để xem chi tiết lịch làm việc của bạn.";
+
+            foreach (var emp in assignedEmployees)
+            {
+                try
+                {
+                    await _emailSender.SendAsync(emp.Email!.Trim(), subject, body, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Failed to send schedule published email to {Email} for Period {PeriodId}",
+                        emp.Email,
+                        schedulePeriodId);
+                }
+            }
+        }
+
         _logger.LogInformation(
             "Schedule published successfully. ActorAccountId: {ActorAccountId}; PeriodId: {PeriodId}",
             accountId, schedulePeriodId);

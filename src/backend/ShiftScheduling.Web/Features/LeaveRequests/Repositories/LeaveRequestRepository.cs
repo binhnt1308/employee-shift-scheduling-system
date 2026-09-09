@@ -171,6 +171,7 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
                 && request.SchedulePeriodId == schedulePeriodId
                 && request.LeaveDate == leaveDate
                 && request.Status != LeaveRequestStatus.Rejected
+                && request.Status != LeaveRequestStatus.Cancelled
                 && (!shiftTypeId.HasValue
                     || !request.ShiftTypeId.HasValue
                     || request.ShiftTypeId == shiftTypeId),
@@ -216,6 +217,24 @@ public sealed class LeaveRequestRepository : ILeaveRequestRepository
         return await _dbContext.LeaveRequests
             .AsNoTracking()
             .Where(r => r.SchedulePeriodId == schedulePeriodId && r.Status == LeaveRequestStatus.Approved)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftAssignment>> GetEmployeePublishedAssignmentsAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ShiftAssignments
+            .AsNoTracking()
+            .Include(a => a.ShiftType)
+            .Include(a => a.WorkSchedule)
+                .ThenInclude(ws => ws.SchedulePeriod)
+            .Where(a => a.EmployeeId == employeeId
+                && a.WorkSchedule.Status == ScheduleStatus.Published
+                && a.WorkSchedule.SchedulePeriod.WeekEndDate >= fromDate)
+            .OrderBy(a => a.WorkDate)
+            .ThenBy(a => a.ShiftType.DisplayOrder)
             .ToListAsync(cancellationToken);
     }
 

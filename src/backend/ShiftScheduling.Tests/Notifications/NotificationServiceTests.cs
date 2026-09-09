@@ -140,6 +140,7 @@ public sealed class NotificationServiceTests
     [InlineData(NotificationType.SchedulePublished, 100, "MySchedule", "Index")]
     [InlineData(NotificationType.ScheduleChanged, 100, "MySchedule", "Index")]
     [InlineData(NotificationType.LeaveRequestResult, 200, "LeaveRequest", "Details")]
+    [InlineData(NotificationType.LeaveRequestSubmitted, 200, "LeaveRequest", "Details")]
     [InlineData(NotificationType.ShiftTransferRequest, 300, "ShiftTransfer", "Details")]
     [InlineData(NotificationType.ShiftTransferResult, 400, "ShiftTransfer", "Details")]
     public void NotificationItemViewModel_ResolvesCorrectTargetRoutes(

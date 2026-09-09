@@ -61,4 +61,12 @@ public interface ILeaveRequestService
         int managerAccountId,
         string rowVersion = "",
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Hủy đơn xin nghỉ khi đơn đang ở trạng thái Chờ duyệt (Pending) của chính Nhân viên.
+    /// </summary>
+    Task<ServiceResult> CancelAsync(
+        int leaveRequestId,
+        int actorAccountId,
+        CancellationToken cancellationToken = default);
 }

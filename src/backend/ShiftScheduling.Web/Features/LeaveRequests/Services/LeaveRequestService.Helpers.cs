@@ -1,3 +1,4 @@
+using System.Globalization;
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Features.LeaveRequests.ViewModels;
@@ -24,13 +25,58 @@ public sealed partial class LeaveRequestService
                 "Ngày xin nghỉ phải thuộc kỳ lịch đã chọn.");
         }
 
-        var shifts = await GetFixedShiftTypesAsync(cancellationToken);
-        var shift = model.ShiftTypeId.HasValue
-            ? shifts.SingleOrDefault(item => item.ShiftTypeId == model.ShiftTypeId.Value)
-            : null;
-        if (model.ShiftTypeId.HasValue && shift is null)
+        // B & D: Kiểm tra Employee có ít nhất 1 assignment trong WorkDate của Published schedule thuộc SchedulePeriod này
+        var hasDateAssignment = await _leaveRequestRepository.HasPublishedAssignmentAsync(
+            employee.EmployeeId,
+            model.SchedulePeriodId,
+            model.LeaveDate,
+            null,
+            cancellationToken);
+
+        if (!hasDateAssignment)
         {
-            return ServiceResult.Failure(ErrorCodes.ShiftTypeNotFound, "Ca xin nghỉ không hợp lệ.");
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidShiftAssignment,
+                "Bạn không có ca làm việc nào trong lịch chính thức vào ngày đã chọn.");
+        }
+
+        // C: Nếu chọn ca cụ thể (ShiftTypeId != null), phải tồn tại ShiftAssignment đúng ca đó
+        ShiftType? shift = null;
+        if (model.ShiftTypeId.HasValue)
+        {
+            var hasShiftAssignment = await _leaveRequestRepository.HasPublishedAssignmentAsync(
+                employee.EmployeeId,
+                model.SchedulePeriodId,
+                model.LeaveDate,
+                model.ShiftTypeId,
+                cancellationToken);
+
+            if (!hasShiftAssignment)
+            {
+                return ServiceResult.Failure(
+                    ErrorCodes.InvalidShiftAssignment,
+                    "Bạn không được phân công ca làm việc này trong lịch chính thức.");
+            }
+
+            var shifts = await GetFixedShiftTypesAsync(cancellationToken);
+            shift = shifts.SingleOrDefault(item => item.ShiftTypeId == model.ShiftTypeId.Value);
+            if (shift is null)
+            {
+                var assignments = await _leaveRequestRepository.GetEmployeePublishedAssignmentsAsync(
+                    employee.EmployeeId,
+                    model.LeaveDate,
+                    cancellationToken);
+                shift = assignments
+                    .FirstOrDefault(a => a.WorkSchedule.SchedulePeriodId == model.SchedulePeriodId
+                        && a.WorkDate == model.LeaveDate
+                        && a.ShiftTypeId == model.ShiftTypeId.Value)
+                    ?.ShiftType;
+            }
+
+            if (shift is null)
+            {
+                return ServiceResult.Failure(ErrorCodes.ShiftTypeNotFound, "Ca xin nghỉ không hợp lệ.");
+            }
         }
 
         var timeValidation = ValidateNotEnded(model.LeaveDate, shift);
@@ -130,6 +176,8 @@ public sealed partial class LeaveRequestService
                     request.ShiftTypeId,
                     cancellationToken),
             CanReview = isManager && request.Status == LeaveRequestStatus.Pending,
+            CanCancel = !isManager && request.Status == LeaveRequestStatus.Pending,
+            IsManager = isManager,
             RowVersion = Convert.ToBase64String(request.RowVersion)
         };
     }
@@ -180,6 +228,89 @@ public sealed partial class LeaveRequestService
         };
     }
 
+    private async Task TryNotifyManagersOnSubmitAsync(
+        Employee employee,
+        LeaveRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var managerAccountIds = await _notificationRepository.GetActiveManagerAccountIdsAsync(cancellationToken);
+            var submitterAccountId = employee.UserAccountId;
+            var recipients = managerAccountIds
+                .Where(id => !submitterAccountId.HasValue || id != submitterAccountId.Value)
+                .Distinct()
+                .ToList();
+
+            if (recipients.Count == 0)
+            {
+                return;
+            }
+
+            string shiftDescription;
+            var dateText = request.LeaveDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+            if (request.ShiftTypeId.HasValue)
+            {
+                var shifts = await GetFixedShiftTypesAsync(cancellationToken);
+                var shift = shifts.SingleOrDefault(s => s.ShiftTypeId == request.ShiftTypeId.Value);
+                if (shift is null)
+                {
+                    var assignments = await _leaveRequestRepository.GetEmployeePublishedAssignmentsAsync(
+                        employee.EmployeeId,
+                        request.LeaveDate,
+                        cancellationToken);
+                    shift = assignments
+                        .FirstOrDefault(a => a.WorkSchedule.SchedulePeriodId == request.SchedulePeriodId
+                            && a.WorkDate == request.LeaveDate
+                            && a.ShiftTypeId == request.ShiftTypeId.Value)
+                        ?.ShiftType;
+                }
+
+                var shiftName = shift?.ShiftName ?? request.ShiftType?.ShiftName;
+                if (string.IsNullOrWhiteSpace(shiftName))
+                {
+                    shiftDescription = $"ngày {dateText}";
+                }
+                else
+                {
+                    var normalizedShift = shiftName.StartsWith("ca ", StringComparison.OrdinalIgnoreCase)
+                        ? "ca " + shiftName[3..].Trim()
+                        : $"ca {shiftName.Trim()}";
+                    shiftDescription = $"{normalizedShift} ngày {dateText}";
+                }
+            }
+            else
+            {
+                shiftDescription = $"cả ngày {dateText}";
+            }
+
+            var content = $"{employee.EmployeeCode} - {employee.FullName} vừa gửi đơn xin nghỉ {shiftDescription}.";
+
+            foreach (var managerAccountId in recipients)
+            {
+                _notificationRepository.Add(new Notification
+                {
+                    ReceiverAccountId = managerAccountId,
+                    Title = "Đơn xin nghỉ mới",
+                    Content = content,
+                    Type = NotificationType.LeaveRequestSubmitted,
+                    RelatedObjectId = request.LeaveRequestId,
+                    IsRead = false,
+                    CreatedAt = _clock.UtcNow
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Leave request was submitted but manager notification could not be processed. LeaveRequestId: {LeaveRequestId}",
+                request.LeaveRequestId);
+        }
+    }
+
     private async Task TryNotifyEmployeeAsync(LeaveRequest request, CancellationToken cancellationToken)
     {
         var receiverAccountId = request.Employee.UserAccountId;
@@ -209,6 +340,51 @@ public sealed partial class LeaveRequestService
             _logger.LogWarning(
                 exception,
                 "Leave request was reviewed but notification could not be saved. LeaveRequestId: {LeaveRequestId}",
+                request.LeaveRequestId);
+        }
+
+        await TrySendLeaveEmailAsync(request, cancellationToken);
+    }
+
+    private async Task TrySendLeaveEmailAsync(LeaveRequest request, CancellationToken cancellationToken)
+    {
+        if (_emailSender is null)
+        {
+            return;
+        }
+
+        var email = request.Employee?.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
+
+        var isApproved = request.Status == LeaveRequestStatus.Approved;
+        var subject = "Kết quả đơn xin nghỉ";
+        var dateFormatted = request.LeaveDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var shiftInfo = request.ShiftType != null ? $" ca {request.ShiftType.ShiftName}" : "";
+
+        string body;
+        if (isApproved)
+        {
+            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã được Quản lý phê duyệt. Vui lòng đăng nhập hệ thống để xem chi tiết.";
+        }
+        else
+        {
+            var note = string.IsNullOrWhiteSpace(request.ManagerNote) ? "" : $" Ghi chú của quản lý: {request.ManagerNote}.";
+            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã bị Quản lý từ chối.{note} Vui lòng đăng nhập hệ thống để xem chi tiết.";
+        }
+
+        try
+        {
+            await _emailSender.SendAsync(email, subject, body, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed to send leave request result email to {Email}. LeaveRequestId: {LeaveRequestId}",
+                email,
                 request.LeaveRequestId);
         }
     }

@@ -62,20 +62,90 @@ public sealed partial class ShiftTransferService
         ShiftTransferRequest request,
         CancellationToken cancellationToken)
     {
-        var resultText = request.ApprovalStatus == ApprovalStatus.Approved
-            ? "đã được duyệt"
-            : "đã bị từ chối";
-        foreach (var accountId in GetResultReceiverAccountIds(request))
+        if (request.ApprovalStatus == ApprovalStatus.Approved)
         {
-            AddNotification(
-                accountId,
-                "Kết quả yêu cầu đổi ca",
-                $"Yêu cầu đổi ca {resultText}.",
-                NotificationType.ShiftTransferResult,
-                request.ShiftTransferRequestId);
+            var periodId = request.ShiftAssignment?.WorkSchedule?.SchedulePeriodId
+                ?? (request.ShiftAssignment?.WorkScheduleId > 0 ? request.ShiftAssignment.WorkScheduleId : 0);
+            var title = "Lịch làm việc có thay đổi";
+            var content = "Yêu cầu đổi ca đã được duyệt. Lịch làm việc chính thức của bạn đã được cập nhật.";
+            foreach (var accountId in GetResultReceiverAccountIds(request))
+            {
+                AddNotification(
+                    accountId,
+                    title,
+                    content,
+                    NotificationType.ScheduleChanged,
+                    periodId);
+            }
+        }
+        else
+        {
+            var title = "Kết quả yêu cầu đổi ca";
+            var content = "Yêu cầu đổi ca đã bị từ chối.";
+            foreach (var accountId in GetResultReceiverAccountIds(request))
+            {
+                AddNotification(
+                    accountId,
+                    title,
+                    content,
+                    NotificationType.ShiftTransferResult,
+                    request.ShiftTransferRequestId);
+            }
         }
 
         await TrySaveNotificationsAsync("manager review", request.ShiftTransferRequestId, cancellationToken);
+    }
+
+    private async Task TrySendTransferEmailsAsync(
+        ShiftTransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_emailSender is null)
+        {
+            return;
+        }
+
+        string subject;
+        string body;
+
+        if (request.ApprovalStatus == ApprovalStatus.Approved)
+        {
+            subject = "Lịch làm việc đã thay đổi - Yêu cầu đổi ca đã được duyệt";
+            body = "Yêu cầu đổi ca đã được Quản lý phê duyệt. Lịch làm việc chính thức của bạn đã được cập nhật. Vui lòng đăng nhập hệ thống để xem lịch làm việc mới.";
+        }
+        else
+        {
+            subject = "Kết quả yêu cầu đổi ca";
+            var note = string.IsNullOrWhiteSpace(request.ManagerNote) ? "" : $" Ghi chú của quản lý: {request.ManagerNote}.";
+            body = $"Yêu cầu đổi ca đã bị Quản lý từ chối.{note} Vui lòng đăng nhập hệ thống để xem chi tiết.";
+        }
+
+        var emails = new List<string>();
+        if (!string.IsNullOrWhiteSpace(request.SenderEmployee?.Email))
+        {
+            emails.Add(request.SenderEmployee.Email.Trim());
+        }
+        if (!string.IsNullOrWhiteSpace(request.ReceiverEmployee?.Email))
+        {
+            emails.Add(request.ReceiverEmployee.Email.Trim());
+        }
+
+        var distinctEmails = emails.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        foreach (var email in distinctEmails)
+        {
+            try
+            {
+                await _emailSender.SendAsync(email, subject, body, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to send shift transfer result email to {Email}. RequestId: {RequestId}",
+                    email,
+                    request.ShiftTransferRequestId);
+            }
+        }
     }
 
     private IEnumerable<int> GetResultReceiverAccountIds(ShiftTransferRequest request)
