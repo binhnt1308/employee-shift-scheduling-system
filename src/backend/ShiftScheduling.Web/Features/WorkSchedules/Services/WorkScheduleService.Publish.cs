@@ -143,7 +143,8 @@ public partial class WorkScheduleService
         }
         else
         {
-            publishedSchedule = await _workScheduleRepository.GetLatestPublishedScheduleAsync(cancellationToken);
+            publishedSchedule = await _workScheduleRepository.GetDefaultPublishedScheduleAsync(
+                _clock.TodayInVietnam, cancellationToken);
         }
 
         if (publishedSchedule is null)

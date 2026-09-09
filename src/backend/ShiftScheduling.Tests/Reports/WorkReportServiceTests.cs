@@ -2405,6 +2405,11 @@ public sealed class WorkReportServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult(PublishedSchedule);
 
+        public Task<WorkSchedule?> GetDefaultPublishedScheduleAsync(
+            DateOnly currentDate,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(PublishedSchedule);
+
         public Task<bool> HasFuturePublishedAssignmentAsync(
             int employeeId,
             DateOnly fromDate,
