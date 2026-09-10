@@ -137,6 +137,93 @@
     </div>
 }
 
+@if (Model.FairnessSummary is not null)
+{
+    var fairness = Model.FairnessSummary;
+    <div class="card card-custom border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">
+                <i class="fa-solid fa-scale-balanced text-primary me-2"></i>Mức độ cân bằng lịch phân công
+            </h5>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light border">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark"><i class="fa-solid fa-user-tie text-secondary me-1"></i>Toàn thời gian (Full-time)</span>
+                            <span class="badge bg-secondary">Nhân viên: @fairness.FullTime.EmployeeCount</span>
+                        </div>
+                        @if (fairness.FullTime.HasComparison)
+                        {
+                            <div class="row text-center g-2 mt-1">
+                                <div class="col-4">
+                                    <div class="text-muted small">Thấp nhất</div>
+                                    <div class="fw-semibold font-monospace">@fairness.FullTime.FormattedMinimumHours</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Cao nhất</div>
+                                    <div class="fw-semibold font-monospace">@fairness.FullTime.FormattedMaximumHours</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Chênh lệch</div>
+                                    <div class="fw-bold font-monospace text-primary">@fairness.FullTime.FormattedSpreadHours</div>
+                                </div>
+                            </div>
+                        }
+                        else if (fairness.FullTime.HasData)
+                        {
+                            <div class="text-muted small mt-2">
+                                <i class="fa-solid fa-circle-info me-1"></i>Chỉ có 1 nhân viên (@fairness.FullTime.FormattedMinimumHours), chưa có đối tượng để so sánh.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted small mt-2">Chưa có nhân viên trong nhóm.</div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded bg-light border">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark"><i class="fa-solid fa-user-clock text-secondary me-1"></i>Bán thời gian (Part-time)</span>
+                            <span class="badge bg-outline-secondary border text-dark">Nhân viên: @fairness.PartTime.EmployeeCount</span>
+                        </div>
+                        @if (fairness.PartTime.HasComparison)
+                        {
+                            <div class="row text-center g-2 mt-1">
+                                <div class="col-4">
+                                    <div class="text-muted small">Thấp nhất</div>
+                                    <div class="fw-semibold font-monospace">@fairness.PartTime.FormattedMinimumHours</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Cao nhất</div>
+                                    <div class="fw-semibold font-monospace">@fairness.PartTime.FormattedMaximumHours</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Chênh lệch</div>
+                                    <div class="fw-bold font-monospace text-primary">@fairness.PartTime.FormattedSpreadHours</div>
+                                </div>
+                            </div>
+                        }
+                        else if (fairness.PartTime.HasData)
+                        {
+                            <div class="text-muted small mt-2">
+                                <i class="fa-solid fa-circle-info me-1"></i>Chỉ có 1 nhân viên (@fairness.PartTime.FormattedMinimumHours), chưa có đối tượng để so sánh.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted small mt-2">Chưa có nhân viên trong nhóm.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="text-muted small">
+                <i class="fa-solid fa-circle-info me-1"></i>Ghi chú: Chênh lệch càng nhỏ cho thấy tổng thời lượng được phân công giữa các nhân viên cùng loại hợp đồng càng đồng đều.
+            </div>
+        </div>
+    </div>
+}
+
 <div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-header bg-light py-3 fw-bold">
         <i class="fa-solid fa-table me-2"></i>Bảng tổng hợp số ca và giờ làm - @Model.PeriodName

@@ -58,6 +58,32 @@ public sealed class ManagerWorkReportOverviewViewModel
     public List<WorkReportRowItemViewModel> Rows { get; set; } = new();
     public List<WorkdayDetailItemViewModel> Details { get; set; } = new();
     public ShiftCoverageSummaryViewModel? CoverageSummary { get; set; }
+    public WorkloadFairnessSummaryViewModel? FairnessSummary { get; set; }
+}
+
+public sealed class WorkloadFairnessGroupViewModel
+{
+    public EmploymentType EmploymentType { get; set; }
+    public int EmployeeCount { get; set; }
+    public decimal MinimumScheduledHours { get; set; }
+    public decimal MaximumScheduledHours { get; set; }
+    public decimal SpreadHours { get; set; }
+    public bool HasData => EmployeeCount > 0;
+    public bool HasComparison => EmployeeCount >= 2;
+
+    public string FormattedMinimumHours => FormatHours(MinimumScheduledHours);
+    public string FormattedMaximumHours => FormatHours(MaximumScheduledHours);
+    public string FormattedSpreadHours => FormatHours(SpreadHours);
+
+    private static string FormatHours(decimal hours) => hours % 1 == 0
+        ? $"{decimal.ToInt32(hours)} giờ"
+        : $"{hours.ToString("0.##", new System.Globalization.CultureInfo("vi-VN"))} giờ";
+}
+
+public sealed class WorkloadFairnessSummaryViewModel
+{
+    public WorkloadFairnessGroupViewModel FullTime { get; set; } = new() { EmploymentType = EmploymentType.FullTime };
+    public WorkloadFairnessGroupViewModel PartTime { get; set; } = new() { EmploymentType = EmploymentType.PartTime };
 }
 
 public sealed class WorkdayDetailItemViewModel

@@ -2188,6 +2188,384 @@ public sealed class WorkReportServiceTests
         Assert.Equal("Tăng ca 1 tiếng", detail.AdjustmentReason);
     }
 
+    // =========================================================================
+    // FAIRNESS SUMMARY TEST SUITE (FAIR-01 .. FAIR-04)
+    // =========================================================================
+
+    [Fact(DisplayName = "FAIR-01 - FairnessSummary: FT và PT được phân nhóm và tính toán min, max, spread riêng biệt")]
+    public async Task GetManagerReportOverviewAsync_FairnessSummary_CalculatesFullTimeAndPartTimeSeparately()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ 1");
+        periodRepo.Add(period);
+
+        var ft1 = new Employee { EmployeeId = 1, EmployeeCode = "FT01", FullName = "FT 1", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        var ft2 = new Employee { EmployeeId = 2, EmployeeCode = "FT02", FullName = "FT 2", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        var pt1 = new Employee { EmployeeId = 3, EmployeeCode = "PT01", FullName = "PT 1", EmploymentType = EmploymentType.PartTime, IsActive = true };
+        var pt2 = new Employee { EmployeeId = 4, EmployeeCode = "PT02", FullName = "PT 2", EmploymentType = EmploymentType.PartTime, IsActive = true };
+
+        empRepo.Add(ft1);
+        empRepo.Add(ft2);
+        empRepo.Add(pt1);
+        empRepo.Add(pt2);
+
+        var shift4h = new ShiftType { ShiftTypeId = 1, ShiftCode = "STD", ShiftName = "Ca 4h", DurationHours = 4m };
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
+        };
+
+        // ft1: 8 ca * 4h = 32h
+        for (int i = 0; i < 8; i++)
+        {
+            publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+            {
+                ShiftAssignmentId = 100 + i,
+                EmployeeId = ft1.EmployeeId,
+                Employee = ft1,
+                WorkDate = period.WeekStartDate.AddDays(i % 7),
+                ShiftTypeId = shift4h.ShiftTypeId,
+                ShiftType = shift4h
+            });
+        }
+        // ft2: 10 ca * 4h = 40h
+        for (int i = 0; i < 10; i++)
+        {
+            publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+            {
+                ShiftAssignmentId = 200 + i,
+                EmployeeId = ft2.EmployeeId,
+                Employee = ft2,
+                WorkDate = period.WeekStartDate.AddDays(i % 7),
+                ShiftTypeId = shift4h.ShiftTypeId,
+                ShiftType = shift4h
+            });
+        }
+        // pt1: 4 ca * 4h = 16h
+        for (int i = 0; i < 4; i++)
+        {
+            publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+            {
+                ShiftAssignmentId = 300 + i,
+                EmployeeId = pt1.EmployeeId,
+                Employee = pt1,
+                WorkDate = period.WeekStartDate.AddDays(i % 7),
+                ShiftTypeId = shift4h.ShiftTypeId,
+                ShiftType = shift4h
+            });
+        }
+        // pt2: 5 ca * 4h = 20h
+        for (int i = 0; i < 5; i++)
+        {
+            publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+            {
+                ShiftAssignmentId = 400 + i,
+                EmployeeId = pt2.EmployeeId,
+                Employee = pt2,
+                WorkDate = period.WeekStartDate.AddDays(i % 7),
+                ShiftTypeId = shift4h.ShiftTypeId,
+                ShiftType = shift4h
+            });
+        }
+
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = CreateService(workRepo, periodRepo, empRepo);
+        var report = await service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(report);
+        Assert.NotNull(report.FairnessSummary);
+
+        // FT: min 32h, max 40h, spread 8h
+        Assert.Equal(2, report.FairnessSummary.FullTime.EmployeeCount);
+        Assert.Equal(32m, report.FairnessSummary.FullTime.MinimumScheduledHours);
+        Assert.Equal(40m, report.FairnessSummary.FullTime.MaximumScheduledHours);
+        Assert.Equal(8m, report.FairnessSummary.FullTime.SpreadHours);
+        Assert.True(report.FairnessSummary.FullTime.HasData);
+        Assert.True(report.FairnessSummary.FullTime.HasComparison);
+
+        // PT: min 16h, max 20h, spread 4h
+        Assert.Equal(2, report.FairnessSummary.PartTime.EmployeeCount);
+        Assert.Equal(16m, report.FairnessSummary.PartTime.MinimumScheduledHours);
+        Assert.Equal(20m, report.FairnessSummary.PartTime.MaximumScheduledHours);
+        Assert.Equal(4m, report.FairnessSummary.PartTime.SpreadHours);
+        Assert.True(report.FairnessSummary.PartTime.HasData);
+        Assert.True(report.FairnessSummary.PartTime.HasComparison);
+    }
+
+    [Fact(DisplayName = "FAIR-02 - FairnessSummary: Tính theo thời lượng ca DurationHours thực tế chứ không đếm số lượng ca")]
+    public async Task GetManagerReportOverviewAsync_FairnessSummary_UsesActualDurationHoursNotShiftCount()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ 1");
+        periodRepo.Add(period);
+
+        var ft1 = new Employee { EmployeeId = 1, EmployeeCode = "FT01", FullName = "FT 1", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        var ft2 = new Employee { EmployeeId = 2, EmployeeCode = "FT02", FullName = "FT 2", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        empRepo.Add(ft1);
+        empRepo.Add(ft2);
+
+        var shift6h = new ShiftType { ShiftTypeId = 1, ShiftCode = "LONG", ShiftName = "Ca 6h", DurationHours = 6m };
+        var shift2h = new ShiftType { ShiftTypeId = 2, ShiftCode = "SHORT", ShiftName = "Ca 2h", DurationHours = 2m };
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
+        };
+
+        // ft1: 1 ca 6h = 6h
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 101,
+            EmployeeId = ft1.EmployeeId,
+            Employee = ft1,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = shift6h.ShiftTypeId,
+            ShiftType = shift6h
+        });
+
+        // ft2: 2 ca 2h = 4h
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 201,
+            EmployeeId = ft2.EmployeeId,
+            Employee = ft2,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = shift2h.ShiftTypeId,
+            ShiftType = shift2h
+        });
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 202,
+            EmployeeId = ft2.EmployeeId,
+            Employee = ft2,
+            WorkDate = period.WeekStartDate.AddDays(1),
+            ShiftTypeId = shift2h.ShiftTypeId,
+            ShiftType = shift2h
+        });
+
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = CreateService(workRepo, periodRepo, empRepo);
+        var report = await service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(report);
+        Assert.NotNull(report.FairnessSummary);
+
+        Assert.Equal(4m, report.FairnessSummary.FullTime.MinimumScheduledHours);
+        Assert.Equal(6m, report.FairnessSummary.FullTime.MaximumScheduledHours);
+        Assert.Equal(2m, report.FairnessSummary.FullTime.SpreadHours);
+    }
+
+    [Fact(DisplayName = "FAIR-03 - FairnessSummary: Nhân viên không được phân ca nào (0 giờ) vẫn được tính trong population báo cáo")]
+    public async Task GetManagerReportOverviewAsync_FairnessSummary_IncludesZeroHourEmployeesInPopulation()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ 1");
+        periodRepo.Add(period);
+
+        var ft1 = new Employee { EmployeeId = 1, EmployeeCode = "FT01", FullName = "FT 1", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        var ft2 = new Employee { EmployeeId = 2, EmployeeCode = "FT02", FullName = "FT 2", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        empRepo.Add(ft1);
+        empRepo.Add(ft2);
+
+        var shift4h = new ShiftType { ShiftTypeId = 1, ShiftCode = "STD", ShiftName = "Ca 4h", DurationHours = 4m };
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
+        };
+
+        // ft1 có 2 ca (8h), ft2 có 0 ca (0h)
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 101,
+            EmployeeId = ft1.EmployeeId,
+            Employee = ft1,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = shift4h.ShiftTypeId,
+            ShiftType = shift4h
+        });
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 102,
+            EmployeeId = ft1.EmployeeId,
+            Employee = ft1,
+            WorkDate = period.WeekStartDate.AddDays(1),
+            ShiftTypeId = shift4h.ShiftTypeId,
+            ShiftType = shift4h
+        });
+
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = CreateService(workRepo, periodRepo, empRepo);
+        var report = await service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(report);
+        Assert.NotNull(report.FairnessSummary);
+
+        Assert.Equal(2, report.FairnessSummary.FullTime.EmployeeCount);
+        Assert.Equal(0m, report.FairnessSummary.FullTime.MinimumScheduledHours);
+        Assert.Equal(8m, report.FairnessSummary.FullTime.MaximumScheduledHours);
+        Assert.Equal(8m, report.FairnessSummary.FullTime.SpreadHours);
+    }
+
+    [Fact(DisplayName = "FAIR-04 - FairnessSummary: Xử lý an toàn khi nhóm có 0 hoặc 1 nhân viên, HasComparison chính xác")]
+    public async Task GetManagerReportOverviewAsync_FairnessSummary_HandlesZeroOrSingleEmployeeSafely()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ 1");
+        periodRepo.Add(period);
+
+        var ft1 = new Employee { EmployeeId = 1, EmployeeCode = "FT01", FullName = "FT 1", EmploymentType = EmploymentType.FullTime, IsActive = true };
+        empRepo.Add(ft1);
+
+        var shift4h = new ShiftType { ShiftTypeId = 1, ShiftCode = "STD", ShiftName = "Ca 4h", DurationHours = 4m };
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
+        };
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 101,
+            EmployeeId = ft1.EmployeeId,
+            Employee = ft1,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = shift4h.ShiftTypeId,
+            ShiftType = shift4h
+        });
+
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = CreateService(workRepo, periodRepo, empRepo);
+        var report = await service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(report);
+        Assert.NotNull(report.FairnessSummary);
+
+        var ftSummary = report.FairnessSummary.FullTime;
+        Assert.Equal(1, ftSummary.EmployeeCount);
+        Assert.Equal(4m, ftSummary.MinimumScheduledHours);
+        Assert.Equal(4m, ftSummary.MaximumScheduledHours);
+        Assert.Equal(0m, ftSummary.SpreadHours);
+        Assert.True(ftSummary.HasData);
+        Assert.False(ftSummary.HasComparison);
+
+        var ptSummary = report.FairnessSummary.PartTime;
+        Assert.Equal(0, ptSummary.EmployeeCount);
+        Assert.Equal(0m, ptSummary.MinimumScheduledHours);
+        Assert.Equal(0m, ptSummary.MaximumScheduledHours);
+        Assert.Equal(0m, ptSummary.SpreadHours);
+        Assert.False(ptSummary.HasData);
+        Assert.False(ptSummary.HasComparison);
+    }
+
+    [Fact(DisplayName = "FAIR-05 - FairnessSummary: Population kỳ lịch sử bao gồm nhân viên đã phân ca (kể cả inactive) và nhân viên active trước/trong kỳ, loại trừ nhân viên tuyển sau kỳ")]
+    public async Task GetManagerReportOverviewAsync_FairnessSummary_HistoricalPeriodPopulation_AppliesRulesCorrectly()
+    {
+        var workRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = CreatePeriod(1, "Kỳ 1");
+        periodRepo.Add(period);
+
+        // Rule 1: Employee A - IsActive = false, có ShiftAssignment trong published period -> PHẢI được tính
+        var empA = new Employee
+        {
+            EmployeeId = 1,
+            EmployeeCode = "FT_INACTIVE",
+            FullName = "Nguyễn Văn Inactive",
+            EmploymentType = EmploymentType.FullTime,
+            IsActive = false,
+            StartDate = new DateOnly(2026, 1, 1)
+        };
+
+        // Rule 2: Employee B - IsActive = true, StartDate > period.WeekEndDate, không có assignment -> KHÔNG được tính
+        var empB = new Employee
+        {
+            EmployeeId = 2,
+            EmployeeCode = "FT_FUTURE",
+            FullName = "Trần Thị Future",
+            EmploymentType = EmploymentType.FullTime,
+            IsActive = true,
+            StartDate = new DateOnly(2026, 8, 17) // Sau WeekEndDate (2026-08-16)
+        };
+
+        // Rule 3: Employee C - IsActive = true, StartDate <= period.WeekEndDate, không có assignment -> PHẢI được tính với 0 giờ
+        var empC = new Employee
+        {
+            EmployeeId = 3,
+            EmployeeCode = "FT_EXISTING",
+            FullName = "Lê Văn Existing",
+            EmploymentType = EmploymentType.FullTime,
+            IsActive = true,
+            StartDate = new DateOnly(2026, 8, 1) // Trước WeekEndDate (2026-08-16)
+        };
+
+        empRepo.Add(empA);
+        empRepo.Add(empB);
+        empRepo.Add(empC);
+
+        var shift8h = new ShiftType { ShiftTypeId = 1, ShiftCode = "FULL", ShiftName = "Ca 8h", DurationHours = 8m };
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
+        };
+
+        // empA có 1 ca 8h
+        publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
+        {
+            ShiftAssignmentId = 101,
+            EmployeeId = empA.EmployeeId,
+            Employee = empA,
+            WorkDate = period.WeekStartDate,
+            ShiftTypeId = shift8h.ShiftTypeId,
+            ShiftType = shift8h
+        });
+
+        workRepo.PublishedSchedule = publishedSchedule;
+
+        var service = CreateService(workRepo, periodRepo, empRepo);
+        var report = await service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(report);
+        Assert.NotNull(report.FairnessSummary);
+
+        var ft = report.FairnessSummary.FullTime;
+        Assert.Equal(2, ft.EmployeeCount);
+        Assert.Equal(0m, ft.MinimumScheduledHours);
+        Assert.Equal(8m, ft.MaximumScheduledHours);
+        Assert.Equal(8m, ft.SpreadHours);
+        Assert.True(ft.HasData);
+        Assert.True(ft.HasComparison);
+    }
+
     private static SchedulePeriod CreatePeriod(int id, string name) => new()
     {
         SchedulePeriodId = id,
