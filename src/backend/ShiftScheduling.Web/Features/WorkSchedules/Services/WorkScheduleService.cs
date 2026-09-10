@@ -136,7 +136,13 @@ public partial class WorkScheduleService : IWorkScheduleService
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShifts);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+        var fixedShifts = periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
 
         var validationResult = _validationService.ValidateSchedule(
             period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
@@ -242,17 +248,14 @@ public partial class WorkScheduleService : IWorkScheduleService
 
     private static List<ShiftType> GetFixedThreeShifts(IReadOnlyList<ShiftType> allShiftTypes)
     {
-        var morning = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
+        var morning = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
 
-        var afternoon = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
+        var afternoon = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
 
-        var evening = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
+        var evening = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
 
         if (morning is null || afternoon is null || evening is null)
         {

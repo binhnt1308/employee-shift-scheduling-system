@@ -150,10 +150,7 @@ public sealed partial class LeaveRequestService
     {
         var shifts = await _leaveRequestRepository.GetActiveShiftTypesAsync(cancellationToken);
         return shifts
-            .Where(shift => ShiftTypeConstants.IsValidFixedShiftTime(
-                shift.ShiftCode,
-                shift.StartTime,
-                shift.EndTime))
+            .Where(shift => shift.IsActive && ShiftTypeConstants.IsFixedShiftCode(shift.ShiftCode))
             .OrderBy(shift => shift.DisplayOrder)
             .ToArray();
     }

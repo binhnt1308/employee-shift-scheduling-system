@@ -166,6 +166,11 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         ValidateEmployeeAssignmentDetails(emp, userAssigns, availSet, leaveLookup, shiftTypeMap, hardErrors);
         ValidateEmployeeWorkloadRules(emp, userAssigns, shiftTypeMap, hardErrors);
 
+        // BR-05: Tổng giờ làm trong tuần không được vượt trần theo loại hợp đồng.
+        var hoursErrors = WeeklyWorkHoursRuleEvaluator.EvaluateWeeklyWorkHours(
+            emp, userAssigns, shiftTypeMap, period.WeekStartDate, period.WeekEndDate);
+        hardErrors.AddRange(hoursErrors);
+
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             emp, userAssigns, shiftTypeMap, period.WeekStartDate);
         hardErrors.AddRange(restErrors);

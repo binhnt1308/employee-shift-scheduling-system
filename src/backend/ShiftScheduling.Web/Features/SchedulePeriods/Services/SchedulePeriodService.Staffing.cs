@@ -30,9 +30,15 @@ public sealed partial class SchedulePeriodService
                 "Chỉ được chỉnh sửa định mức khi kỳ lịch ở trạng thái Chuẩn bị.");
         }
 
-        var allShiftTypes = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShiftTypes);
-        var validFixedShiftIds = fixedShifts.Select(st => st.ShiftTypeId).ToHashSet();
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .ToList();
+
+        var validFixedShiftIds = periodShifts.Count == 3
+            ? periodShifts.Select(st => st.ShiftTypeId).ToHashSet()
+            : period.StaffingRequirements.Select(r => r.ShiftTypeId).ToHashSet();
 
         var validationResult = ValidateStaffingItems(period, model.Requirements, validFixedShiftIds);
         if (!validationResult.Succeeded)

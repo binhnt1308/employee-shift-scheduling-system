@@ -30,9 +30,15 @@ public sealed partial class SchedulePeriodService
             return statusResult;
         }
 
-        var allShiftTypes = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShiftTypes);
-        var validFixedShiftIds = fixedShifts.Select(st => st.ShiftTypeId).ToHashSet();
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .ToList();
+
+        var validFixedShiftIds = periodShifts.Count == 3
+            ? periodShifts.Select(st => st.ShiftTypeId).ToHashSet()
+            : period.StaffingRequirements.Select(r => r.ShiftTypeId).ToHashSet();
 
         var validationResult = ValidateRegistrationRequirements(period, validFixedShiftIds);
         if (!validationResult.Succeeded)
@@ -41,6 +47,8 @@ public sealed partial class SchedulePeriodService
         }
 
         period.RegistrationStatus = RegistrationStatus.Open;
+
+        await SendRegistrationOpenedNotificationsAsync(period, cancellationToken);
 
         LogAndAuditRegistrationOpen(period, actorAccountId);
 
@@ -52,6 +60,39 @@ public sealed partial class SchedulePeriodService
             schedulePeriodId);
 
         return ServiceResult.Success();
+    }
+
+    private async Task SendRegistrationOpenedNotificationsAsync(
+        SchedulePeriod period,
+        CancellationToken cancellationToken)
+    {
+        var employeeAccountIds = await _notificationRepository.GetActiveEmployeeAccountIdsAsync(cancellationToken);
+        if (employeeAccountIds.Count == 0)
+        {
+            return;
+        }
+
+        var deadlineVietnam = _clock.ToVietnamTime(period.AvailabilityDeadline);
+        var title = $"Mở đăng ký lịch rảnh: {period.PeriodName}";
+        var startFormatted = period.WeekStartDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var endFormatted = period.WeekEndDate.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var deadlineFormatted = deadlineVietnam.ToString("HH:mm dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        var content = $"Quản lý đã mở đăng ký lịch rảnh cho {period.PeriodName} ({startFormatted} - {endFormatted}). Hạn chót đăng ký: {deadlineFormatted}. Vui lòng đăng ký trước thời hạn.";
+        var now = _clock.UtcNow;
+
+        foreach (var accountId in employeeAccountIds)
+        {
+            _notificationRepository.Add(new Notification
+            {
+                ReceiverAccountId = accountId,
+                Title = title,
+                Content = content,
+                Type = NotificationType.RegistrationOpened,
+                RelatedObjectId = period.SchedulePeriodId,
+                IsRead = false,
+                CreatedAt = now
+            });
+        }
     }
 
     private ServiceResult ValidateRegistrationPreconditions(SchedulePeriod period)

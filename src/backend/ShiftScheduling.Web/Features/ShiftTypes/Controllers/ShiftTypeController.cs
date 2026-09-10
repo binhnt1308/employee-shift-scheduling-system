@@ -13,16 +13,13 @@ public sealed class ShiftTypeController : AuthorizedController
 {
     private readonly IShiftTypeService _shiftTypeService;
 
-    /// <summary>
-    /// Khoi tao ShiftTypeController voi ShiftTypeService.
-    /// </summary>
     public ShiftTypeController(IShiftTypeService shiftTypeService)
     {
         _shiftTypeService = shiftTypeService;
     }
 
     /// <summary>
-    /// Lay danh sach tat ca cac ca lam viec co dinh trong he thong.
+    /// Lấy danh sách tất cả các ca làm việc đang hoạt động trong hệ thống.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
@@ -31,43 +28,41 @@ public sealed class ShiftTypeController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form cap nhat thoi gian va cau hinh ca lam viec theo ID.
+    /// Hiển thị form cấu hình đồng thời ba ca làm việc theo phiên bản mới.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Edit(int? id, CancellationToken cancellationToken)
     {
-        var model = await _shiftTypeService.GetEditAsync(id, cancellationToken);
+        var model = await _shiftTypeService.GetConfigurationAsync(cancellationToken);
         return model is null ? NotFound() : View(model);
     }
 
     /// <summary>
-    /// Xu ly cap nhat thoi gian va cau hinh ca lam viec theo ID.
+    /// Xử lý cập nhật cấu hình ba ca làm việc đồng thời theo phiên bản mới.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(
-        int id,
-        ShiftTypeEditViewModel model,
+        ShiftConfigurationEditViewModel model,
         CancellationToken cancellationToken)
     {
-        if (id != model.ShiftTypeId)
-        {
-            return BadRequest();
-        }
-
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var result = await _shiftTypeService.UpdateAsync(id, model, CurrentAccountId, cancellationToken);
+        var result = await _shiftTypeService.UpdateConfigurationAsync(
+            model,
+            CurrentAccountId,
+            cancellationToken);
+
         if (!result.Succeeded)
         {
             ModelState.AddModelError(string.Empty, result.ErrorMessage!);
             return View(model);
         }
 
-        TempData["Success"] = "Đã cập nhật ca làm việc.";
+        TempData["Success"] = "Đã cập nhật cấu hình giờ 3 ca thành công.";
         return RedirectToAction(nameof(Index));
     }
 }

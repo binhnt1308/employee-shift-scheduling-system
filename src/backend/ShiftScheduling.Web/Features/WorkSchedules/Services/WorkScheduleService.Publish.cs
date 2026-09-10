@@ -56,10 +56,17 @@ public partial class WorkScheduleService
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+        var shiftsForValidation = periodShifts.Count == 3 ? periodShifts : allShifts;
 
         var validationResult = _validationService.ValidateSchedule(
             period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), allShifts);
+            schedule.ShiftAssignments.ToList(), shiftsForValidation);
 
         // BR14: Lịch còn vi phạm ràng buộc bắt buộc không được phép công bố
         if (!validationResult.IsValid)
@@ -146,7 +153,13 @@ public partial class WorkScheduleService
 
         var period = publishedSchedule.SchedulePeriod;
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShifts);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+        var fixedShifts = periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
 
         // Chi loc nhung ca cua chinh nhan vien dang dang nhap (UC08)
         var myAssignments = publishedSchedule.ShiftAssignments

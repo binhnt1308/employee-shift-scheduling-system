@@ -68,6 +68,60 @@
     </div>
 </div>
 
+@if (Model.CoverageSummary is not null)
+{
+    var summary = Model.CoverageSummary;
+    var badgeClass = !summary.HasRequirements
+        ? "bg-secondary"
+        : summary.IsFullyCovered
+            ? "bg-success"
+            : "bg-warning text-dark";
+    var progressClass = !summary.HasRequirements
+        ? "bg-secondary"
+        : summary.IsFullyCovered
+            ? "bg-success"
+            : "bg-warning";
+    var progressValue = (summary.CoverageRate ?? 0m)
+        .ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    <div class="card card-custom border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="fa-solid fa-chart-pie text-primary me-2"></i>Tỷ lệ phủ ca toàn kỳ
+                    </h5>
+                    <div class="text-muted small mt-1">
+                        @if (summary.HasRequirements)
+                        {
+                            <span>Đã đáp ứng <strong>@summary.TotalCoveredSlots/@summary.TotalRequiredSlots</strong> vị trí định biên</span>
+                            <span class="mx-2">•</span>
+                            <span>Tư vấn: <strong>@summary.CoveredSalesSlots/@summary.RequiredSalesSlots</strong></span>
+                            <span class="mx-2">•</span>
+                            <span>Thu ngân: <strong>@summary.CoveredCashierSlots/@summary.RequiredCashierSlots</strong></span>
+                        }
+                        else
+                        {
+                            <span>Kỳ lịch chưa thiết lập định biên nhân sự.</span>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <span class="badge @badgeClass fs-6 px-3 py-2">
+                        @summary.FormattedCoverageRate
+                    </span>
+                </div>
+            </div>
+            @if (summary.HasRequirements)
+            {
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar @progressClass" role="progressbar" style="width: @(progressValue)%" aria-valuenow="@progressValue" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 <div class="card card-custom border-0 shadow-sm">
     <div class="card-header bg-light py-3 fw-bold">
         <i class="fa-solid fa-table me-2"></i>Bảng tổng hợp số ca và giờ làm - @Model.PeriodName

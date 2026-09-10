@@ -26,6 +26,45 @@ public sealed class ShiftTypeRepository : IShiftTypeRepository
         return await query.OrderBy(x => x.DisplayOrder).ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ShiftType>> GetActiveShiftsAsync(
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<ShiftType> query = _dbContext.ShiftTypes;
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return await query
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ShiftType>> GetByIdsAsync(
+        IEnumerable<int> ids,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToList();
+        IQueryable<ShiftType> query = _dbContext.ShiftTypes;
+        if (asNoTracking)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return await query
+            .Where(x => idList.Contains(x.ShiftTypeId))
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
+
+    public void AddRange(IEnumerable<ShiftType> shiftTypes)
+    {
+        _dbContext.ShiftTypes.AddRange(shiftTypes);
+    }
+
     public Task<ShiftType?> GetByIdAsync(
         int shiftTypeId,
         bool asNoTracking,

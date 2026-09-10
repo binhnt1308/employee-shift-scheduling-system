@@ -16,6 +16,16 @@ public static class SchedulingRuleConstants
     public const int FullTimeMaxWorkDaysPerWeek = 6;
 
     /// <summary>
+    /// Trần tổng giờ làm việc tối đa trong tuần đối với nhân viên bán thời gian (BR-05 / NC-01).
+    /// </summary>
+    public const decimal PartTimeMaxWeeklyWorkHours = 28m;
+
+    /// <summary>
+    /// Trần tổng giờ làm việc tối đa trong tuần đối với nhân viên toàn thời gian (BR-05 / NC-01).
+    /// </summary>
+    public const decimal FullTimeMaxWeeklyWorkHours = 48m;
+
+    /// <summary>
     /// Số giờ nghỉ tối thiểu giữa ca làm việc cuối cùng của một ngày
     /// và ca làm việc đầu tiên của ngày kế tiếp (BR20).
     /// </summary>

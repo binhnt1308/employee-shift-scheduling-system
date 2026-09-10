@@ -31,11 +31,19 @@ public partial class WorkScheduleService
             schedulePeriodId, null, null, null, null, cancellationToken);
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
-        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+        var shiftsForSolver = periodShifts.Count == 3
+            ? periodShifts
+            : (await _shiftTypeRepository.GetAllAsync(true, cancellationToken)).ToList();
 
         // BR15: OR-Tools chỉ sinh lịch đề xuất trong bộ nhớ, KHÔNG tự động lưu DB hay công bố
         var proposal = _orToolsService.GenerateProposal(
-            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(), allShifts, 10);
+            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(), shiftsForSolver, 10);
 
         _auditLogRepository.Add(AuditLogFactory.Create(
             accountId,

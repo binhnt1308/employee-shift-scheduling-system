@@ -441,6 +441,11 @@ namespace ShiftScheduling.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftTypeId"));
 
+                    b.Property<int>("ConfigurationVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
 
@@ -470,10 +475,10 @@ namespace ShiftScheduling.Migrations
 
                     b.HasKey("ShiftTypeId");
 
-                    b.HasIndex("DisplayOrder")
+                    b.HasIndex("DisplayOrder", "ConfigurationVersion")
                         .IsUnique();
 
-                    b.HasIndex("ShiftCode")
+                    b.HasIndex("ShiftCode", "ConfigurationVersion")
                         .IsUnique();
 
                     b.ToTable("ShiftTypes", (string)null);
@@ -482,6 +487,7 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 1,
+                            ConfigurationVersion = 1,
                             DisplayOrder = 1,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(12, 0, 0),
@@ -493,6 +499,7 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 2,
+                            ConfigurationVersion = 1,
                             DisplayOrder = 2,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(16, 0, 0),
@@ -504,6 +511,7 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 3,
+                            ConfigurationVersion = 1,
                             DisplayOrder = 3,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(20, 0, 0),

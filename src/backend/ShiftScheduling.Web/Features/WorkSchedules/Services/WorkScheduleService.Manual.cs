@@ -210,6 +210,13 @@ public partial class WorkScheduleService
             return (false, ServiceResult.Failure(ErrorCodes.InvalidShiftAssignment, empValidationErrors.First()));
 
         var shiftTypeMap = allShifts.ToDictionary(s => s.ShiftTypeId);
+
+        // BR-05: Tổng giờ làm trong tuần không được vượt trần theo loại hợp đồng.
+        var hoursErrors = WeeklyWorkHoursRuleEvaluator.EvaluateWeeklyWorkHours(
+            employee, userAssigns, shiftTypeMap, period.WeekStartDate, period.WeekEndDate);
+        if (hoursErrors.Count > 0)
+            return (false, ServiceResult.Failure(ErrorCodes.InvalidShiftAssignment, hoursErrors.First()));
+
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             employee, userAssigns, shiftTypeMap, period.WeekStartDate);
         if (restErrors.Count > 0)
@@ -262,8 +269,27 @@ public partial class WorkScheduleService
         var newList = schedule.ShiftAssignments.Where(a => a.ShiftAssignmentId != model.ShiftAssignmentId)
             .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId, a.Source)).ToList();
 
+        var now = _clock.UtcNow;
         await _workScheduleRepository.SaveAssignmentsAsync(
-            schedule.WorkScheduleId, newList, _clock.UtcNow, cancellationToken);
+            schedule.WorkScheduleId, newList, now, cancellationToken);
+        _auditLogRepository.Add(AuditLogFactory.Create(
+            accountId,
+            "MANUAL_REMOVE_EMPLOYEE",
+            nameof(ShiftAssignment),
+            assignment.ShiftAssignmentId.ToString(),
+            new
+            {
+                schedule.SchedulePeriodId,
+                schedule.WorkScheduleId,
+                assignment.ShiftAssignmentId,
+                assignment.EmployeeId,
+                assignment.WorkDate,
+                assignment.ShiftTypeId,
+                assignment.Source
+            },
+            null,
+            now));
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return ServiceResult.Success();
     }

@@ -8,17 +8,14 @@ public sealed partial class SchedulePeriodService
 {
     private static List<ShiftType> GetFixedThreeShifts(IReadOnlyList<ShiftType> allShiftTypes)
     {
-        var morning = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
+        var morning = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase));
 
-        var afternoon = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
+        var afternoon = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase));
 
-        var evening = allShiftTypes.FirstOrDefault(st => st.IsActive
-            && ShiftTypeConstants.IsValidFixedShiftTime(st.ShiftCode, st.StartTime, st.EndTime)
-            && st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
+        var evening = allShiftTypes.FirstOrDefault(st =>
+            st.ShiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase));
 
         if (morning is null || afternoon is null || evening is null)
         {

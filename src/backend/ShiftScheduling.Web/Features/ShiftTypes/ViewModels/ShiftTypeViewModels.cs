@@ -38,5 +38,23 @@ public sealed class ShiftTypeListItemViewModel
     public TimeOnly EndTime { get; init; }
     public decimal DurationHours { get; init; }
     public int DisplayOrder { get; init; }
+    public int ConfigurationVersion { get; init; } = 1;
     public bool IsActive { get; init; }
+}
+
+public sealed class ShiftConfigurationItemViewModel
+{
+    public int ShiftTypeId { get; set; }
+    public string ShiftCode { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+    public decimal DurationHours { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public sealed class ShiftConfigurationEditViewModel
+{
+    public int ExpectedConfigurationVersion { get; set; }
+    public List<ShiftConfigurationItemViewModel> Shifts { get; set; } = new();
 }

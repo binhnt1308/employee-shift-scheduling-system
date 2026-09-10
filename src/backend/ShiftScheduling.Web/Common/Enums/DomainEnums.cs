@@ -74,5 +74,6 @@ public enum NotificationType
     ScheduleChanged = 2,
     LeaveRequestResult = 3,
     ShiftTransferRequest = 4,
-    ShiftTransferResult = 5
+    ShiftTransferResult = 5,
+    RegistrationOpened = 6
 }

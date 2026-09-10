@@ -19,16 +19,17 @@ public static class ShiftTypeConstants
     public static readonly TimeOnly EveningEndTime = new(20, 0);
 
     /// <summary>
-    /// Kiem tra xem mot khung gio co phai la khung gio ca co dinh hop le cua BR03 hay khong.
+    /// Kiem tra ma ca co phai la mot trong ba ca co dinh hay khong.
     /// </summary>
-    public static bool IsValidFixedShiftTime(string shiftCode, TimeOnly startTime, TimeOnly endTime)
+    public static bool IsFixedShiftCode(string? shiftCode)
     {
-        return shiftCode.ToUpperInvariant() switch
+        if (string.IsNullOrWhiteSpace(shiftCode))
         {
-            MorningCode => startTime == MorningStartTime && endTime == MorningEndTime,
-            AfternoonCode => startTime == AfternoonStartTime && endTime == AfternoonEndTime,
-            EveningCode => startTime == EveningStartTime && endTime == EveningEndTime,
-            _ => false
-        };
+            return false;
+        }
+
+        return shiftCode.Equals(MorningCode, StringComparison.OrdinalIgnoreCase)
+            || shiftCode.Equals(AfternoonCode, StringComparison.OrdinalIgnoreCase)
+            || shiftCode.Equals(EveningCode, StringComparison.OrdinalIgnoreCase);
     }
 }

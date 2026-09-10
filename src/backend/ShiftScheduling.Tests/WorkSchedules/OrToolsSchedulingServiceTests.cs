@@ -184,18 +184,21 @@ public sealed class OrToolsSchedulingServiceTests
             {
                 ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng",
                 StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0),
+                DurationHours = 4m,
                 DisplayOrder = 1, IsActive = true
             },
             new ShiftType
             {
                 ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều",
                 StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0),
+                DurationHours = 4m,
                 DisplayOrder = 2, IsActive = true
             },
             new ShiftType
             {
                 ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối",
                 StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0),
+                DurationHours = 4m,
                 DisplayOrder = 3, IsActive = true
             }
         };

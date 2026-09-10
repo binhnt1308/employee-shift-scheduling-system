@@ -8,6 +8,15 @@ public interface IShiftTypeRepository
         bool asNoTracking,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ShiftType>> GetActiveShiftsAsync(
+        bool asNoTracking,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ShiftType>> GetByIdsAsync(
+        IEnumerable<int> ids,
+        bool asNoTracking,
+        CancellationToken cancellationToken = default);
+
     Task<ShiftType?> GetByIdAsync(
         int shiftTypeId,
         bool asNoTracking,
@@ -23,4 +32,6 @@ public interface IShiftTypeRepository
         TimeOnly endTime,
         int excludedShiftTypeId,
         CancellationToken cancellationToken = default);
+
+    void AddRange(IEnumerable<ShiftType> shiftTypes);
 }

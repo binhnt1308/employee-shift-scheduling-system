@@ -204,6 +204,14 @@ Automated test được chạy trên branch `tuan-07`.
 
 ```text
 Tests:
+
+234 total
+234 passed
+0 failed
+0 skipped
+```
+
+=======
 140 total
 140 passed
 0 failed
@@ -258,7 +266,7 @@ Phân tích giá trị biên.
 Bảng quyết định.
 Kiểm thử chuyển trạng thái.
 Kiểm thử hồi quy.
----
+
 Các luồng chính đã được kiểm tra:
 
 - Đăng ký và cập nhật lịch rảnh.
@@ -277,41 +285,79 @@ Các luồng chính đã được kiểm tra:
 
 ## Cài đặt và chạy
 
+> **Lưu ý cấu hình:** File `src/backend/ShiftScheduling.Web/appsettings.Example.json` chỉ là mẫu tham khảo và không được ASP.NET Core tự động nạp. Hãy cấu hình chuỗi kết nối bằng User Secrets trước khi chạy migration và khởi động ứng dụng.
+
+### Yêu cầu môi trường
+
+- Windows 10/11.
+- Git.
+- .NET 8 SDK.
+- SQL Server Express LocalDB với instance `MSSQLLocalDB`.
+- Entity Framework Core CLI `dotnet-ef` phiên bản 8.x.
+- PowerShell.
+
+Kiểm tra prerequisite:
+
+```powershell
+dotnet --version
+sqllocaldb info MSSQLLocalDB
+dotnet ef --version
+```
+
+Nếu `dotnet ef --version` báo không tìm thấy công cụ, cài đặt trước khi thực hiện các bước chạy nhanh:
+
+```powershell
+dotnet tool install --global dotnet-ef --version "8.*"
+```
+
+*(Lưu ý: Lệnh cài `dotnet-ef` là bước chuẩn bị môi trường, không tính vào 5 lệnh chạy nhanh bên dưới).*
+
 ### 1. Restore package
 
 ```powershell
 dotnet restore src/backend/ShiftScheduling.sln
 ```
 
-### 2. Build
+### 2. Cấu hình chuỗi kết nối
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
+```
+
+### 3. Build Release
 
 ```powershell
 dotnet build src/backend/ShiftScheduling.sln `
+  --configuration Release `
   --no-restore `
   --warnaserror
 ```
 
-### 3. Cập nhật database
+### 4. Cập nhật database
 
 ```powershell
 dotnet ef database update `
-  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
+  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj `
+  --configuration Release `
+  --no-build
 ```
 
-Nếu chưa có Entity Framework CLI:
-
-```powershell
-dotnet tool install --global dotnet-ef
-```
-
-### 4. Chạy ứng dụng
+### 5. Chạy ứng dụng
 
 ```powershell
 dotnet run `
-  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
+  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj `
+  --configuration Release `
+  --no-build
 ```
 
 Mở URL được hiển thị trong terminal.
+
+### Xử lý sự cố thường gặp
+
+- Nếu ứng dụng báo lỗi thiếu `ConnectionStrings:DefaultConnection`, thực hiện lại Bước 2 để thiết lập chuỗi kết nối bằng User Secrets.
+- Nếu lệnh migration báo không tìm thấy `dotnet ef`, thực hiện lệnh cài đặt prerequisite `dotnet-ef` ở mục Yêu cầu môi trường.
+- Nếu không tìm thấy instance `MSSQLLocalDB`, kiểm tra hoặc cài đặt SQL Server Express LocalDB.
 
 ---
 
@@ -321,10 +367,12 @@ Mở URL được hiển thị trong terminal.
 dotnet format src/backend/ShiftScheduling.sln --verify-no-changes
 
 dotnet build src/backend/ShiftScheduling.sln `
+  --configuration Release `
   --no-restore `
   --warnaserror
 
 dotnet test src/backend/ShiftScheduling.sln `
+  --configuration Release `
   --no-build `
   --verbosity normal
 ```
@@ -337,9 +385,7 @@ dotnet test src/backend/ShiftScheduling.sln `
 | --- | --- | --- |
 | Admin | `admin` | `admin123` |
 | Manager | `quanly` | `quanly123` |
-
-> Tài khoản Employee hiện được sử dụng trong dữ liệu kiểm thử.
-> Dữ liệu seed Employee chính thức sẽ được hoàn thiện sau.
+| Employee | `nhanvien` | `nhanvien123` |
 
 ---
 
@@ -358,7 +404,7 @@ dotnet test src/backend/ShiftScheduling.sln `
 ## Repository
 
 - **GitHub:** https://github.com/binhnt1308/employee-shift-scheduling-system
-- **Branch phát triển:** `tuan-05`
+- **Branch phát triển:** `tuan-08`
 
 ---
 

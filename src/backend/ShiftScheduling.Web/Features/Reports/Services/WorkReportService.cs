@@ -47,7 +47,7 @@ public sealed class WorkReportService : IWorkReportService
 
         schedulePeriodId = ResolveSchedulePeriodId(schedulePeriodId, publishedPeriods);
 
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, false, cancellationToken);
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null)
         {
             return null;
@@ -85,6 +85,12 @@ public sealed class WorkReportService : IWorkReportService
             positionFilter,
             employmentTypeFilter);
 
+        var coverageSummary = publishedSchedule is not null
+            ? CalculateCoverageSummary(
+                period.StaffingRequirements.ToList(),
+                publishedSchedule.ShiftAssignments.ToList())
+            : null;
+
         return new ManagerWorkReportOverviewViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -96,7 +102,60 @@ public sealed class WorkReportService : IWorkReportService
             EmploymentTypeFilter = employmentTypeFilter,
             PeriodOptions = publishedPeriods,
             EmployeeOptions = employeeOptions,
-            Rows = rows
+            Rows = rows,
+            CoverageSummary = coverageSummary
+        };
+    }
+
+    private static ShiftCoverageSummaryViewModel CalculateCoverageSummary(
+        IReadOnlyList<StaffingRequirement> requirements,
+        IReadOnlyList<ShiftAssignment> assignments)
+    {
+        if (requirements.Count == 0)
+        {
+            return new ShiftCoverageSummaryViewModel
+            {
+                CoverageRate = null
+            };
+        }
+
+        int totalRequiredSales = 0;
+        int totalCoveredSales = 0;
+        int totalRequiredCashier = 0;
+        int totalCoveredCashier = 0;
+
+        var assignmentGroups = assignments
+            .GroupBy(a => (a.WorkDate, a.ShiftTypeId))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var req in requirements)
+        {
+            totalRequiredSales += req.RequiredSalesStaff;
+            totalRequiredCashier += req.RequiredCashiers;
+
+            if (assignmentGroups.TryGetValue((req.WorkDate, req.ShiftTypeId), out var shiftAssigns))
+            {
+                int assignedSales = shiftAssigns.Count(a => a.Employee?.Position == EmployeePosition.Sales);
+                int assignedCashier = shiftAssigns.Count(a => a.Employee?.Position == EmployeePosition.Cashier);
+
+                // NC-08: Giới hạn slot đã phủ theo từng ngày-ca-vị trí để ca dư không bù ca thiếu.
+                totalCoveredSales += Math.Min(assignedSales, req.RequiredSalesStaff);
+                totalCoveredCashier += Math.Min(assignedCashier, req.RequiredCashiers);
+            }
+        }
+
+        int totalRequired = totalRequiredSales + totalRequiredCashier;
+        int totalCovered = totalCoveredSales + totalCoveredCashier;
+
+        return new ShiftCoverageSummaryViewModel
+        {
+            TotalRequiredSlots = totalRequired,
+            TotalCoveredSlots = totalCovered,
+            RequiredSalesSlots = totalRequiredSales,
+            CoveredSalesSlots = totalCoveredSales,
+            RequiredCashierSlots = totalRequiredCashier,
+            CoveredCashierSlots = totalCoveredCashier,
+            CoverageRate = totalRequired > 0 ? totalCovered * 100m / totalRequired : null
         };
     }
 

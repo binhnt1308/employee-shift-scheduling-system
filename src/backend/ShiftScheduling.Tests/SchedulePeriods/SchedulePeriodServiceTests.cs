@@ -103,8 +103,8 @@ public sealed partial class SchedulePeriodServiceTests
         {
             ShiftTypeId = 1,
             ShiftCode = "MORNING",
-            StartTime = new TimeOnly(7, 0),
-            EndTime = new TimeOnly(11, 0),
+            StartTime = new TimeOnly(12, 0),
+            EndTime = new TimeOnly(7, 0),
             IsActive = true
         });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType

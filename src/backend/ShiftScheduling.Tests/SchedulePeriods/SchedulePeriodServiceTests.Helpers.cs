@@ -12,11 +12,13 @@ public sealed partial class SchedulePeriodServiceTests
 {
     private static SchedulePeriodService CreateService(
         FakeSchedulePeriodRepository periodRepo,
-        FakeShiftTypeRepository shiftTypeRepo)
+        FakeShiftTypeRepository shiftTypeRepo,
+        FakeNotificationRepository? notificationRepo = null)
     {
         return new SchedulePeriodService(
             periodRepo,
             shiftTypeRepo,
+            notificationRepo ?? new FakeNotificationRepository(),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
             new FakeClock { UtcNow = new DateTime(2026, 8, 5, 0, 0, 0, DateTimeKind.Utc) },

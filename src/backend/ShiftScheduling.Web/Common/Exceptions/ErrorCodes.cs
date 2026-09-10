@@ -16,6 +16,9 @@ public static class ErrorCodes
     public const string ShiftTypeNotFound = "SHIFT_TYPE_NOT_FOUND";
     public const string ShiftTimeInvalid = "SHIFT_TIME_INVALID";
     public const string ShiftTimeOverlap = "SHIFT_TIME_OVERLAP";
+    public const string ShiftConfigurationIncomplete = "SHIFT_CONFIGURATION_INCOMPLETE";
+    public const string ShiftConfigurationChanged = "SHIFT_CONFIGURATION_CHANGED";
+    public const string ShiftConfigurationInvalid = "SHIFT_CONFIGURATION_INVALID";
     public const string DuplicateDisplayOrder = "DUPLICATE_DISPLAY_ORDER";
     public const string FixedShiftRequired = "FIXED_SHIFT_REQUIRED";
     public const string DataConflict = "DATA_CONFLICT";
@@ -47,4 +50,5 @@ public static class ErrorCodes
     public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
     public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
+    public const string NotificationNotFound = "NOTIFICATION_NOT_FOUND";
 }

@@ -43,16 +43,23 @@ public sealed partial class SchedulePeriodService
                 "Kỳ lịch trùng thời gian với kỳ lịch đã có.");
         }
 
-        var allShiftTypes = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var fixedShifts = GetFixedThreeShifts(allShiftTypes);
+        var activeShiftTypes = await _shiftTypeRepository.GetActiveShiftsAsync(true, cancellationToken);
+        var fixedShifts = GetFixedThreeShifts(activeShiftTypes);
 
         // BR03: Hệ thống phải có và chỉ sử dụng đúng ba ca cố định (Morning, Afternoon, Evening)
-        if (fixedShifts.Count != 3)
+        if (fixedShifts.Count != 3 || fixedShifts.Any(s => s.EndTime <= s.StartTime))
         {
             return ServiceResult.Failure(
                 ErrorCodes.ShiftTypeNotFound,
-                "Hệ thống phải có đủ 3 ca cố định active:"
-                    + " Ca sáng (08-12), Ca chiều (12-16), Ca tối (16-20).");
+                "Hệ thống phải có đủ 3 ca cố định đang hoạt động hợp lệ: Ca sáng (MORNING), Ca chiều (AFTERNOON) và Ca tối (EVENING).");
+        }
+
+        var version = fixedShifts[0].ConfigurationVersion;
+        if (fixedShifts.Any(s => s.ConfigurationVersion != version))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationInvalid,
+                "Các ca làm việc đang hoạt động không cùng một phiên bản cấu hình.");
         }
 
         var period = CreateSchedulePeriodEntity(
