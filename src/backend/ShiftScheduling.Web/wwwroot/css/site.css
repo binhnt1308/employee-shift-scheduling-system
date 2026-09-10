@@ -528,3 +528,93 @@ body {
     color: var(--text-muted);
     font-size: 0.875rem;
 }
+
+/* Dashboard Enhancements: Banners & Tints */
+.dashboard-banner-manager {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.10), rgba(59, 130, 246, 0.06));
+    border: 1px solid rgba(79, 70, 229, 0.15) !important;
+}
+
+.dashboard-banner-admin {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(14, 165, 233, 0.06));
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Dashboard KPI Card Tints */
+.kpi-card-teal {
+    background: rgba(6, 182, 212, 0.05) !important;
+    border: 1px solid rgba(6, 182, 212, 0.20) !important;
+}
+.kpi-card-teal .kpi-icon-box {
+    background: rgba(6, 182, 212, 0.15);
+    color: #0891b2;
+}
+
+.kpi-card-amber {
+    background: rgba(245, 158, 11, 0.05) !important;
+    border: 1px solid rgba(245, 158, 11, 0.20) !important;
+}
+.kpi-card-amber .kpi-icon-box {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+
+.kpi-card-rose {
+    background: rgba(244, 63, 94, 0.05) !important;
+    border: 1px solid rgba(244, 63, 94, 0.20) !important;
+}
+.kpi-card-rose .kpi-icon-box {
+    background: rgba(244, 63, 94, 0.15);
+    color: #e11d48;
+}
+
+.kpi-card-indigo {
+    background: rgba(99, 102, 241, 0.05) !important;
+    border: 1px solid rgba(99, 102, 241, 0.20) !important;
+}
+.kpi-card-indigo .kpi-icon-box {
+    background: rgba(99, 102, 241, 0.15);
+    color: #4f46e5;
+}
+
+.kpi-card-sky {
+    background: rgba(14, 165, 233, 0.05) !important;
+    border: 1px solid rgba(14, 165, 233, 0.20) !important;
+}
+.kpi-card-sky .kpi-icon-box {
+    background: rgba(14, 165, 233, 0.15);
+    color: #0284c7;
+}
+
+.kpi-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+/* Action Icon Box in Quick Actions */
+.action-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(79, 70, 229, 0.10);
+    color: var(--primary);
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.btn-action-card:hover .action-icon-box {
+    background: var(--primary);
+    color: #ffffff;
+    transform: scale(1.05);
+}
