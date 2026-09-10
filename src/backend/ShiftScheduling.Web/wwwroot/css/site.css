@@ -425,6 +425,100 @@ body {
     margin-top: 0.25rem;
 }
 
+/* Quick Actions & Dashboard Card Buttons */
+.btn-action-card {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-action-card:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: #c7d2fe;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-action-card .action-icon {
+    color: var(--primary);
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.btn-action-card-primary {
+    background: var(--primary-gradient);
+    color: #ffffff !important;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.btn-action-card-primary:hover {
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.btn-action-card-primary .action-icon {
+    color: #ffffff;
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+/* Nav Pills Custom */
+.nav-pills-custom {
+    gap: 0.5rem;
+}
+
+.nav-pills-custom .nav-link {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav-pills-custom .nav-link:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: #c7d2fe;
+}
+
+.nav-pills-custom .nav-link.active {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.nav-pills-custom .nav-link.active .badge {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
 /* Footer */
 .footer-custom {
     margin-top: auto;

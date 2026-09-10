@@ -10,24 +10,21 @@
     var canManageEmployees = isAdmin || isStoreManager;
 }
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">
-            @(isEmployee ? "Tổng quan" : "Tổng quan hệ thống")
-        </h1>
+@if (!isEmployee)
+{
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                Tổng quan hệ thống
+            </h1>
 
-        <p class="page-subtitle">
-            @(isEmployee
-                ? "Theo dõi lịch làm việc và các thông tin cá nhân của bạn."
-                : "Quản lý tài khoản, hồ sơ nhân viên và cấu hình ca làm việc.")
-        </p>
+            <p class="page-subtitle">
+                Quản lý tài khoản, hồ sơ nhân viên và cấu hình ca làm việc.
+            </p>
+        </div>
     </div>
-</div>
 
-<div class="row g-4 mb-4">
-
-    @if (!isEmployee)
-    {
+    <div class="row g-4 mb-4">
         <div class="col-md-6 col-xl-3">
             <div class="stat-card stat-card-indigo h-100">
                 <div class="small opacity-75">
@@ -63,10 +60,7 @@
                 <i class="fa-solid fa-users stat-icon"></i>
             </div>
         </div>
-    }
 
-    @if (!isEmployee)
-    {
         <div class="col-md-6 col-xl-3">
             <div class="stat-card stat-card-amber h-100">
                 <div class="small opacity-75">
@@ -84,26 +78,9 @@
                 <i class="fa-regular fa-clock stat-icon"></i>
             </div>
         </div>
-    }
 
-    <div class="@(isEmployee ? "col-12" : "col-md-6 col-xl-3")">
-        <div class="stat-card stat-card-rose h-100">
-            @if (isEmployee)
-            {
-                <div class="small opacity-75">
-                    @Model.EmployeePeriodLabel
-                </div>
-
-                <div class="display-6 fw-bold">
-                    @Model.EmployeeScheduleStatusDisplay
-                </div>
-
-                <div>
-                    @(Model.TargetPeriodDateRange ?? "Chưa có kỳ lịch")
-                </div>
-            }
-            else
-            {
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card stat-card-rose h-100">
                 <div class="small opacity-75">
                     Lịch làm việc
                     @if (!string.IsNullOrEmpty(Model.TargetPeriodName))
@@ -123,28 +100,21 @@
                         <span class="badge bg-danger ms-1">Cần xử lý</span>
                     }
                 </div>
-            }
 
-            <i class="fa-solid fa-calendar-days stat-icon"></i>
+                <i class="fa-solid fa-calendar-days stat-icon"></i>
+            </div>
         </div>
     </div>
 
-</div>
-
-<div class="row g-4">
-
-    @if (!isEmployee)
-    {
+    <div class="row g-4">
         <div class="col-lg-8">
             <div class="card card-custom h-100">
-
                 <div class="card-header-custom">
                     <i class="fa-regular fa-clock text-primary me-2"></i>
                     Danh sách ca làm việc
                 </div>
 
                 <div class="card-body p-4">
-
                     <div class="list-group list-group-flush">
                         @if (Model.ShiftTypes.Count == 0)
                         {
@@ -175,93 +145,283 @@
                     </div>
 
                     <div class="alert alert-custom alert-custom-info mt-4 mb-0">
-
                         <i class="fa-solid fa-circle-info fs-5 me-2"></i>
-
                         <div>
                             Hi! Chào mừng bạn đến với hệ thống quản lý ca làm việc.
                             Chọn một chức năng ở bên phải để bắt đầu sử dụng.
                         </div>
-
                     </div>
-
                 </div>
             </div>
         </div>
-    }
 
-    <div class="@(isEmployee ? "col-12" : "col-lg-4")">
-        <div class="card card-custom h-100">
+        <div class="col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-header-custom">
+                    <i class="fa-solid fa-bolt text-warning me-2"></i>
+                    Thao tác nhanh
+                </div>
 
-            <div class="card-header-custom">
-                <i class="fa-solid fa-bolt text-warning me-2"></i>
-                Thao tác nhanh
+                <div class="card-body p-3 d-flex flex-column gap-2">
+                    @if (isAdmin)
+                    {
+                        <a asp-controller="Account"
+                           asp-action="Index"
+                           class="btn btn-primary-custom w-100 justify-content-center">
+                            <i class="fa-solid fa-user-shield"></i>
+                            Quản lý tài khoản
+                        </a>
+                    }
+
+                    @if (canManageEmployees)
+                    {
+                        <a asp-controller="Employee"
+                           asp-action="Index"
+                           class="btn btn-primary-custom w-100 justify-content-center">
+                            <i class="fa-solid fa-users"></i>
+                            Quản lý nhân viên
+                        </a>
+                    }
+
+                    @if (isStoreManager)
+                    {
+                        <a asp-controller="ShiftType"
+                           asp-action="Index"
+                           class="btn btn-secondary-custom w-100 justify-content-center">
+                            <i class="fa-regular fa-clock"></i>
+                            Cấu hình ca làm
+                        </a>
+
+                        <a asp-controller="SchedulePeriod"
+                           asp-action="Index"
+                           class="btn btn-secondary-custom w-100 justify-content-center">
+                            <i class="fa-solid fa-calendar-week"></i>
+                            Quản lý kỳ lịch
+                        </a>
+                    }
+                </div>
             </div>
+        </div>
+    </div>
+}
+else
+{
+    var isRegPrimary = Model.IsRegistrationOpen;
+    var isSchedulePrimary = !isRegPrimary;
 
-            <div class="card-body p-3 d-flex flex-column gap-2">
-
-                @if (isAdmin)
-                {
-                    <a asp-controller="Account"
-                       asp-action="Index"
-                       class="btn btn-primary-custom w-100 justify-content-center">
-
-                        <i class="fa-solid fa-user-shield"></i>
-                        Quản lý tài khoản
-                    </a>
-                }
-
-                @if (canManageEmployees)
-                {
-                    <a asp-controller="Employee"
-                       asp-action="Index"
-                       class="btn btn-primary-custom w-100 justify-content-center">
-
-                        <i class="fa-solid fa-users"></i>
-                        Quản lý nhân viên
-                    </a>
-                }
-
-                @if (isStoreManager)
-                {
-                    <a asp-controller="ShiftType"
-                       asp-action="Index"
-                       class="btn btn-secondary-custom w-100 justify-content-center">
-
-                        <i class="fa-regular fa-clock"></i>
-                        Cấu hình ca làm
-                    </a>
-
-                    <a asp-controller="SchedulePeriod"
-                       asp-action="Index"
-                       class="btn btn-secondary-custom w-100 justify-content-center">
-
-                        <i class="fa-solid fa-calendar-week"></i>
-                        Quản lý kỳ lịch
-                    </a>
-                }
-
-                @if (isEmployee)
-                {
-                    <a asp-controller="MySchedule"
-                       asp-action="Index"
-                       class="btn btn-primary-custom w-100 justify-content-center">
-
-                        <i class="fa-solid fa-calendar-days"></i>
-                        Lịch của tôi
-                    </a>
-
-                    <a asp-controller="LeaveRequest"
-                       asp-action="Index"
-                       class="btn btn-secondary-custom w-100 justify-content-center">
-
-                        <i class="fa-solid fa-calendar-check"></i>
-                        Đơn xin nghỉ
-                    </a>
-                }
-
+    <!-- 1. GREETING CARD -->
+    <div class="card card-custom p-4 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">
+                    Xin chào, @(Model.EmployeeFullName ?? User.Identity?.Name) 👋
+                </h4>
+                <p class="text-muted mb-2">
+                    Chúc bạn một ngày làm việc hiệu quả!
+                </p>
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <i class="fa-regular fa-calendar-days text-primary"></i>
+                    <span><strong>@Model.EmployeePeriodLabel:</strong> @(Model.TargetPeriodDateRange ?? "Chưa có kỳ lịch")</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge badge-custom @Model.EmployeeScheduleBadgeClass fs-6 px-3 py-2">
+                    @if (Model.HasSchedule && Model.HasMySchedule)
+                    {
+                        <i class="fa-solid fa-circle-check me-1"></i>
+                    }
+                    else if (Model.IsRegistrationOpen)
+                    {
+                        <i class="fa-solid fa-calendar-check me-1"></i>
+                    }
+                    else
+                    {
+                        <i class="fa-regular fa-clock me-1"></i>
+                    }
+                    @Model.EmployeeScheduleStatusDisplay
+                </span>
             </div>
         </div>
     </div>
 
-</div>
+    <!-- 2. MAIN SECTION -->
+    <div class="row g-4">
+        <!-- 3. WEEK SCHEDULE (col-lg-8) -->
+        <div class="col-lg-8">
+            <div class="card card-custom h-100">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fa-solid fa-calendar-week text-primary me-2"></i>
+                        Lịch làm việc tuần này
+                    </div>
+                    @if (Model.HasSchedule)
+                    {
+                        <a asp-controller="MySchedule" asp-action="Index" class="btn btn-sm btn-link text-decoration-none text-primary p-0 fw-semibold">
+                            Xem đầy đủ <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    }
+                </div>
+
+                <div class="card-body p-3 p-md-4">
+                    @if (!Model.HasSchedule)
+                    {
+                        <div class="text-center py-5">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 56px; height: 56px;">
+                                <i class="fa-regular fa-clock fa-2x text-muted"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">Lịch làm việc chưa được công bố</h6>
+                            <p class="text-muted small mb-0">Quản lý đang sắp xếp hoặc chưa công bố lịch làm việc chính thức cho kỳ này.</p>
+                        </div>
+                    }
+                    else if (!Model.HasMySchedule)
+                    {
+                        <div class="text-center py-5">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 56px; height: 56px;">
+                                <i class="fa-regular fa-calendar-check fa-2x text-primary"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">Chưa có ca được phân công</h6>
+                            <p class="text-muted small mb-0">Lịch làm việc kỳ này đã được công bố, nhưng bạn chưa có ca làm việc nào được phân công.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="text-muted small">
+                                <i class="fa-solid fa-briefcase text-primary me-1"></i>
+                                Phân công tuần này: <strong class="text-dark">@Model.EmployeeTotalAssignedShifts ca làm việc</strong>
+                            </div>
+                            <span class="badge badge-custom badge-active">
+                                <i class="fa-solid fa-circle-check"></i> Đã công bố
+                            </span>
+                        </div>
+
+                        <div class="row g-2 g-md-3">
+                            @foreach (var day in Model.EmployeeWeekSchedule)
+                            {
+                                <div class="col-12 col-sm-6 col-xl-4">
+                                    <div class="p-3 rounded bg-light border h-100 @(day.IsToday ? "border-primary" : "")" style="@(day.IsToday ? "box-shadow: var(--shadow-sm);" : "")">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-bold @(day.IsToday ? "text-primary" : "text-dark")">
+                                                @day.DayOfWeekName
+                                            </span>
+                                            <div>
+                                                @if (day.IsToday)
+                                                {
+                                                    <span class="badge badge-custom badge-primary-custom me-1" style="font-size: 0.65rem;">Hôm nay</span>
+                                                }
+                                                <span class="text-muted small">@day.DateFormatted</span>
+                                            </div>
+                                        </div>
+
+                                        @if (day.Shifts.Count > 0)
+                                        {
+                                            <div class="d-flex flex-column gap-2">
+                                                @foreach (var shift in day.Shifts)
+                                                {
+                                                    <div class="p-2 rounded bg-white border border-light-subtle">
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <i class="fa-regular fa-clock text-primary"></i>
+                                                            <span class="fw-bold text-dark">@shift.ShiftName</span>
+                                                        </div>
+                                                        @if (!string.IsNullOrWhiteSpace(shift.ShiftHours))
+                                                        {
+                                                            <div class="text-muted small ps-3 font-monospace">
+                                                                @shift.ShiftHours
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-2 rounded bg-white text-muted small border border-dashed text-center">
+                                                <span class="opacity-75">Nghỉ</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. QUICK ACTIONS (col-lg-4) -->
+        <div class="col-lg-4">
+            <div class="card card-custom h-100">
+                <div class="card-header-custom">
+                    <i class="fa-solid fa-bolt text-primary me-2"></i>
+                    Thao tác nhanh
+                </div>
+
+                <div class="card-body p-3 d-flex flex-column gap-2">
+                    <a asp-controller="Availability"
+                       asp-action="Index"
+                       class="@(isRegPrimary ? "btn-action-card-primary" : "btn-action-card")">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-user-clock action-icon"></i>
+                            <span>Đăng ký lịch rảnh</span>
+                        </div>
+                        @if (isRegPrimary)
+                        {
+                            <span class="badge bg-white text-primary" style="font-size: 0.72rem;">Đang mở</span>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-chevron-right text-muted small"></i>
+                        }
+                    </a>
+
+                    <a asp-controller="MySchedule"
+                       asp-action="Index"
+                       class="@(isSchedulePrimary ? "btn-action-card-primary" : "btn-action-card")">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-calendar-check action-icon"></i>
+                            <span>Lịch của tôi</span>
+                        </div>
+                        @if (isSchedulePrimary)
+                        {
+                            <i class="fa-solid fa-arrow-right"></i>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-chevron-right text-muted small"></i>
+                        }
+                    </a>
+
+                    <a asp-controller="LeaveRequest"
+                       asp-action="Index"
+                       class="btn-action-card">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-calendar-minus action-icon"></i>
+                            <span>Xin nghỉ</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted small"></i>
+                    </a>
+
+                    <a asp-controller="ShiftTransfer"
+                       asp-action="Index"
+                       class="btn-action-card">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-right-left action-icon"></i>
+                            <span>Đổi ca</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted small"></i>
+                    </a>
+
+                    <a asp-controller="Report"
+                       asp-action="MyReport"
+                       class="btn-action-card">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-chart-pie action-icon"></i>
+                            <span>Báo cáo ca</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted small"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
