@@ -221,10 +221,11 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = RequestQuery(true).Where(request => request.SenderEmployeeId == employeeId);
+        var query = ListQuery(true).Where(request => request.SenderEmployeeId == employeeId);
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(request => request.SubmittedAt)
+            .ThenBy(request => request.ShiftTransferRequestId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -248,11 +249,12 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = RequestQuery(true).Where(request => request.ReceiverEmployeeId == employeeId);
+        var query = ListQuery(true).Where(request => request.ReceiverEmployeeId == employeeId);
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(request => request.ReceiverStatus)
             .ThenByDescending(request => request.SubmittedAt)
+            .ThenBy(request => request.ShiftTransferRequestId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -275,7 +277,7 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var query = RequestQuery(true);
+        var query = ListQuery(true);
         if (filter.HasValue)
         {
             query = filter.Value switch
@@ -296,6 +298,7 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             .OrderBy(request => request.ApprovalStatus)
             .ThenBy(request => request.ReceiverStatus)
             .ThenByDescending(request => request.SubmittedAt)
+            .ThenBy(request => request.ShiftTransferRequestId)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -353,6 +356,19 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
                             .ThenInclude(requirement => requirement.ShiftType)
             .Include(request => request.ApprovedByAccount)
             .AsSplitQuery();
+        return asNoTracking ? query.AsNoTracking() : query;
+    }
+
+    private IQueryable<ShiftTransferRequest> ListQuery(bool asNoTracking)
+    {
+        IQueryable<ShiftTransferRequest> query = _dbContext.ShiftTransferRequests
+            .Include(request => request.SenderEmployee)
+            .Include(request => request.ReceiverEmployee)
+            .Include(request => request.ShiftAssignment)
+                .ThenInclude(assignment => assignment.ShiftType)
+            .Include(request => request.ShiftAssignment)
+                .ThenInclude(assignment => assignment.WorkSchedule)
+                    .ThenInclude(schedule => schedule.SchedulePeriod);
         return asNoTracking ? query.AsNoTracking() : query;
     }
 }
