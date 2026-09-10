@@ -60,6 +60,8 @@ public sealed class ShiftTypeService : IShiftTypeService
         return new ShiftConfigurationEditViewModel
         {
             ExpectedConfigurationVersion = version,
+            MaxShiftsPerEmployeePerDay = morning!.MaxShiftsPerEmployeePerDay,
+            AllowSplitShift = morning.AllowSplitShift,
             Shifts = ordered.Select(s => new ShiftConfigurationItemViewModel
             {
                 ShiftTypeId = s.ShiftTypeId,
@@ -101,11 +103,25 @@ public sealed class ShiftTypeService : IShiftTypeService
             return timeValidation;
         }
 
+        var effectiveAllowSplitShift = model.MaxShiftsPerEmployeePerDay == 2 && model.AllowSplitShift;
+
+        var isUnchanged =
+            activeMorning!.StartTime == morning!.StartTime && activeMorning.EndTime == morning.EndTime &&
+            activeAfternoon!.StartTime == afternoon!.StartTime && activeAfternoon.EndTime == afternoon.EndTime &&
+            activeEvening!.StartTime == evening!.StartTime && activeEvening.EndTime == evening.EndTime &&
+            activeMorning.MaxShiftsPerEmployeePerDay == model.MaxShiftsPerEmployeePerDay &&
+            activeMorning.AllowSplitShift == effectiveAllowSplitShift;
+
+        if (isUnchanged)
+        {
+            return ServiceResult.Success("Cấu hình ca làm việc không có thay đổi.");
+        }
+
         var currentVersion = activeMorning!.ConfigurationVersion;
         var newVersion = currentVersion + 1;
 
         DeactivateOldShifts(activeShifts);
-        var newShifts = CreateNewVersionShifts(activeShifts, morning!, afternoon!, evening!, newVersion);
+        var newShifts = CreateNewVersionShifts(activeShifts, morning!, afternoon!, evening!, newVersion, model.MaxShiftsPerEmployeePerDay, effectiveAllowSplitShift);
         _shiftTypeRepository.AddRange(newShifts);
 
         LogAuditRecord(actorAccountId, newVersion, activeShifts, newShifts);
@@ -142,6 +158,14 @@ public sealed class ShiftTypeService : IShiftTypeService
             return false;
         }
 
+        if (morning.MaxShiftsPerEmployeePerDay != afternoon.MaxShiftsPerEmployeePerDay
+            || morning.MaxShiftsPerEmployeePerDay != evening.MaxShiftsPerEmployeePerDay
+            || morning.AllowSplitShift != afternoon.AllowSplitShift
+            || morning.AllowSplitShift != evening.AllowSplitShift)
+        {
+            return false;
+        }
+
         if (morning.StartTime >= morning.EndTime || afternoon.StartTime >= afternoon.EndTime || evening.StartTime >= evening.EndTime)
         {
             return false;
@@ -165,6 +189,13 @@ public sealed class ShiftTypeService : IShiftTypeService
             return ServiceResult.Failure(
                 ErrorCodes.ShiftConfigurationIncomplete,
                 "Cấu hình phải có đủ ba ca làm việc.");
+        }
+
+        if (model.MaxShiftsPerEmployeePerDay is not (1 or 2))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ShiftConfigurationInvalid,
+                "Số ca tối đa mỗi nhân viên trong ngày chỉ có thể là 1 hoặc 2.");
         }
 
         morning = model.Shifts.FirstOrDefault(s => s.ShiftCode == ShiftTypeConstants.MorningCode);
@@ -254,7 +285,9 @@ public sealed class ShiftTypeService : IShiftTypeService
         ShiftConfigurationItemViewModel morning,
         ShiftConfigurationItemViewModel afternoon,
         ShiftConfigurationItemViewModel evening,
-        int newVersion)
+        int newVersion,
+        int maxShiftsPerDay,
+        bool allowSplitShift)
     {
         var inputMap = new Dictionary<string, ShiftConfigurationItemViewModel>
         {
@@ -279,7 +312,9 @@ public sealed class ShiftTypeService : IShiftTypeService
                 EndTime = input.EndTime,
                 DurationHours = durationHours,
                 ConfigurationVersion = newVersion,
-                IsActive = true
+                IsActive = true,
+                MaxShiftsPerEmployeePerDay = maxShiftsPerDay,
+                AllowSplitShift = allowSplitShift
             });
         }
 
@@ -292,8 +327,8 @@ public sealed class ShiftTypeService : IShiftTypeService
         IReadOnlyList<ShiftType> activeShifts,
         IReadOnlyList<ShiftType> newShifts)
     {
-        var oldAudit = activeShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion }).ToList();
-        var newAudit = newShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion }).ToList();
+        var oldAudit = activeShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion, s.MaxShiftsPerEmployeePerDay, s.AllowSplitShift }).ToList();
+        var newAudit = newShifts.Select(s => new { s.ShiftCode, s.StartTime, s.EndTime, s.DurationHours, s.ConfigurationVersion, s.MaxShiftsPerEmployeePerDay, s.AllowSplitShift }).ToList();
 
         _auditLogRepository.Add(AuditLogFactory.Create(
             actorAccountId, "UPDATE_SHIFT_CONFIGURATION", nameof(ShiftType), newVersion.ToString(), oldAudit, newAudit, _clock.UtcNow));

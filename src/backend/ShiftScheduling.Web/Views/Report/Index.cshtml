@@ -18,6 +18,21 @@
     </div>
 </div>
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="get" asp-action="Index" class="row g-3">
@@ -122,7 +137,7 @@
     </div>
 }
 
-<div class="card card-custom border-0 shadow-sm">
+<div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-header bg-light py-3 fw-bold">
         <i class="fa-solid fa-table me-2"></i>Bảng tổng hợp số ca và giờ làm - @Model.PeriodName
     </div>
@@ -186,6 +201,123 @@
                                 else
                                 {
                                     <span class="badge bg-warning bg-opacity-10 text-dark border border-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>@row.Warning</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card card-custom border-0 shadow-sm">
+    <div class="card-header bg-light py-3 fw-bold">
+        <i class="fa-solid fa-clock-rotate-left me-2"></i>Chi tiết ngày công & điều chỉnh giờ làm - @Model.PeriodName
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 60px;" class="text-center">STT</th>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Ngày làm</th>
+                        <th>Ca làm việc</th>
+                        <th class="text-center">Kế hoạch</th>
+                        <th class="text-center">Ghi nhận</th>
+                        <th>Nguồn giờ</th>
+                        <th>Lý do điều chỉnh</th>
+                        <th style="min-width: 320px;">Thao tác điều chỉnh</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Details.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">Chưa có dữ liệu phân công ca.</td>
+                        </tr>
+                    }
+                    @{
+                        var detailIndex = 1;
+                    }
+                    @foreach (var item in Model.Details)
+                    {
+                        <tr>
+                            <td class="text-center fw-bold">@(detailIndex++)</td>
+                            <td><strong class="text-dark">@item.EmployeeCode</strong></td>
+                            <td class="fw-semibold">@item.FullName</td>
+                            <td>@item.WorkDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">@item.ShiftName</span>
+                                <small class="text-muted d-block">@item.ShiftTimeRange</small>
+                            </td>
+                            <td class="text-center font-monospace">@item.PlannedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
+                            <td class="text-center font-monospace fw-bold text-primary">@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
+                            <td>
+                                @if (item.IsManagerAdjusted)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fa-solid fa-user-pen me-1"></i>Quản lý điều chỉnh</span>
+                                }
+                                else if (item.HasApprovedLeave)
+                                {
+                                    <span class="badge bg-info text-dark"><i class="fa-solid fa-calendar-xmark me-1"></i>Nghỉ đã duyệt — tự động 0 giờ</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border"><i class="fa-solid fa-calendar-check me-1"></i>Theo lịch</span>
+                                }
+                            </td>
+                            <td class="small">
+                                @if (!string.IsNullOrWhiteSpace(item.AdjustmentReason))
+                                {
+                                    <span class="text-muted fst-italic">@item.AdjustmentReason</span>
+                                }
+                                else if (item.HasApprovedLeave)
+                                {
+                                    <span class="text-info fst-italic">Nghỉ phép được duyệt</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.CanAdjust)
+                                {
+                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                        <form method="post" asp-action="AdjustWorkdayHours" class="d-flex align-items-center gap-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
+                                            <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
+                                            <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
+                                            <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
+                                            <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
+                                            <input type="number" step="0.25" min="0" max="24" name="ActualWorkedHours" value="@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" class="form-control form-control-sm text-end" style="width: 75px;" required />
+                                            <input type="text" name="WorkdayAdjustmentReason" value="@(item.IsManagerAdjusted ? item.AdjustmentReason : "")" placeholder="Lý do điều chỉnh..." class="form-control form-control-sm" style="width: 140px;" maxlength="500" />
+                                            <button type="submit" class="btn btn-sm btn-primary-custom" title="Lưu điều chỉnh"><i class="fa-solid fa-check"></i> Lưu</button>
+                                        </form>
+                                        @if (item.IsManagerAdjusted)
+                                        {
+                                            <form method="post" asp-action="AdjustWorkdayHours" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
+                                                <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
+                                                <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
+                                                <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
+                                                <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
+                                                <input type="hidden" name="IsReset" value="true" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Đặt lại theo hệ thống" onclick="return confirm('Đặt lại giờ công theo hệ thống tính toán?');">
+                                                    <i class="fa-solid fa-rotate-left"></i> Đặt lại
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-25 text-muted"><i class="fa-solid fa-hourglass-half me-1"></i>Chưa kết thúc ca</span>
                                 }
                             </td>
                         </tr>

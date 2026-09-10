@@ -10,6 +10,9 @@ public sealed class SchedulePeriodDetailsViewModel
     public DateOnly WeekEndDate { get; set; }
     public DateTime AvailabilityDeadline { get; set; }
     public RegistrationStatus RegistrationStatus { get; set; }
+    public string EffectiveStatusName { get; set; } = string.Empty;
+    public bool NeedsAttention { get; set; }
+    public string DisplayBadgeClass { get; set; } = "badge-ended";
     public string CreatedByUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public List<StaffingRequirementItemViewModel> Requirements { get; set; } = new();

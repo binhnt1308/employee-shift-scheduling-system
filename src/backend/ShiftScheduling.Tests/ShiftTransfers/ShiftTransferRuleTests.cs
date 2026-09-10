@@ -198,4 +198,45 @@ public sealed class ShiftTransferRuleTests
         Assert.Equal(ErrorCodes.ShiftTransferRuleViolation, result.ErrorCode);
         Assert.Contains("BR21", result.ErrorMessage ?? string.Empty);
     }
+
+    [Fact(DisplayName = "TC-BR01-TRF-01 - Đổi ca tuân thủ Max=1: FT nhận ca thứ 2 trong ngày bị chặn")]
+    public async Task SubmitAsync_WhenPolicyMax1_FullTimeReceiverSecondShift_ReturnsRuleViolation()
+    {
+        var context = ShiftTransferTestContext.Create();
+        context.Receiver.EmploymentType = EmploymentType.FullTime;
+        context.Morning.MaxShiftsPerEmployeePerDay = 1;
+        context.Afternoon.MaxShiftsPerEmployeePerDay = 1;
+        context.Evening.MaxShiftsPerEmployeePerDay = 1;
+
+        // Target assignment is Morning
+        // Receiver already has Afternoon on that day
+        context.AddReceiverAssignment(context.TargetAssignment.WorkDate, context.Afternoon);
+
+        var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ErrorCodes.ShiftTransferRuleViolation, result.ErrorCode);
+        Assert.Contains("tối đa 1 ca/ngày", result.ErrorMessage ?? string.Empty);
+    }
+
+    [Fact(DisplayName = "TC-BR01-TRF-02 - Đổi ca khi AllowSplitShift=true: FT nhận cặp Sáng-Tối thành công")]
+    public async Task SubmitAsync_WhenPolicyAllowsSplitShift_FullTimeMorningAndEvening_Succeeds()
+    {
+        var context = ShiftTransferTestContext.Create();
+        context.Receiver.EmploymentType = EmploymentType.FullTime;
+        context.Morning.MaxShiftsPerEmployeePerDay = 2;
+        context.Morning.AllowSplitShift = true;
+        context.Afternoon.MaxShiftsPerEmployeePerDay = 2;
+        context.Afternoon.AllowSplitShift = true;
+        context.Evening.MaxShiftsPerEmployeePerDay = 2;
+        context.Evening.AllowSplitShift = true;
+
+        // Target assignment is Morning
+        // Receiver already has Evening on that day
+        context.AddReceiverAssignment(context.TargetAssignment.WorkDate, context.Evening);
+
+        var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+    }
 }

@@ -46,6 +46,7 @@ public static class ErrorCodes
     public const string EmployeeOnLeave = "EMPLOYEE_ON_LEAVE";
     public const string ShiftAssignmentOverlap = "SHIFT_ASSIGNMENT_OVERLAP";
     public const string InvalidShiftAssignment = "INVALID_SHIFT_ASSIGNMENT";
+    public const string InvalidShiftSelection = "INVALID_SHIFT_SELECTION";
     public const string InvalidScheduleStatus = "INVALID_SCHEDULE_STATUS";
     public const string WorkScheduleNotFound = "WORK_SCHEDULE_NOT_FOUND";
     public const string InvalidSchedulePublish = "INVALID_SCHEDULE_PUBLISH";

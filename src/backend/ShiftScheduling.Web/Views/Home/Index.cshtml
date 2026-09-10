@@ -65,41 +65,65 @@
         </div>
     }
 
-    <div class="@(isEmployee ? "col-md-6" : "col-md-6 col-xl-3")">
-        <div class="stat-card stat-card-amber h-100">
-            <div class="small opacity-75">
-                Ca làm
-            </div>
+    @if (!isEmployee)
+    {
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card stat-card-amber h-100">
+                <div class="small opacity-75">
+                    Ca đang áp dụng
+                </div>
 
-            <div class="display-6 fw-bold">
-                @Model.ShiftTypeCount
-            </div>
+                <div class="display-6 fw-bold">
+                    @Model.ShiftTypeCount
+                </div>
 
-            <div>
-                ca cố định
-            </div>
+                <div>
+                    ca hoạt động
+                </div>
 
-            <i class="fa-regular fa-clock stat-icon"></i>
+                <i class="fa-regular fa-clock stat-icon"></i>
+            </div>
         </div>
-    </div>
+    }
 
-    <div class="@(isEmployee ? "col-md-6" : "col-md-6 col-xl-3")">
+    <div class="@(isEmployee ? "col-12" : "col-md-6 col-xl-3")">
         <div class="stat-card stat-card-rose h-100">
-            <div class="small opacity-75">
-                @(isEmployee ? "Lịch của tôi" : "Lịch làm việc")
-            </div>
+            @if (isEmployee)
+            {
+                <div class="small opacity-75">
+                    @Model.EmployeePeriodLabel
+                </div>
 
-            <div class="display-6 fw-bold">
-                @(isEmployee
-                    ? (Model.HasMySchedule ? "Đã có" : "Chưa có")
-                    : (Model.HasSchedule ? "Đã có" : "Chưa có"))
-            </div>
+                <div class="display-6 fw-bold">
+                    @Model.EmployeeScheduleStatusDisplay
+                </div>
 
-            <div>
-                @(isEmployee
-                    ? (Model.HasMySchedule ? "đã được phân công" : "chưa được phân công")
-                    : (Model.HasSchedule ? "đã công bố" : "chưa phân công"))
-            </div>
+                <div>
+                    @(Model.TargetPeriodDateRange ?? "Chưa có kỳ lịch")
+                </div>
+            }
+            else
+            {
+                <div class="small opacity-75">
+                    Lịch làm việc
+                    @if (!string.IsNullOrEmpty(Model.TargetPeriodName))
+                    {
+                        <span class="ms-1">(@Model.TargetPeriodName)</span>
+                    }
+                </div>
+
+                <div class="display-6 fw-bold">
+                    @Model.ScheduleStatusDisplay
+                </div>
+
+                <div>
+                    @(Model.TargetPeriodDateRange ?? "Chưa có kỳ lịch")
+                    @if (Model.NeedsAttention)
+                    {
+                        <span class="badge bg-danger ms-1">Cần xử lý</span>
+                    }
+                </div>
+            }
 
             <i class="fa-solid fa-calendar-days stat-icon"></i>
         </div>
@@ -109,70 +133,64 @@
 
 <div class="row g-4">
 
-    <div class="col-lg-8">
-        <div class="card card-custom h-100">
+    @if (!isEmployee)
+    {
+        <div class="col-lg-8">
+            <div class="card card-custom h-100">
 
-            <div class="card-header-custom">
-                <i class="fa-regular fa-clock text-primary me-2"></i>
-                Danh sách ca làm việc
-            </div>
-
-            <div class="card-body p-4">
-
-                <div class="list-group list-group-flush">
-                    @if (Model.ShiftTypes.Count == 0)
-                    {
-                        <div class="list-group-item text-center text-muted py-4">
-                            Chưa có ca làm việc nào trong hệ thống.
-                        </div>
-                    }
-                    else
-                    {
-                        @foreach (var shift in Model.ShiftTypes)
-                        {
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>@shift.ShiftName</strong><br />
-
-                                    <small class="text-muted font-monospace">
-                                        @shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")
-                                    </small>
-                                </div>
-
-                                @if (shift.IsActive)
-                                {
-                                    <span class="badge badge-custom badge-active align-self-center">
-                                        <i class="fa-solid fa-circle-check"></i>
-                                        Đang hoạt động
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge badge-custom badge-rejected align-self-center">
-                                        Ngừng hoạt động
-                                    </span>
-                                }
-                            </div>
-                        }
-                    }
+                <div class="card-header-custom">
+                    <i class="fa-regular fa-clock text-primary me-2"></i>
+                    Danh sách ca làm việc
                 </div>
 
-                <div class="alert alert-custom alert-custom-info mt-4 mb-0">
+                <div class="card-body p-4">
 
-                    <i class="fa-solid fa-circle-info fs-5 me-2"></i>
+                    <div class="list-group list-group-flush">
+                        @if (Model.ShiftTypes.Count == 0)
+                        {
+                            <div class="list-group-item text-center text-muted py-4">
+                                Chưa có ca làm việc nào trong hệ thống.
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var shift in Model.ShiftTypes)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@shift.ShiftName</strong><br />
 
-                    <div>
-                        Hi! Chào mừng bạn đến với hệ thống quản lý ca làm việc.
-                        Chọn một chức năng ở bên phải để bắt đầu sử dụng.
+                                        <small class="text-muted font-monospace">
+                                            @shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")
+                                        </small>
+                                    </div>
+
+                                    <span class="badge badge-custom badge-active align-self-center">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        Đang áp dụng
+                                    </span>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    <div class="alert alert-custom alert-custom-info mt-4 mb-0">
+
+                        <i class="fa-solid fa-circle-info fs-5 me-2"></i>
+
+                        <div>
+                            Hi! Chào mừng bạn đến với hệ thống quản lý ca làm việc.
+                            Chọn một chức năng ở bên phải để bắt đầu sử dụng.
+                        </div>
+
                     </div>
 
                 </div>
-
             </div>
         </div>
-    </div>
+    }
 
-    <div class="col-lg-4">
+    <div class="@(isEmployee ? "col-12" : "col-lg-4")">
         <div class="card card-custom h-100">
 
             <div class="card-header-custom">

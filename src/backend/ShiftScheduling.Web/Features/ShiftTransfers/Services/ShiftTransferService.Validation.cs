@@ -228,35 +228,56 @@ public sealed partial class ShiftTransferService
         IReadOnlyList<ShiftAssignment> existingAssignments,
         List<string> errors)
     {
-        // BR08: Người nhận không được có ca khác trùng thời gian.
-        if (existingAssignments.Any(item =>
-                item.WorkDate == target.WorkDate && Overlaps(item.ShiftType, target.ShiftType)))
+        var period = target.WorkSchedule?.SchedulePeriod;
+        if (period is null)
         {
-            errors.Add("Người nhận đã có ca làm việc trùng thời gian.");
+            errors.Add("Không tìm thấy kỳ lịch tương ứng với ca làm việc.");
             return;
         }
 
-        var projectedAssignments = existingAssignments.Append(target).ToArray();
-        if (receiver.EmploymentType == EmploymentType.PartTime)
+        var availableShifts = existingAssignments
+            .Select(a => a.ShiftType)
+            .Append(target.ShiftType)
+            .Where(st => st != null)
+            .Cast<ShiftType>()
+            .ToList();
+
+        var periodShifts = DailyShiftRuleEvaluator.ExtractPeriodShifts(period.StaffingRequirements, availableShifts);
+        if (!DailyShiftRuleEvaluator.TryResolvePolicy(periodShifts, out var policy, out var policyError))
         {
-            // BR09: Việc nhận ca không được làm nhân viên bán thời gian
-            // vượt quá một ca trong ngày.
-            if (projectedAssignments.GroupBy(item => item.WorkDate).Any(group => group.Count() > 1))
-            {
-                errors.Add("Việc nhận ca làm nhân viên bán thời gian vượt quá một ca trong ngày.");
-            }
+            errors.Add(policyError ?? "Không xác định được chính sách ca làm việc hợp lệ của kỳ lịch.");
+            return;
         }
-        else
+
+        var (policyMax, allowSplit) = policy;
+        var projectedAssignments = existingAssignments.Append(target).ToArray();
+
+        // Kiểm tra quy tắc ca trong ngày (BR-01, BR08, BR09, BR10) qua DailyShiftRuleEvaluator
+        foreach (var group in projectedAssignments.GroupBy(item => item.WorkDate))
         {
-            AddFullTimeRuleErrors(projectedAssignments, errors);
+            var dayShifts = group
+                .Select(item => item.ShiftType)
+                .Where(st => st != null)
+                .ToList();
+
+            DailyShiftRuleEvaluator.ValidateDailyAssignments(
+                receiver, group.Key, dayShifts!, policyMax, allowSplit, errors);
+        }
+
+        // BR11: FT không được vượt quá 6 ngày làm trong một kỳ lịch tuần.
+        if (receiver.EmploymentType == EmploymentType.FullTime
+            && projectedAssignments.Select(item => item.WorkDate).Distinct().Count() > 6)
+        {
+            errors.Add("Việc đổi ca làm nhân viên toàn thời gian vượt quá"
+                + " 6 ngày làm việc trong tuần.");
         }
 
         var shiftTypeMap = projectedAssignments
             .Where(a => a.ShiftType is not null)
             .GroupBy(a => a.ShiftTypeId)
             .ToDictionary(g => g.Key, g => g.First().ShiftType);
-        var weekStartDate = target.WorkSchedule.SchedulePeriod.WeekStartDate;
-        var weekEndDate = target.WorkSchedule.SchedulePeriod.WeekEndDate;
+        var weekStartDate = period.WeekStartDate;
+        var weekEndDate = period.WeekEndDate;
 
         // BR-05: Tổng giờ làm trong tuần không được vượt trần theo loại hợp đồng.
         var hoursErrors = WeeklyWorkHoursRuleEvaluator.EvaluateWeeklyWorkHours(
@@ -268,33 +289,6 @@ public sealed partial class ShiftTransferService
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             receiver, projectedAssignments, shiftTypeMap, weekStartDate);
         errors.AddRange(restErrors);
-    }
-
-    private static void AddFullTimeRuleErrors(
-        IReadOnlyList<ShiftAssignment> assignments,
-        List<string> errors)
-    {
-        // BR10: Ngày làm của FT phải đúng hai ca liên tiếp sáng-chiều hoặc chiều-tối.
-        foreach (var group in assignments.GroupBy(item => item.WorkDate))
-        {
-            var codes = group
-                .Select(item => item.ShiftType.ShiftCode.ToUpperInvariant())
-                .OrderBy(code => code)
-                .ToArray();
-            if (codes.Length != 2 || !IsConsecutivePair(codes))
-            {
-                errors.Add("Việc đổi ca làm vi phạm quy tắc hai ca liên tiếp"
-                    + " của nhân viên toàn thời gian.");
-                break;
-            }
-        }
-
-        // BR11: FT không được vượt quá 6 ngày làm trong một kỳ lịch tuần.
-        if (assignments.Select(item => item.WorkDate).Distinct().Count() > 6)
-        {
-            errors.Add("Việc đổi ca làm nhân viên toàn thời gian vượt quá"
-                + " 6 ngày làm việc trong tuần.");
-        }
     }
 
     private async Task AddStaffingErrorsAsync(

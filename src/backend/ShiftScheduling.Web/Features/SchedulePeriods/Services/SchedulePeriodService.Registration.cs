@@ -104,8 +104,25 @@ public sealed partial class SchedulePeriodService
                 "Kỳ lịch không ở trạng thái Chuẩn bị.");
         }
 
-        // BR04: Kỳ lịch chỉ mở đăng ký khi thời hạn đăng ký còn hiệu lực.
-        if (period.AvailabilityDeadline <= _clock.UtcNow)
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(_clock.UtcNow));
+        var deadlineVietnam = _clock.ToVietnamTime(period.AvailabilityDeadline);
+        var deadlineDate = DateOnly.FromDateTime(deadlineVietnam);
+
+        if (deadlineDate >= period.WeekStartDate)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidDateRange,
+                "Hạn đăng ký lịch rảnh phải trước ngày bắt đầu kỳ lịch.");
+        }
+
+        if (currentDate >= period.WeekStartDate)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidSchedulePeriodStatus,
+                "Kỳ lịch đã bắt đầu, không thể mở đăng ký.");
+        }
+
+        if (_clock.UtcNow > period.AvailabilityDeadline)
         {
             return ServiceResult.Failure(
                 ErrorCodes.RegistrationDeadlineExpired,

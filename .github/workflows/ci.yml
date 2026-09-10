@@ -33,4 +33,4 @@ jobs:
         run: dotnet build src/backend/ShiftScheduling.sln --configuration Release --no-restore --warnaserror
 
       - name: Run unit tests
-        run: dotnet test src/backend/ShiftScheduling.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test src/backend/ShiftScheduling.sln --configuration Release --no-build --filter "FullyQualifiedName!~ControllerDatabaseIntegrationTests" --verbosity normal

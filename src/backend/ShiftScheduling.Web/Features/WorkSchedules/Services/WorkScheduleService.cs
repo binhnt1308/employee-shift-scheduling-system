@@ -8,6 +8,7 @@ using ShiftScheduling.Features.Availabilities.Repositories;
 using ShiftScheduling.Features.Employees.Repositories;
 using ShiftScheduling.Features.LeaveRequests.Repositories;
 using ShiftScheduling.Features.SchedulePeriods.Repositories;
+using ShiftScheduling.Features.SchedulePeriods.Services;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
 using ShiftScheduling.Features.WorkSchedules.Repositories;
 using ShiftScheduling.Features.WorkSchedules.ViewModels;
@@ -77,14 +78,35 @@ public partial class WorkScheduleService : IWorkScheduleService
         var pagedPeriods = await _periodRepository.GetPagedAsync(page, pageSize, cancellationToken);
         var periodItems = new List<WorkSchedulePeriodItemViewModel>();
 
+        var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
+
         foreach (var period in pagedPeriods.Items)
         {
             var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
                 period.SchedulePeriodId, true, true, cancellationToken);
 
-            var canSchedule = period.RegistrationStatus == RegistrationStatus.Closed
-                || (period.RegistrationStatus == RegistrationStatus.Open
-                    && period.AvailabilityDeadline <= _clock.UtcNow);
+            var isRegOpen = SchedulePeriodStatusHelper.IsRegistrationEffectivelyOpen(period, now, currentDate);
+
+            var canSchedule = CanSchedulePeriod(period, schedule, now, currentDate);
+
+            string statusName;
+            string badgeClass;
+            if (period.RegistrationStatus == RegistrationStatus.Preparing)
+            {
+                statusName = "Đang chuẩn bị";
+                badgeClass = "badge bg-secondary";
+            }
+            else if (isRegOpen)
+            {
+                statusName = "Đang mở đăng ký";
+                badgeClass = "badge bg-success";
+            }
+            else
+            {
+                statusName = "Đã đóng đăng ký";
+                badgeClass = "badge bg-dark";
+            }
 
             periodItems.Add(new WorkSchedulePeriodItemViewModel
             {
@@ -93,11 +115,14 @@ public partial class WorkScheduleService : IWorkScheduleService
                 WeekStartDate = period.WeekStartDate,
                 WeekEndDate = period.WeekEndDate,
                 RegistrationStatus = period.RegistrationStatus,
+                IsRegistrationEffectivelyOpen = isRegOpen,
+                EffectiveRegistrationStatusName = statusName,
+                EffectiveRegistrationBadgeClass = badgeClass,
                 WorkScheduleId = schedule?.WorkScheduleId,
                 ScheduleStatus = schedule?.Status,
                 PublishedAt = schedule?.PublishedAt,
                 TotalAssignmentsCount = schedule?.ShiftAssignments.Count ?? 0,
-                CanSchedule = canSchedule || schedule is not null
+                CanSchedule = canSchedule
             });
         }
 
@@ -119,11 +144,24 @@ public partial class WorkScheduleService : IWorkScheduleService
             return null;
         }
 
-        var schedule = await _workScheduleRepository.EnsureDraftExistsAsync(
-            schedulePeriodId, accountId, _clock.UtcNow, cancellationToken);
-
-        schedule = await _workScheduleRepository.GetByPeriodIdAsync(
+        var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             schedulePeriodId, true, true, cancellationToken);
+
+        var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
+
+        if (!CanSchedulePeriod(period, schedule, now, currentDate))
+        {
+            return null;
+        }
+
+        if (schedule is null)
+        {
+            schedule = await _workScheduleRepository.EnsureDraftExistsAsync(
+                schedulePeriodId, accountId, now, cancellationToken);
+            schedule = await _workScheduleRepository.GetByPeriodIdAsync(
+                schedulePeriodId, true, true, cancellationToken);
+        }
 
         if (schedule is null)
         {
@@ -228,8 +266,8 @@ public partial class WorkScheduleService : IWorkScheduleService
                     MissingSales = Math.Max(0, reqSales - assignedSales),
                     MissingCashier = Math.Max(0, reqCashier - assignedCashier),
                     HasLevel2Plus = hasLevel2Plus,
-                    IsSatisfied = assignedSales >= reqSales
-                        && assignedCashier >= reqCashier
+                    IsSatisfied = assignedSales == reqSales
+                        && assignedCashier == reqCashier
                         && (hasLevel2Plus || reqSales + reqCashier == 0),
                     AssignedEmployees = assignedItems
                 });
@@ -263,5 +301,17 @@ public partial class WorkScheduleService : IWorkScheduleService
         }
 
         return new List<ShiftType> { morning, afternoon, evening };
+    }
+
+    private static bool CanSchedulePeriod(
+        SchedulePeriod period,
+        WorkSchedule? workSchedule,
+        DateTime now,
+        DateOnly currentDate)
+    {
+        return period.RegistrationStatus == RegistrationStatus.Closed
+            || (period.RegistrationStatus == RegistrationStatus.Open
+                && !SchedulePeriodStatusHelper.IsRegistrationEffectivelyOpen(period, now, currentDate))
+            || workSchedule is not null;
     }
 }

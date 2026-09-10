@@ -28,11 +28,19 @@ public sealed partial class SchedulePeriodService
         var weekEndDate = weekStartDate.AddDays(6);
         var availabilityDeadlineUtc = _clock.ToUtcFromVietnamTime(model.AvailabilityDeadline);
 
+        var deadlineDate = DateOnly.FromDateTime(model.AvailabilityDeadline);
+        if (deadlineDate >= weekStartDate)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidDateRange,
+                "Hạn đăng ký lịch rảnh phải trước ngày bắt đầu kỳ lịch.");
+        }
+
         if (availabilityDeadlineUtc <= _clock.UtcNow)
         {
             return ServiceResult.Failure(
-            ErrorCodes.InvalidDateRange,
-            "Hạn đăng ký lịch rảnh phải ở tương lai.");
+                ErrorCodes.InvalidDateRange,
+                "Hạn đăng ký lịch rảnh phải ở tương lai.");
         }
 
         if (await _schedulePeriodRepository.HasOverlappingPeriodAsync(

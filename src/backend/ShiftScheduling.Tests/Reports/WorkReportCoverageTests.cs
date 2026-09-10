@@ -11,11 +11,22 @@ public sealed class WorkReportCoverageTests
     private readonly FakeWorkScheduleRepository _workScheduleRepo = new();
     private readonly FakeSchedulePeriodRepository _periodRepo = new();
     private readonly FakeEmployeeRepository _employeeRepo = new();
+    private readonly FakeLeaveRequestRepository _leaveRequestRepo = new();
+    private readonly FakeAuditLogRepository _auditLogRepo = new();
+    private readonly FakeUnitOfWork _unitOfWork = new();
+    private readonly FakeClock _clock = new();
     private readonly WorkReportService _service;
 
     public WorkReportCoverageTests()
     {
-        _service = new WorkReportService(_workScheduleRepo, _periodRepo, _employeeRepo);
+        _service = new WorkReportService(
+            _workScheduleRepo,
+            _periodRepo,
+            _employeeRepo,
+            _leaveRequestRepo,
+            _auditLogRepo,
+            _unitOfWork,
+            _clock);
     }
 
     [Fact(DisplayName = "TC-NC08-001 - CoverageRate reaches 100% when all 42 required slots are fulfilled")]

@@ -24,7 +24,8 @@ public sealed class SchedulePeriodRepository : ISchedulePeriodRepository
 
         var query = _dbContext.SchedulePeriods
             .AsNoTracking()
-            .Include(sp => sp.CreatedByAccount);
+            .Include(sp => sp.CreatedByAccount)
+            .Include(sp => sp.WorkSchedules);
 
         var totalItems = await query.CountAsync(cancellationToken);
         var items = await query
@@ -74,6 +75,17 @@ public sealed class SchedulePeriodRepository : ISchedulePeriodRepository
                 sp.WeekStartDate <= weekEndDate &&
                 sp.WeekEndDate >= weekStartDate,
                 cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SchedulePeriod>> GetAllWithSchedulesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.SchedulePeriods
+            .AsNoTracking()
+            .Include(sp => sp.WorkSchedules)
+                .ThenInclude(ws => ws.ShiftAssignments)
+            .OrderByDescending(sp => sp.WeekStartDate)
+            .ToListAsync(cancellationToken);
     }
 
     public void Add(SchedulePeriod period)

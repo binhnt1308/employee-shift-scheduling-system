@@ -17,6 +17,7 @@ public sealed class ApplicationDbContext : DbContext
     public DbSet<ShiftType> ShiftTypes => Set<ShiftType>();
     public DbSet<StaffingRequirement> StaffingRequirements => Set<StaffingRequirement>();
     public DbSet<Availability> Availabilities => Set<Availability>();
+    public DbSet<WeeklyAvailabilityPattern> WeeklyAvailabilityPatterns => Set<WeeklyAvailabilityPattern>();
     public DbSet<WorkSchedule> WorkSchedules => Set<WorkSchedule>();
     public DbSet<ShiftAssignment> ShiftAssignments => Set<ShiftAssignment>();
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();

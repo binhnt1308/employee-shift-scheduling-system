@@ -198,74 +198,75 @@ Features/
 ```
 
 ---
+
 ## Kiểm thử gần nhất
 
-Automated test được chạy trên branch `tuan-07`.
+Automated test được chạy trên branch `tuan-08`.
 
 ```text
-Tests:
+Build:
+0 warnings
+0 errors
 
+Tests:
 234 total
 234 passed
 0 failed
 0 skipped
 ```
 
-=======
-140 total
-140 passed
-0 failed
-0 skipped
-
 Các nhóm kiểm thử chính:
 
-Authentication và Authorization.
-Employee lifecycle.
-Kỳ lịch và 3 ca cố định.
-Availability.
-Phân công thủ công.
-Quy tắc Part-time / Full-time.
-BR20 — nghỉ tối thiểu 12 giờ.
-BR21 — nghỉ liên tục tối thiểu 24 giờ.
-OR-Tools:
-Phương án khả thi.
-INFEASIBLE.
-Proposal-only.
-Không tự động Publish.
-Publish validation.
-Đơn xin nghỉ.
-Đổi ca.
-Báo cáo và xuất CSV.
-Concurrency.
-Các trường hợp biên ngày tháng.
+- Authentication và Authorization.
+- Employee lifecycle.
+- Kỳ lịch và ba ca làm việc trong ngày.
+- Availability.
+- Phân công thủ công.
+- Quy tắc Part-time / Full-time.
+- BR20 — nghỉ tối thiểu 12 giờ.
+- BR21 — nghỉ liên tục tối thiểu 24 giờ.
+- OR-Tools:
+  - Phương án khả thi.
+  - INFEASIBLE.
+  - Proposal-only.
+  - Không tự động Publish.
+- Publish validation.
+- Đơn xin nghỉ.
+- Đổi ca.
+- Báo cáo và xuất CSV.
+- Concurrency.
+- Các trường hợp biên ngày tháng.
 
-Lưu ý: Kết quả automated test và kết quả kiểm thử HTTP/UI được quản lý độc lập.
+> **Lưu ý:** Kết quả automated test và kết quả kiểm thử HTTP/UI được quản lý độc lập. Không tự động xem testcase HTTP/UI là Pass chỉ vì automated test tương ứng đang Pass.
 
-Không tự động xem testcase HTTP/UI là Pass chỉ vì automated test tương ứng đang Pass.
-
-Tài liệu kiểm thử
+### Tài liệu kiểm thử
 
 Các tài liệu kiểm thử chính:
 
+```text
 docs/kiem-thu/
 ├── testcase.md
-├── matran-truyvet.md
-└── BR_TEST_COVERAGE_TUAN07.md
+├── matrantruyvet.md
+└── BR_Test Coverage.md
+```
 
 Trong đó:
 
-testcase.md: Mô tả chi tiết các testcase chính.
-matrantruyvet.md: Truy vết FR / BR → testcase theo TC-08.
-BR_Test Coverage.md: Kiểm tra nhanh coverage theo từng Business Rule.
-Kỹ thuật kiểm thử
+- `testcase.md`: Mô tả chi tiết các testcase chính.
+- `matrantruyvet.md`: Truy vết FR / BR → testcase theo TC-08.
+- `BR_Test Coverage.md`: Kiểm tra nhanh coverage theo từng Business Rule.
+
+### Kỹ thuật kiểm thử
 
 Các kỹ thuật kiểm thử được sử dụng:
 
-Phân hoạch tương đương.
-Phân tích giá trị biên.
-Bảng quyết định.
-Kiểm thử chuyển trạng thái.
-Kiểm thử hồi quy.
+- Phân hoạch tương đương.
+- Phân tích giá trị biên.
+- Bảng quyết định.
+- Kiểm thử chuyển trạng thái.
+- Kiểm thử hồi quy.
+
+---
 
 Các luồng chính đã được kiểm tra:
 
@@ -413,3 +414,16 @@ dotnet test src/backend/ShiftScheduling.sln `
 - **Sinh viên thực hiện:** Nguyễn Thanh Bình
 - **MSSV:** 2354050017
 - **Giảng viên hướng dẫn:** Th.S Võ Việt Khoa
+
+### Lưu ý khi chạy SQL Server LocalDB
+
+Ứng dụng sử dụng SQL Server LocalDB với instance `MSSQLLocalDB`.
+Khi khởi động, ứng dụng tự động áp dụng các EF Core migration còn thiếu.
+
+Nếu xuất hiện lỗi không thể kết nối tới `(localdb)\MSSQLLocalDB`,
+kiểm tra và khởi động lại LocalDB:
+
+```powershell
+sqllocaldb info MSSQLLocalDB
+sqllocaldb start MSSQLLocalDB
+```

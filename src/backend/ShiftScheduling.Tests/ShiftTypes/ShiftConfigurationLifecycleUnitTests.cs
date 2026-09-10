@@ -247,6 +247,65 @@ public sealed class ShiftConfigurationLifecycleUnitTests
         Assert.Empty(auditRepo.Items);
     }
 
+    [Fact(DisplayName = "TC-SHIFT-CONFIG-UNCHANGED-01: Luu cau hinh giong hien hanh khong tao version moi")]
+    public async Task UpdateConfigurationAsync_WhenTimesUnchanged_DoesNotCreateNewVersionAndReturnsFriendlyMessage()
+    {
+        var repo = CreateRepositoryWithThreeFixedShifts(version: 1);
+        var uow = new FakeUnitOfWork();
+        var auditRepo = new FakeAuditLogRepository();
+        var service = CreateService(repo, uow, auditRepo);
+
+        // Model with exact same times as active shifts (8:00-12:00, 12:00-16:00, 16:00-20:00)
+        var model = new ShiftConfigurationEditViewModel
+        {
+            ExpectedConfigurationVersion = 1,
+            Shifts = new List<ShiftConfigurationItemViewModel>
+            {
+                new() { ShiftCode = ShiftTypeConstants.MorningCode, ShiftName = "Ca sáng", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0) },
+                new() { ShiftCode = ShiftTypeConstants.AfternoonCode, ShiftName = "Ca chiều", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0) },
+                new() { ShiftCode = ShiftTypeConstants.EveningCode, ShiftName = "Ca tối", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0) }
+            }
+        };
+
+        var result = await service.UpdateConfigurationAsync(model, actorAccountId: 1);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Cấu hình ca làm việc không có thay đổi.", result.SuccessMessage);
+        Assert.Equal(0, uow.SaveCount);
+        Assert.Empty(auditRepo.Items);
+
+        // Repo still only has the original 3 shifts, still version 1 and active
+        var activeShifts = await repo.GetActiveShiftsAsync(true);
+        Assert.Equal(3, activeShifts.Count);
+        Assert.All(activeShifts, s => Assert.Equal(1, s.ConfigurationVersion));
+        Assert.All(activeShifts, s => Assert.True(s.IsActive));
+    }
+
+    [Fact(DisplayName = "TC-SHIFT-CONFIG-CHANGED-01: Thay doi gio tao snapshot noi bo version moi")]
+    public async Task UpdateConfigurationAsync_WhenTimesChanged_CreatesNewVersionSnapshot()
+    {
+        var repo = CreateRepositoryWithThreeFixedShifts(version: 1);
+        var uow = new FakeUnitOfWork();
+        var auditRepo = new FakeAuditLogRepository();
+        var service = CreateService(repo, uow, auditRepo);
+
+        var model = CreateValidModel(expectedVersion: 1); // 7:30-12:00 etc.
+        var result = await service.UpdateConfigurationAsync(model, actorAccountId: 99);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, uow.SaveCount);
+        Assert.Single(auditRepo.Items);
+
+        var activeShifts = await repo.GetActiveShiftsAsync(true);
+        Assert.Equal(3, activeShifts.Count);
+        Assert.All(activeShifts, s => Assert.Equal(2, s.ConfigurationVersion));
+
+        // Total shifts in repo is 6 (3 old deactivated + 3 new active)
+        Assert.Equal(6, repo.ShiftTypes.Count);
+        Assert.Equal(3, repo.ShiftTypes.Count(s => !s.IsActive && s.ConfigurationVersion == 1));
+        Assert.Equal(3, repo.ShiftTypes.Count(s => s.IsActive && s.ConfigurationVersion == 2));
+    }
+
     private static ShiftConfigurationEditViewModel CreateValidModel(int expectedVersion)
     {
         return new ShiftConfigurationEditViewModel

@@ -22,6 +22,9 @@ public interface ISchedulePeriodRepository
         int? excludedPeriodId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SchedulePeriod>> GetAllWithSchedulesAsync(
+        CancellationToken cancellationToken = default);
+
     void Add(SchedulePeriod period);
 
     void AddRequirement(StaffingRequirement requirement);

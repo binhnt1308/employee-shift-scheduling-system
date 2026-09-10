@@ -62,7 +62,7 @@ public sealed class ShiftTypeController : AuthorizedController
             return View(model);
         }
 
-        TempData["Success"] = "Đã cập nhật cấu hình giờ 3 ca thành công.";
+        TempData["Success"] = result.SuccessMessage ?? "Đã cập nhật cấu hình giờ 3 ca thành công.";
         return RedirectToAction(nameof(Index));
     }
 }

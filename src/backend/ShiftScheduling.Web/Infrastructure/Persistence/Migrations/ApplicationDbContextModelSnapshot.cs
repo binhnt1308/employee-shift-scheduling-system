@@ -77,6 +77,11 @@ namespace ShiftScheduling.Migrations
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
+                    b.Property<int>("PreferenceLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime>("RegisteredAt")
                         .HasColumnType("datetime2");
 
@@ -101,7 +106,10 @@ namespace ShiftScheduling.Migrations
                     b.HasIndex("EmployeeId", "SchedulePeriodId", "WorkDate", "ShiftTypeId")
                         .IsUnique();
 
-                    b.ToTable("Availabilities", (string)null);
+                    b.ToTable("Availabilities", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Availabilities_PreferenceLevel", "[PreferenceLevel] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("ShiftScheduling.Models.Entities.Employee", b =>
@@ -337,6 +345,9 @@ namespace ShiftScheduling.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftAssignmentId"));
 
+                    b.Property<decimal?>("ActualWorkedHours")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -357,6 +368,10 @@ namespace ShiftScheduling.Migrations
 
                     b.Property<int>("WorkScheduleId")
                         .HasColumnType("int");
+
+                    b.Property<string>("WorkdayAdjustmentReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("ShiftAssignmentId");
 
@@ -441,6 +456,11 @@ namespace ShiftScheduling.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftTypeId"));
 
+                    b.Property<bool>("AllowSplitShift")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("ConfigurationVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -458,6 +478,11 @@ namespace ShiftScheduling.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<int>("MaxShiftsPerEmployeePerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<string>("ShiftCode")
                         .IsRequired()
@@ -481,17 +506,22 @@ namespace ShiftScheduling.Migrations
                     b.HasIndex("ShiftCode", "ConfigurationVersion")
                         .IsUnique();
 
-                    b.ToTable("ShiftTypes", (string)null);
+                    b.ToTable("ShiftTypes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ShiftTypes_MaxShiftsPerEmployeePerDay", "[MaxShiftsPerEmployeePerDay] IN (1, 2)");
+                        });
 
                     b.HasData(
                         new
                         {
                             ShiftTypeId = 1,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 1,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "MORNING",
                             ShiftName = "Ca sáng",
                             StartTime = new TimeOnly(8, 0, 0)
@@ -499,11 +529,13 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 2,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 2,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(16, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "AFTERNOON",
                             ShiftName = "Ca chiều",
                             StartTime = new TimeOnly(12, 0, 0)
@@ -511,11 +543,13 @@ namespace ShiftScheduling.Migrations
                         new
                         {
                             ShiftTypeId = 3,
+                            AllowSplitShift = false,
                             ConfigurationVersion = 1,
                             DisplayOrder = 3,
                             DurationHours = 4m,
                             EndTime = new TimeOnly(20, 0, 0),
                             IsActive = true,
+                            MaxShiftsPerEmployeePerDay = 2,
                             ShiftCode = "EVENING",
                             ShiftName = "Ca tối",
                             StartTime = new TimeOnly(16, 0, 0)
@@ -629,6 +663,51 @@ namespace ShiftScheduling.Migrations
                             PasswordHash = "100000.o2UkhUfzacTkDzOTs2NgPQ==.H/cGgTusNfv1PTAS9pTbBKEfNKMSw5IurN0GUEwEh90=",
                             Role = 3,
                             Username = "nhanvien"
+                        });
+                });
+
+            modelBuilder.Entity("ShiftScheduling.Models.Entities.WeeklyAvailabilityPattern", b =>
+                {
+                    b.Property<int>("WeeklyAvailabilityPatternId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WeeklyAvailabilityPatternId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreferenceLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ShiftCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("WeeklyAvailabilityPatternId");
+
+                    b.HasIndex("EmployeeId", "DayOfWeek", "ShiftCode")
+                        .IsUnique();
+
+                    b.ToTable("WeeklyAvailabilityPatterns", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WeeklyAvailabilityPatterns_DayOfWeek", "[DayOfWeek] BETWEEN 1 AND 7");
+
+                            t.HasCheckConstraint("CK_WeeklyAvailabilityPatterns_PreferenceLevel", "[PreferenceLevel] IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_WeeklyAvailabilityPatterns_ShiftCode", "[ShiftCode] IN ('MORNING', 'AFTERNOON', 'EVENING')");
                         });
                 });
 
@@ -877,6 +956,17 @@ namespace ShiftScheduling.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CreatedByAccount");
+                });
+
+            modelBuilder.Entity("ShiftScheduling.Models.Entities.WeeklyAvailabilityPattern", b =>
+                {
+                    b.HasOne("ShiftScheduling.Models.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("ShiftScheduling.Models.Entities.WorkSchedule", b =>

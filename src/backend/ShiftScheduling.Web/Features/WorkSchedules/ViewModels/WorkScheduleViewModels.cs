@@ -14,6 +14,9 @@ public sealed class WorkSchedulePeriodItemViewModel
     public DateOnly WeekStartDate { get; set; }
     public DateOnly WeekEndDate { get; set; }
     public RegistrationStatus RegistrationStatus { get; set; }
+    public bool IsRegistrationEffectivelyOpen { get; set; }
+    public string EffectiveRegistrationStatusName { get; set; } = string.Empty;
+    public string EffectiveRegistrationBadgeClass { get; set; } = string.Empty;
     public int? WorkScheduleId { get; set; }
     public ScheduleStatus? ScheduleStatus { get; set; }
     public DateTime? PublishedAt { get; set; }

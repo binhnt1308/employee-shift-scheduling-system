@@ -12,6 +12,14 @@ public sealed class ShiftAssignmentConfiguration : IEntityTypeConfiguration<Shif
         entity.HasKey(x => x.ShiftAssignmentId);
         entity.HasIndex(x => new { x.WorkScheduleId, x.EmployeeId, x.WorkDate, x.ShiftTypeId }).IsUnique();
 
+        entity.Property(x => x.ActualWorkedHours)
+            .HasColumnType("decimal(5,2)")
+            .IsRequired(false);
+
+        entity.Property(x => x.WorkdayAdjustmentReason)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         entity.HasOne(x => x.WorkSchedule)
             .WithMany(x => x.ShiftAssignments)
             .HasForeignKey(x => x.WorkScheduleId)

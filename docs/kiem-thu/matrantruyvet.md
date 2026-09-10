@@ -43,8 +43,3 @@
 | **BR21 / BRD BR-08** | Có ít nhất 24 giờ nghỉ liên tục trong mỗi kỳ 7 ngày. | `TC-SCHEDULE-019`, `TC-SCHEDULE-021`, `TC-PUBLISH-005`, `TC-TRANSFER-004` | `TC-BR21-01..04`, `TC06-BR21-01`, `TC05-INT-01`, `TC07-INT-01`, `TC10-R11` | **Pass** — xUnit 22/08/2026 |
 
 ---
-
-
-
-
-

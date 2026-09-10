@@ -56,7 +56,46 @@ public sealed class ManagerWorkReportOverviewViewModel
     public List<ReportPeriodOptionViewModel> PeriodOptions { get; set; } = new();
     public List<ReportEmployeeOptionViewModel> EmployeeOptions { get; set; } = new();
     public List<WorkReportRowItemViewModel> Rows { get; set; } = new();
+    public List<WorkdayDetailItemViewModel> Details { get; set; } = new();
     public ShiftCoverageSummaryViewModel? CoverageSummary { get; set; }
+}
+
+public sealed class WorkdayDetailItemViewModel
+{
+    public int ShiftAssignmentId { get; set; }
+    public int EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public DateOnly WorkDate { get; set; }
+    public int ShiftTypeId { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public string ShiftTimeRange { get; set; } = string.Empty;
+    public decimal PlannedHours { get; set; }
+    public decimal? ActualWorkedHours { get; set; }
+    public decimal SystemCalculatedHours { get; set; }
+    public decimal EffectiveWorkedHours { get; set; }
+    public string? WorkdayAdjustmentReason { get; set; }
+    public string? AdjustmentReason => WorkdayAdjustmentReason;
+    public bool HasApprovedLeave { get; set; }
+    public bool IsManagerAdjusted => ActualWorkedHours.HasValue;
+    public string HourSourceText => ActualWorkedHours != null
+        ? "Quản lý điều chỉnh"
+        : (HasApprovedLeave ? "Nghỉ đã duyệt — tự động 0 giờ" : "Theo lịch");
+    public bool CanAdjust { get; set; }
+    public string FormattedPlannedHours => $"{PlannedHours:0.##} h";
+    public string FormattedEffectiveWorkedHours => $"{EffectiveWorkedHours:0.##} h";
+}
+
+public sealed class AdjustWorkdayHoursRequest
+{
+    public int SchedulePeriodId { get; set; }
+    public int ShiftAssignmentId { get; set; }
+    public decimal? ActualWorkedHours { get; set; }
+    public string? WorkdayAdjustmentReason { get; set; }
+    public bool IsReset { get; set; }
+    public int? ReturnEmployeeId { get; set; }
+    public EmployeePosition? ReturnPosition { get; set; }
+    public EmploymentType? ReturnEmploymentType { get; set; }
 }
 
 public sealed class EmployeeWorkReportOverviewViewModel

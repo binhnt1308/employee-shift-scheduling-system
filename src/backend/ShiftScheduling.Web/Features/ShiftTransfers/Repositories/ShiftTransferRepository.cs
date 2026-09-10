@@ -330,7 +330,10 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
                 .ThenInclude(employee => employee.UserAccount)
             .Include(assignment => assignment.ShiftType)
             .Include(assignment => assignment.WorkSchedule)
-                .ThenInclude(schedule => schedule.SchedulePeriod);
+                .ThenInclude(schedule => schedule.SchedulePeriod)
+                    .ThenInclude(period => period.StaffingRequirements)
+                        .ThenInclude(requirement => requirement.ShiftType)
+            .AsSplitQuery();
         return asNoTracking ? query.AsNoTracking() : query;
     }
 
@@ -346,7 +349,10 @@ public sealed class ShiftTransferRepository : IShiftTransferRepository
             .Include(request => request.ShiftAssignment)
                 .ThenInclude(assignment => assignment.WorkSchedule)
                     .ThenInclude(schedule => schedule.SchedulePeriod)
-            .Include(request => request.ApprovedByAccount);
+                        .ThenInclude(period => period.StaffingRequirements)
+                            .ThenInclude(requirement => requirement.ShiftType)
+            .Include(request => request.ApprovedByAccount)
+            .AsSplitQuery();
         return asNoTracking ? query.AsNoTracking() : query;
     }
 }

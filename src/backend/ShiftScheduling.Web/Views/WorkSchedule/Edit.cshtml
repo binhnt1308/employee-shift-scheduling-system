@@ -130,8 +130,8 @@
                                     <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
                                         <span class="badge bg-secondary">@shift.ShiftName</span>
                                         <div>
-                                            <span class="badge @(shift.AssignedSales >= shift.RequiredSales ? "bg-success" : "bg-danger") me-1">Sales: @shift.AssignedSales/@shift.RequiredSales</span>
-                                            <span class="badge @(shift.AssignedCashier >= shift.RequiredCashier ? "bg-success" : "bg-danger") me-1">TN: @shift.AssignedCashier/@shift.RequiredCashier</span>
+                                            <span class="badge @(shift.AssignedSales == shift.RequiredSales ? "bg-success" : "bg-danger") me-1" @(shift.AssignedSales > shift.RequiredSales ? "title=\"Vượt định mức\"" : "")>Sales: @shift.AssignedSales/@shift.RequiredSales</span>
+                                            <span class="badge @(shift.AssignedCashier == shift.RequiredCashier ? "bg-success" : "bg-danger") me-1" @(shift.AssignedCashier > shift.RequiredCashier ? "title=\"Vượt định mức\"" : "")>TN: @shift.AssignedCashier/@shift.RequiredCashier</span>
                                             <span class="badge @(shift.HasLevel2Plus ? "bg-info text-dark" : "bg-dark")" title="Yêu cầu Level 2+">L2+: @(shift.HasLevel2Plus ? "Có" : "Thiếu")</span>
                                         </div>
                                     </div>

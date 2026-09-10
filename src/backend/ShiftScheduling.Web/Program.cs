@@ -77,6 +77,9 @@ builder.Services.AddScoped<
     ShiftScheduling.Features.Availabilities.Repositories.IAvailabilityRepository,
     ShiftScheduling.Features.Availabilities.Repositories.AvailabilityRepository>();
 builder.Services.AddScoped<
+    ShiftScheduling.Features.Availabilities.Repositories.IWeeklyAvailabilityPatternRepository,
+    ShiftScheduling.Features.Availabilities.Repositories.WeeklyAvailabilityPatternRepository>();
+builder.Services.AddScoped<
     ShiftScheduling.Features.Availabilities.Services.IAvailabilityService,
     ShiftScheduling.Features.Availabilities.Services.AvailabilityService>();
 

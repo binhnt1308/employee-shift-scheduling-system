@@ -66,6 +66,7 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
         int employeeId,
         int schedulePeriodId,
         IEnumerable<(DateOnly WorkDate, int ShiftTypeId)> selectedShifts,
+        IReadOnlyDictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel> preferenceMap,
         DateTime now,
         CancellationToken cancellationToken = default)
     {
@@ -76,7 +77,9 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
         var selectedSet = selectedShifts.ToHashSet();
         var existingMap = existing.ToDictionary(a => (a.WorkDate, a.ShiftTypeId));
 
-        // Delete items no longer selected
+        // DB-07: tránh N+1 – dùng batch load ở trên, xử lý trong bộ nhớ bên dưới.
+
+        // Xóa các ca không còn được chọn
         foreach (var item in existing)
         {
             if (!selectedSet.Contains((item.WorkDate, item.ShiftTypeId)))
@@ -85,17 +88,32 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
             }
         }
 
-        // Add new items
         foreach (var (workDate, shiftTypeId) in selectedSet)
         {
-            if (!existingMap.ContainsKey((workDate, shiftTypeId)))
+            // NC-02: preference chỉ lấy cho ca được chọn; ca không chọn không có preference.
+            var level = preferenceMap.TryGetValue((workDate, shiftTypeId), out var p)
+                ? p
+                : AvailabilityPreferenceLevel.Normal;
+
+            if (existingMap.TryGetValue((workDate, shiftTypeId), out var existingEntry))
             {
+                // Cập nhật preference nếu thay đổi
+                if (existingEntry.PreferenceLevel != level)
+                {
+                    existingEntry.PreferenceLevel = level;
+                    existingEntry.UpdatedAt = now;
+                }
+            }
+            else
+            {
+                // Thêm mới
                 _dbContext.Availabilities.Add(new Availability
                 {
                     EmployeeId = employeeId,
                     SchedulePeriodId = schedulePeriodId,
                     WorkDate = workDate,
                     ShiftTypeId = shiftTypeId,
+                    PreferenceLevel = level,
                     RegisteredAt = now
                 });
             }

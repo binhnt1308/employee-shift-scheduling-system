@@ -33,6 +33,15 @@ public sealed class FakeSchedulePeriodRepository : ISchedulePeriodRepository
         return Task.FromResult(period);
     }
 
+    public Task<IReadOnlyList<SchedulePeriod>> GetAllWithSchedulesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<SchedulePeriod> result = SchedulePeriods
+            .OrderByDescending(sp => sp.WeekStartDate)
+            .ToList();
+        return Task.FromResult(result);
+    }
+
     public Task<bool> HasOverlappingPeriodAsync(
         DateOnly weekStartDate,
         DateOnly weekEndDate,
