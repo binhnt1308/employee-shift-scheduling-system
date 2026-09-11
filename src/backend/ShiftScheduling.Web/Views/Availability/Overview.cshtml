@@ -10,6 +10,23 @@
     </div>
 </div>
 
+@if (!Model.PeriodOptions.Any())
+{
+    <div class="card card-custom border-0 shadow-sm text-center py-5">
+        <div class="card-body">
+            <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 56px; height: 56px;">
+                <i class="fa-regular fa-calendar-xmark fa-2x text-muted"></i>
+            </div>
+            <h5 class="fw-bold text-secondary">Chưa có kỳ xếp lịch</h5>
+            <p class="text-muted mb-3">Chưa có kỳ xếp lịch để xem lịch rảnh.</p>
+            <a asp-controller="SchedulePeriod" asp-action="Create" class="btn btn-sm btn-primary-custom">
+                <i class="fa-solid fa-plus me-1"></i>Tạo kỳ lịch mới
+            </a>
+        </div>
+    </div>
+}
+else
+{
 <div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-body">
         <form method="get" asp-action="Overview" class="row g-3">
@@ -132,3 +149,4 @@
         </div>
     </div>
 </div>
+}

@@ -24,14 +24,26 @@ public sealed partial class AvailabilityService
             var firstPeriod = allPeriods.Items.OrderByDescending(p => p.SchedulePeriodId).FirstOrDefault();
             if (firstPeriod is null)
             {
-                return null;
+                return new ManagerAvailabilityOverviewViewModel
+                {
+                    PeriodOptions = new List<SchedulePeriodOptionViewModel>(),
+                    EmployeeOptions = new List<EmployeeOptionViewModel>(),
+                    ShiftOptions = new List<ShiftTypeOptionViewModel>(),
+                    Days = new List<AvailabilityDayOverviewViewModel>()
+                };
             }
 
             schedulePeriodId = firstPeriod.SchedulePeriodId;
             period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
             if (period is null)
             {
-                return null;
+                return new ManagerAvailabilityOverviewViewModel
+                {
+                    PeriodOptions = new List<SchedulePeriodOptionViewModel>(),
+                    EmployeeOptions = new List<EmployeeOptionViewModel>(),
+                    ShiftOptions = new List<ShiftTypeOptionViewModel>(),
+                    Days = new List<AvailabilityDayOverviewViewModel>()
+                };
             }
         }
 

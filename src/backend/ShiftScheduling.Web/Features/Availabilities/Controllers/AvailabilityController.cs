@@ -130,11 +130,6 @@ public sealed class AvailabilityController : AuthorizedController
         var model = await _availabilityService.GetManagerOverviewAsync(
             schedulePeriodId ?? 0, employeeId, position, date, shiftTypeId, cancellationToken);
 
-        if (model is null)
-        {
-            return NotFound();
-        }
-
         return View(model);
     }
 }

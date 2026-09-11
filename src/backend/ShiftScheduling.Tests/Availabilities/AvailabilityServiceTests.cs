@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using ShiftScheduling.Features.Availabilities.Controllers;
 using ShiftScheduling.Features.Availabilities.Repositories;
 using ShiftScheduling.Features.Availabilities.Services;
+using ShiftScheduling.Features.Availabilities.ViewModels;
 using ShiftScheduling.Features.SchedulePeriods.Repositories;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
 using ShiftScheduling.Models.Entities;
@@ -126,6 +129,128 @@ public sealed class AvailabilityServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.InvalidSchedulePeriodStatus, result.ErrorCode);
+    }
+
+    [Fact(DisplayName = "TC04-04 - Manager Overview khi database không có kỳ lịch -> Trả về model rỗng, không ném lỗi")]
+    public async Task GetManagerOverviewAsync_WhenNoSchedulePeriodsInDatabase_ReturnsEmptyModelWithoutException()
+    {
+        var availRepo = new FakeAvailabilityRepository();
+        var periodRepo = new FakeSchedulePeriodRepository(); // database rỗng
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var empRepo = new FakeEmployeeRepository();
+
+        var service = new AvailabilityService(
+            availRepo, periodRepo, shiftTypeRepo, empRepo,
+            new FakeAuditLogRepository(),
+            new FakeWeeklyAvailabilityPatternRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            NullLogger<AvailabilityService>.Instance);
+
+        var result = await service.GetManagerOverviewAsync(0);
+
+        Assert.NotNull(result);
+        Assert.Empty(result.PeriodOptions);
+        Assert.Empty(result.Days);
+    }
+
+    [Fact(DisplayName = "TC04-05 - Manager truy cập AvailabilityController.Overview khi database không có kỳ lịch -> Trả ViewResult HTTP 200, không trả NotFound 404")]
+    public async Task Overview_WhenNoSchedulePeriodsInDatabase_ReturnsViewWithEmptyModelInsteadOfNotFound()
+    {
+        var availRepo = new FakeAvailabilityRepository();
+        var periodRepo = new FakeSchedulePeriodRepository(); // database rỗng
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var empRepo = new FakeEmployeeRepository();
+
+        var service = new AvailabilityService(
+            availRepo, periodRepo, shiftTypeRepo, empRepo,
+            new FakeAuditLogRepository(),
+            new FakeWeeklyAvailabilityPatternRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            NullLogger<AvailabilityService>.Instance);
+
+        var controller = new AvailabilityController(service);
+
+        var actionResult = await controller.Overview(null, null, null, null, null, default);
+
+        var viewResult = Assert.IsType<ViewResult>(actionResult);
+        var model = Assert.IsType<ManagerAvailabilityOverviewViewModel>(viewResult.Model);
+        Assert.Empty(model.PeriodOptions);
+    }
+
+    [Fact(DisplayName = "TC04-06 - Manager Overview khi có kỳ lịch hợp lệ -> Trả về dữ liệu đúng kỳ đó")]
+    public async Task GetManagerOverviewAsync_WhenSchedulePeriodExists_ReturnsOverviewForRequestedPeriod()
+    {
+        var availRepo = new FakeAvailabilityRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var empRepo = new FakeEmployeeRepository();
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ lịch tuần 33",
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16),
+            AvailabilityDeadline = new DateTime(2026, 8, 8, 23, 59, 0, DateTimeKind.Utc),
+            RegistrationStatus = RegistrationStatus.Open
+        };
+        periodRepo.Add(period);
+
+        var service = new AvailabilityService(
+            availRepo, periodRepo, shiftTypeRepo, empRepo,
+            new FakeAuditLogRepository(),
+            new FakeWeeklyAvailabilityPatternRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            NullLogger<AvailabilityService>.Instance);
+
+        var result = await service.GetManagerOverviewAsync(1);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.SchedulePeriodId);
+        Assert.Equal("Kỳ lịch tuần 33", result.PeriodName);
+        Assert.Single(result.PeriodOptions);
+    }
+
+    [Fact(DisplayName = "TC04-07 - Manager Overview khi schedulePeriodId không tồn tại nhưng có kỳ khác -> Fallback về kỳ mới nhất")]
+    public async Task GetManagerOverviewAsync_WhenPeriodIdNotFoundButOtherPeriodsExist_FallsBackToLatestPeriod()
+    {
+        var availRepo = new FakeAvailabilityRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+        var shiftTypeRepo = CreateShiftTypeRepositoryWithThreeFixedShifts();
+        var empRepo = new FakeEmployeeRepository();
+
+        periodRepo.Add(new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ tuần 1",
+            WeekStartDate = new DateOnly(2026, 8, 3),
+            WeekEndDate = new DateOnly(2026, 8, 9)
+        });
+        periodRepo.Add(new SchedulePeriod
+        {
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ tuần 2 (Mới nhất)",
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        });
+
+        var service = new AvailabilityService(
+            availRepo, periodRepo, shiftTypeRepo, empRepo,
+            new FakeAuditLogRepository(),
+            new FakeWeeklyAvailabilityPatternRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock(new DateTime(2026, 8, 5, 10, 0, 0, DateTimeKind.Utc)),
+            NullLogger<AvailabilityService>.Instance);
+
+        var result = await service.GetManagerOverviewAsync(999);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.SchedulePeriodId);
+        Assert.Equal("Kỳ tuần 2 (Mới nhất)", result.PeriodName);
+        Assert.Equal(2, result.PeriodOptions.Count);
     }
 
     private static FakeShiftTypeRepository CreateShiftTypeRepositoryWithThreeFixedShifts()
