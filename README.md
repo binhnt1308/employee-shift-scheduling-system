@@ -185,7 +185,7 @@ Password: quanly123
 
 ```text
 Username: nv02
-Password: NV021234
+Password: Password123!
 Employee: NV02 - Chiêm Trung Hậu
 ```
 
