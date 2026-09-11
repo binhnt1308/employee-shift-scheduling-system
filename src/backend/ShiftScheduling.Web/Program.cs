@@ -22,6 +22,7 @@ using ShiftScheduling.Features.ShiftTransfers.Services;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
 using ShiftScheduling.Features.ShiftTypes.Services;
 using ShiftScheduling.Infrastructure.Persistence;
+using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -190,6 +191,14 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var demoDataEnabled = app.Configuration.GetValue<bool?>("DemoData:Enabled") ?? app.Environment.IsDevelopment();
+    if (demoDataEnabled)
+    {
+        var passwordHashService = scope.ServiceProvider.GetRequiredService<IPasswordHashService>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+        await DemoDataSeeder.SeedAsync(dbContext, passwordHashService, clock);
+    }
 }
 
 await app.RunAsync();

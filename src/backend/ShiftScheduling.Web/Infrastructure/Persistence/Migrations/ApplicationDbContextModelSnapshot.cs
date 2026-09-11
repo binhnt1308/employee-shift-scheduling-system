@@ -174,23 +174,6 @@ namespace ShiftScheduling.Migrations
                         .HasFilter("[UserAccountId] IS NOT NULL");
 
                     b.ToTable("Employees", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            EmployeeId = 1,
-                            DateOfBirth = new DateOnly(2000, 1, 1),
-                            Email = "nhanvien@example.com",
-                            EmployeeCode = "EMP001",
-                            EmploymentType = 2,
-                            FullName = "Nguyễn Văn Nhân Viên",
-                            IsActive = true,
-                            Level = 2,
-                            PhoneNumber = "0901234567",
-                            Position = 1,
-                            StartDate = new DateOnly(2026, 1, 1),
-                            UserAccountId = 3
-                        });
                 });
 
             modelBuilder.Entity("ShiftScheduling.Models.Entities.LeaveRequest", b =>
@@ -653,16 +636,6 @@ namespace ShiftScheduling.Migrations
                             PasswordHash = "100000./+7dzLuqmYh3ZlVEMyIRAA==.UWV+wqzCmlDi0tlbWmy/DpHdbaaFtpczTXzp5MErAog=",
                             Role = 2,
                             Username = "quanly"
-                        },
-                        new
-                        {
-                            UserAccountId = 3,
-                            CreatedAt = new DateTime(2026, 8, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            CreatedByAccountId = 1,
-                            IsLocked = false,
-                            PasswordHash = "100000.o2UkhUfzacTkDzOTs2NgPQ==.H/cGgTusNfv1PTAS9pTbBKEfNKMSw5IurN0GUEwEh90=",
-                            Role = 3,
-                            Username = "nhanvien"
                         });
                 });
 
