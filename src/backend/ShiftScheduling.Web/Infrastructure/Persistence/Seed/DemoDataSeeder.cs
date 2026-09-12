@@ -32,8 +32,10 @@ public static partial class DemoDataSeeder
         "NV01", "NV02", "NV03", "NV04", "NV05", "NV06", "NV07", "NV08"
     ];
 
-    public const string RegistrationDemoPeriodMarker = "(Demo đăng ký";
-    public const string PublishedDemoPeriodMarker = "(Demo đã công bố";
+    public const string PublishedDemoPeriodMarker = "(Demo đã công bố)";
+    public const string ReadyToScheduleDemoPeriodMarker = "(Demo sẵn sàng xếp lịch)";
+    public const string RegistrationDemoPeriodMarker = "(Demo đang đăng ký)";
+    public const string LegacyRegistrationDemoPeriodMarker = "(Demo đăng ký)";
 
     public static readonly string[] DemoAccountUsernames =
     [
@@ -41,21 +43,20 @@ public static partial class DemoDataSeeder
     ];
 
     /// <summary>
-    /// Tính toán ngày Thứ Hai của kỳ quá khứ (đã công bố) và kỳ tương lai (đang mở đăng ký) theo ngày hiện tại.
+    /// Tính toán ngày Thứ Hai của 3 kỳ demo đại diện cho 3 giai đoạn nghiệp vụ:
+    /// 1. Kỳ quá khứ đã công bố (tuần trước)
+    /// 2. Kỳ sẵn sàng xếp lịch (tuần tới)
+    /// 3. Kỳ đang mở đăng ký (tuần sau nữa)
     /// </summary>
-    public static (DateOnly PastWeekStart, DateOnly FutureWeekStart) CalculatePeriodDates(DateOnly today)
+    public static (DateOnly PastWeekStart, DateOnly ReadyWeekStart, DateOnly FutureWeekStart) CalculatePeriodDates(DateOnly today)
     {
         int daysFromMonday = ((int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek) - 1;
         var currentMonday = today.AddDays(-daysFromMonday);
         var pastWeekStart = currentMonday.AddDays(-7);
+        var readyWeekStart = currentMonday.AddDays(7);
+        var futureWeekStart = currentMonday.AddDays(14);
 
-        var futureWeekStart = currentMonday.AddDays(7);
-        if (today >= futureWeekStart.AddDays(-2))
-        {
-            futureWeekStart = futureWeekStart.AddDays(7);
-        }
-
-        return (pastWeekStart, futureWeekStart);
+        return (pastWeekStart, readyWeekStart, futureWeekStart);
     }
 
     /// <summary>
@@ -75,64 +76,7 @@ public static partial class DemoDataSeeder
             .ToListAsync(cancellationToken);
 
         var allPeriodNames = existingPeriods.Select(p => p.PeriodName).ToList();
-
-        var existingDemoCodes = await dbContext.Employees
-            .Where(e => DemoEmployeeCodes.Contains(e.EmployeeCode))
-            .Select(e => e.EmployeeCode)
-            .ToListAsync(cancellationToken);
-
-        int registrationStaffingCount = 0;
-        int registrationAvailabilityCount = 0;
-        bool hasNormalAvailability = false;
-        bool hasPreferredAvailability = false;
-        bool hasPublishedWorkSchedule = false;
-        int publishedAssignmentCount = 0;
-
-        var registrationDemoPeriod = existingPeriods.FirstOrDefault(
-            p => p.PeriodName.Contains(RegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-
-        if (registrationDemoPeriod != null)
-        {
-            registrationStaffingCount = await dbContext.StaffingRequirements
-                .CountAsync(sr => sr.SchedulePeriodId == registrationDemoPeriod.SchedulePeriodId, cancellationToken);
-
-            var registrationAvails = await dbContext.Availabilities
-                .Where(a => a.SchedulePeriodId == registrationDemoPeriod.SchedulePeriodId)
-                .Select(a => a.PreferenceLevel)
-                .ToListAsync(cancellationToken);
-
-            registrationAvailabilityCount = registrationAvails.Count;
-            hasNormalAvailability = registrationAvails.Any(l => l == AvailabilityPreferenceLevel.Normal);
-            hasPreferredAvailability = registrationAvails.Any(l => l == AvailabilityPreferenceLevel.Preferred);
-        }
-
-        var publishedDemoPeriod = existingPeriods.FirstOrDefault(
-            p => p.PeriodName.Contains(PublishedDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-
-        if (publishedDemoPeriod != null)
-        {
-            var publishedSchedule = await dbContext.WorkSchedules
-                .FirstOrDefaultAsync(ws => ws.SchedulePeriodId == publishedDemoPeriod.SchedulePeriodId
-                                        && ws.Status == ScheduleStatus.Published, cancellationToken);
-
-            if (publishedSchedule != null)
-            {
-                hasPublishedWorkSchedule = true;
-                publishedAssignmentCount = await dbContext.ShiftAssignments
-                    .CountAsync(sa => sa.WorkScheduleId == publishedSchedule.WorkScheduleId, cancellationToken);
-            }
-        }
-
-        var decision = EvaluateSeedPrecondition(
-            totalEmployees,
-            existingDemoCodes,
-            allPeriodNames,
-            registrationStaffingCount,
-            registrationAvailabilityCount,
-            hasNormalAvailability,
-            hasPreferredAvailability,
-            hasPublishedWorkSchedule,
-            publishedAssignmentCount);
+        var decision = EvaluateSeedPrecondition(totalEmployees, allPeriodNames);
 
         if (decision != SeedDecision.ProceedWithFreshSeed)
         {
@@ -140,11 +84,11 @@ public static partial class DemoDataSeeder
         }
 
         var today = clock.TodayInVietnam;
-        var (pastWeekStart, futureWeekStart) = CalculatePeriodDates(today);
+        var (pastWeekStart, readyWeekStart, futureWeekStart) = CalculatePeriodDates(today);
 
         // Tránh xung đột ngày bắt đầu kỳ nếu người dùng đã tạo thủ công kỳ trùng ngày
         if (await dbContext.SchedulePeriods.AnyAsync(
-            p => p.WeekStartDate == pastWeekStart || p.WeekStartDate == futureWeekStart, cancellationToken))
+            p => p.WeekStartDate == pastWeekStart || p.WeekStartDate == readyWeekStart || p.WeekStartDate == futureWeekStart, cancellationToken))
         {
             return false;
         }

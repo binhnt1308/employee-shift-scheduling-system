@@ -2,7 +2,7 @@
 
 ## 1. Giới thiệu
 
-**Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên  
+**Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên
 **Tên tiếng Anh:** Employee Shift Scheduling System
 
 Hệ thống web hỗ trợ quản lý nhân viên và lập lịch ca làm việc cho cửa hàng bán lẻ quy mô nhỏ.
@@ -97,7 +97,7 @@ Mở đăng ký lịch rảnh
         ↓
 Employee đăng ký lịch rảnh
         ↓
-Manager đóng đăng ký
+Hết thời hạn đăng ký
         ↓
 Phân công thủ công
         hoặc
@@ -252,13 +252,13 @@ EVENING     16:00 - 20:00
 
 ### Kịch bản demo
 
-Seeder tạo hai kỳ chính.
+Seeder tạo ba kỳ demo, tương ứng với ba giai đoạn chính của quy trình lập lịch.
 
-#### Kỳ đang mở đăng ký
+#### Kỳ đang đăng ký
 
 Dữ liệu gồm:
 
-- Kỳ lịch trạng thái Open.
+- Kỳ lịch đang mở đăng ký.
 - 7 ngày × 3 ca = 21 tổ hợp ngày-ca.
 - Staffing Requirement.
 - Availability.
@@ -268,9 +268,33 @@ Dữ liệu gồm:
 Có thể sử dụng để demo:
 
 ```text
-Manager xem lịch rảnh
-→ sinh lịch bằng OR-Tools
+Nhân viên đăng nhập
+→ đăng ký lịch rảnh
+→ chọn mức ưu tiên Normal hoặc Preferred
+→ lưu lịch rảnh
+```
+
+#### Kỳ sẵn sàng xếp lịch
+
+Kỳ này đã hết thời hạn đăng ký và chưa có lịch làm việc ban đầu.
+
+Dữ liệu gồm:
+
+- 7 ngày × 3 ca = 21 tổ hợp ngày-ca.
+- Staffing Requirement.
+- Availability của nhân viên.
+- Chưa có WorkSchedule khi vừa seed dữ liệu.
+
+Có thể sử dụng để demo:
+
+```text
+Manager xem dữ liệu đăng ký
+→ phân công thủ công
+hoặc
+→ sinh lịch tự động bằng OR-Tools
 → xem lịch đề xuất
+→ áp dụng vào Draft
+→ điều chỉnh và công bố lịch
 ```
 
 #### Kỳ đã công bố
@@ -278,7 +302,7 @@ Manager xem lịch rảnh
 Dữ liệu gồm:
 
 - WorkSchedule trạng thái Published.
-- ShiftAssignment.
+- 42 ShiftAssignment.
 - Lịch làm việc cá nhân.
 - Dữ liệu báo cáo.
 - Dữ liệu điều chỉnh giờ làm thực tế.
@@ -293,11 +317,15 @@ Actual worked hours: 3.50
 Reason: về sớm 30 phút theo điều chỉnh của quản lý
 ```
 
+Có thể sử dụng để demo lịch cá nhân, báo cáo và chức năng điều chỉnh giờ làm thực tế.
+
 Seeder được thiết kế để:
 
-- Không tạo dữ liệu trùng khi chạy lại trên database demo hoàn chỉnh.
+- Tạo bộ dữ liệu demo khi chạy trên database mới chưa có dữ liệu nghiệp vụ.
+- Không tạo lại hoặc ghi đè dữ liệu khi bộ demo đã tồn tại.
 - Không tự thêm dữ liệu demo vào database nghiệp vụ đã có dữ liệu.
-- Dừng và báo lỗi nếu phát hiện dataset demo bị thiếu một phần.
+- Vẫn cho phép ứng dụng khởi động bình thường sau khi người dùng thay đổi lịch rảnh, phân công hoặc dữ liệu nghiệp vụ của bộ demo.
+- Dừng và báo lỗi nếu phát hiện tổ hợp marker của bộ dữ liệu demo không đầy đủ hoặc không hợp lệ.
 
 ---
 
@@ -693,7 +721,7 @@ Migration
 
 ## 13. Repository
 
-**GitHub:**  
+**GitHub:**
 https://github.com/binhnt1308/employee-shift-scheduling-system
 
 **Branch phát triển hiện tại:** `tuan-10`
@@ -702,6 +730,6 @@ https://github.com/binhnt1308/employee-shift-scheduling-system
 
 ## 14. Thông tin sinh viên
 
-**Sinh viên thực hiện:** Nguyễn Thanh Bình  
-**MSSV:** 2354050017  
+**Sinh viên thực hiện:** Nguyễn Thanh Bình
+**MSSV:** 2354050017
 **Giảng viên hướng dẫn:** Th.S Võ Việt Khoa

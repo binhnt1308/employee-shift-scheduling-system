@@ -24,7 +24,7 @@ public static partial class DemoDataSeeder
 
         // Kỳ lịch đã công bố trong quá khứ (tuần trước, đã kết thúc đăng ký)
         var pastWeekEnd = pastWeekStart.AddDays(6);
-        var pastDeadlineUtc = clock.ToUtcFromVietnamTime(pastWeekStart.AddDays(-1).ToDateTime(new TimeOnly(23, 59, 59)));
+        var pastDeadlineUtc = clock.ToUtcFromVietnamTime(pastWeekStart.AddDays(-3).ToDateTime(new TimeOnly(23, 59, 59)));
 
         var periodB = new SchedulePeriod
         {

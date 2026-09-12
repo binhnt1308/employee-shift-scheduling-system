@@ -9,11 +9,64 @@ public static partial class DemoDataSeeder
     {
         ProceedWithFreshSeed,
         SkipAlreadySeeded,
+        SkipLegacyDemoDataset,
         SkipExistingBusinessData
     }
 
     /// <summary>
     /// Xác định có nên tạo dữ liệu demo dựa trên trạng thái hiện tại của database.
+    /// Nhận diện SEED IDENTITY dựa trên exact demo marker constants (EndsWith).
+    /// Không kiểm tra dữ liệu nghiệp vụ mutable để đảm bảo không crash startup sau khi người dùng thao tác.
+    /// </summary>
+    public static SeedDecision EvaluateSeedPrecondition(
+        int totalEmployees,
+        IEnumerable<string> existingPeriodNames)
+    {
+        var periodList = existingPeriodNames.ToList();
+        var hasPublishedPeriod = periodList.Any(name => name.EndsWith(PublishedDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
+        var hasReadyPeriod = periodList.Any(name => name.EndsWith(ReadyToScheduleDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
+        var hasRegistrationPeriod = periodList.Any(name => name.EndsWith(RegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
+        var hasLegacyRegistrationPeriod = periodList.Any(name => name.EndsWith(LegacyRegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
+
+        var hasAnyDemoPeriod = hasPublishedPeriod || hasReadyPeriod || hasRegistrationPeriod || hasLegacyRegistrationPeriod;
+
+        // 1. Không chứa bất kỳ marker demo nào
+        if (!hasAnyDemoPeriod)
+        {
+            if (totalEmployees == 0 && periodList.Count == 0)
+            {
+                return SeedDecision.ProceedWithFreshSeed;
+            }
+
+            // Database đã có nhân viên hoặc kỳ lịch nghiệp vụ thực tế
+            return SeedDecision.SkipExistingBusinessData;
+        }
+
+        // 2. Bộ demo mới 3 kỳ hoàn chỉnh
+        if (hasPublishedPeriod && hasReadyPeriod && hasRegistrationPeriod && !hasLegacyRegistrationPeriod)
+        {
+            return SeedDecision.SkipAlreadySeeded;
+        }
+
+        // 3. Bộ demo legacy 2 kỳ hoàn chỉnh
+        if (hasPublishedPeriod && hasLegacyRegistrationPeriod && !hasReadyPeriod && !hasRegistrationPeriod)
+        {
+            return SeedDecision.SkipLegacyDemoDataset;
+        }
+
+        // 4. Tổ hợp marker demo không hợp lệ hoặc thiếu kỳ -> Báo lỗi bảo vệ toàn vẹn dữ liệu
+        throw new InvalidOperationException(
+            $"Partial demo dataset detected: Database contains demo period markers but lacks a valid complete demo dataset. " +
+            $"Published demo period: {hasPublishedPeriod}, " +
+            $"Ready to schedule demo period: {hasReadyPeriod}, " +
+            $"Registration demo period: {hasRegistrationPeriod}, " +
+            $"Legacy registration demo period: {hasLegacyRegistrationPeriod}. " +
+            "Seeder will not proceed to prevent data corruption.");
+    }
+
+    /// <summary>
+    /// Overload tương thích ngược cho EvaluateSeedPrecondition.
+    /// Bỏ qua các tham số nghiệp vụ mutable.
     /// </summary>
     public static SeedDecision EvaluateSeedPrecondition(
         int totalEmployees,
@@ -24,62 +77,27 @@ public static partial class DemoDataSeeder
         bool hasNormalAvailability = true,
         bool hasPreferredAvailability = true,
         bool hasPublishedWorkSchedule = true,
-        int publishedAssignmentCount = 42)
+        int publishedAssignmentCount = 42,
+        int readyStaffingCount = 21,
+        int readyAvailabilityCount = 1,
+        bool readyHasNormalAvailability = true,
+        bool readyHasPreferredAvailability = true,
+        bool readyHasWorkSchedule = false,
+        int readyAssignmentCount = 0,
+        bool registrationHasWorkSchedule = false,
+        int registrationAssignmentCount = 0,
+        int legacyRegistrationStaffingCount = 21,
+        int legacyRegistrationAvailabilityCount = 1,
+        bool legacyRegistrationHasNormalAvailability = true,
+        bool legacyRegistrationHasPreferredAvailability = true,
+        bool legacyRegistrationHasWorkSchedule = false,
+        int legacyRegistrationAssignmentCount = 0)
     {
-        var periodList = existingPeriodNames.ToList();
-        var hasAnyDemoPeriod = periodList.Any(name => name.Contains("(Demo", StringComparison.OrdinalIgnoreCase));
-
-        // Database không chứa kỳ lịch mẫu nào
-        if (!hasAnyDemoPeriod)
-        {
-            if (totalEmployees == 0 && periodList.Count == 0)
-            {
-                return SeedDecision.ProceedWithFreshSeed;
-            }
-
-            // Không tạo dữ liệu demo nếu database đã có nhân viên hoặc kỳ lịch nghiệp vụ thực tế
-            return SeedDecision.SkipExistingBusinessData;
-        }
-
-        // Database chứa kỳ lịch mẫu: kiểm tra tính toàn vẹn của bộ dữ liệu demo
-        var codeSet = new HashSet<string>(existingEmployeeCodes, StringComparer.OrdinalIgnoreCase);
-        var hasAllDemoEmployees = DemoEmployeeCodes.All(code => codeSet.Contains(code));
-        var hasRegistrationPeriod = periodList.Any(name => name.Contains(RegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-        var hasPublishedPeriod = periodList.Any(name => name.Contains(PublishedDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-
-        var isCompleteDemo = hasAllDemoEmployees
-            && hasRegistrationPeriod
-            && hasPublishedPeriod
-            && registrationStaffingCount == 21
-            && registrationAvailabilityCount > 0
-            && hasNormalAvailability
-            && hasPreferredAvailability
-            && hasPublishedWorkSchedule
-            && publishedAssignmentCount == 42;
-
-        if (isCompleteDemo)
-        {
-            return SeedDecision.SkipAlreadySeeded;
-        }
-
-        // Báo lỗi nếu phát hiện tập dữ liệu mẫu bị thiếu thành phần cốt lõi
-        var matchedCodesCount = DemoEmployeeCodes.Count(code => codeSet.Contains(code));
-        throw new InvalidOperationException(
-            $"Partial demo dataset detected: Database contains demo period markers but lacks a complete demo dataset. " +
-            $"Demo employees matched: {matchedCodesCount}/{DemoEmployeeCodes.Length}, " +
-            $"Registration demo period: {hasRegistrationPeriod}, " +
-            $"Published demo period: {hasPublishedPeriod}, " +
-            $"Registration staffing count: {registrationStaffingCount}/21, " +
-            $"Registration availability count: {registrationAvailabilityCount}, " +
-            $"Registration has Normal: {hasNormalAvailability}, " +
-            $"Registration has Preferred: {hasPreferredAvailability}, " +
-            $"Published work schedule: {hasPublishedWorkSchedule}, " +
-            $"Published assignments count: {publishedAssignmentCount}/42. " +
-            "Seeder will not proceed to prevent data corruption.");
+        return EvaluateSeedPrecondition(totalEmployees, existingPeriodNames);
     }
 
     /// <summary>
-    /// Kiểm tra xem database đã có đầy đủ bộ dữ liệu mẫu hay chưa để đảm bảo không tạo lặp lại.
+    /// Kiểm tra xem database đã có đầy đủ bộ dữ liệu mẫu (3 kỳ mới hoặc legacy 2 kỳ) hay chưa để đảm bảo không tạo lặp lại.
     /// </summary>
     public static bool IsAlreadySeeded(
         IEnumerable<string> existingEmployeeCodes,
@@ -89,20 +107,24 @@ public static partial class DemoDataSeeder
         bool hasNormalAvailability = true,
         bool hasPreferredAvailability = true,
         bool hasPublishedWorkSchedule = true,
-        int publishedAssignmentCount = 42)
+        int publishedAssignmentCount = 42,
+        int readyStaffingCount = 21,
+        int readyAvailabilityCount = 1,
+        bool readyHasNormalAvailability = true,
+        bool readyHasPreferredAvailability = true,
+        bool readyHasWorkSchedule = false,
+        int readyAssignmentCount = 0,
+        bool registrationHasWorkSchedule = false,
+        int registrationAssignmentCount = 0,
+        int legacyRegistrationStaffingCount = 21,
+        int legacyRegistrationAvailabilityCount = 1,
+        bool legacyRegistrationHasNormalAvailability = true,
+        bool legacyRegistrationHasPreferredAvailability = true,
+        bool legacyRegistrationHasWorkSchedule = false,
+        int legacyRegistrationAssignmentCount = 0)
     {
-        var codeList = existingEmployeeCodes.ToList();
         var periodList = existingPeriodNames.ToList();
-        var decision = EvaluateSeedPrecondition(
-            codeList.Count,
-            codeList,
-            periodList,
-            registrationStaffingCount,
-            registrationAvailabilityCount,
-            hasNormalAvailability,
-            hasPreferredAvailability,
-            hasPublishedWorkSchedule,
-            publishedAssignmentCount);
-        return decision == SeedDecision.SkipAlreadySeeded;
+        var decision = EvaluateSeedPrecondition(0, periodList);
+        return decision == SeedDecision.SkipAlreadySeeded || decision == SeedDecision.SkipLegacyDemoDataset;
     }
 }

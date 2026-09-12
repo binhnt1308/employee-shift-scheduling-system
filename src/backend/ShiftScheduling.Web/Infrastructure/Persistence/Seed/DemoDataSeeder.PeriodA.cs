@@ -13,13 +13,13 @@ public static partial class DemoDataSeeder
         DateTime nowUtc,
         IClock clock)
     {
-        // Kỳ lịch trong tương lai đang mở đăng ký
+        // Kỳ lịch trong tương lai đang mở đăng ký (hạn chót cuối ngày Thứ Sáu trước tuần làm việc)
         var futureWeekEnd = futureWeekStart.AddDays(6);
-        var futureDeadlineUtc = clock.ToUtcFromVietnamTime(futureWeekStart.AddDays(-1).ToDateTime(new TimeOnly(23, 59, 59)));
+        var futureDeadlineUtc = clock.ToUtcFromVietnamTime(futureWeekStart.AddDays(-3).ToDateTime(new TimeOnly(23, 59, 59)));
 
         var periodA = new SchedulePeriod
         {
-            PeriodName = $"Kỳ lịch {futureWeekStart:dd/MM/yyyy} - {futureWeekEnd:dd/MM/yyyy} (Demo đăng ký)",
+            PeriodName = $"Kỳ lịch {futureWeekStart:dd/MM/yyyy} - {futureWeekEnd:dd/MM/yyyy} (Demo đang đăng ký)",
             WeekStartDate = futureWeekStart,
             WeekEndDate = futureWeekEnd,
             AvailabilityDeadline = futureDeadlineUtc,
@@ -29,15 +29,26 @@ public static partial class DemoDataSeeder
         };
         dataSet.Periods.Add(periodA);
 
-        // 21 định biên nhân sự cho Period A (7 ngày x 3 ca: 1 Bán hàng, 1 Thu ngân, tối thiểu 1 Level 2+)
+        // 21 định biên nhân sự cho kỳ đang mở đăng ký (7 ngày x 3 ca)
+        AddPeriodStaffingRequirements(dataSet, periodA, futureWeekStart);
+
+        // Đăng ký lịch rảnh phong phú (cả Bình thường và Ưa thích)
+        SeedPeriodAvailabilities(dataSet, periodA, futureWeekStart, allEmployees, nowUtc);
+    }
+
+    private static void AddPeriodStaffingRequirements(
+        DemoDataSet dataSet,
+        SchedulePeriod period,
+        DateOnly weekStart)
+    {
         for (int d = 0; d < 7; d++)
         {
-            var date = futureWeekStart.AddDays(d);
+            var date = weekStart.AddDays(d);
             for (int s = 1; s <= 3; s++)
             {
                 dataSet.StaffingRequirements.Add(new StaffingRequirement
                 {
-                    SchedulePeriod = periodA,
+                    SchedulePeriod = period,
                     WorkDate = date,
                     ShiftTypeId = s,
                     RequiredSalesStaff = 1,
@@ -47,12 +58,9 @@ public static partial class DemoDataSeeder
                 });
             }
         }
-
-        // Đăng ký lịch rảnh phong phú (cả Bình thường và Ưa thích, đủ nhân sự cho thuật toán xếp lịch)
-        SeedPeriodAAvailabilities(dataSet, periodA, futureWeekStart, allEmployees, nowUtc);
     }
 
-    private static void SeedPeriodAAvailabilities(
+    private static void SeedPeriodAvailabilities(
         DemoDataSet dataSet,
         SchedulePeriod periodA,
         DateOnly futureWeekStart,

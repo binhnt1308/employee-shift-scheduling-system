@@ -1,5 +1,6 @@
 using ShiftScheduling.Common.Security;
 using ShiftScheduling.Common.Time;
+using ShiftScheduling.Features.SchedulePeriods.Services;
 using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Entities;
@@ -120,11 +121,28 @@ public sealed class DemoDataSeederTests
         var today = new DateOnly(2026, 9, 11);
         var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
 
-        var periodA = dataSet.Periods.Single(p => p.RegistrationStatus == RegistrationStatus.Open);
+        var periodA = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.RegistrationDemoPeriodMarker));
+        Assert.Equal(RegistrationStatus.Open, periodA.RegistrationStatus);
         Assert.True(periodA.WeekStartDate > today, "Scenario A phải bắt đầu trong tương lai.");
         Assert.Equal(6, periodA.WeekEndDate.DayNumber - periodA.WeekStartDate.DayNumber);
         Assert.True(periodA.AvailabilityDeadline > _clock.UtcNow, "Deadline phải lớn hơn thời điểm hiện tại.");
-        Assert.Contains("(Demo đăng ký)", periodA.PeriodName);
+        Assert.Contains(DemoDataSeeder.RegistrationDemoPeriodMarker, periodA.PeriodName);
+    }
+
+    [Fact(DisplayName = "TC-07B: Scenario Ready tồn tại, deadline đã qua, IsRegistrationEffectivelyOpen == false, chưa có WorkSchedule/Assignment")]
+    public void TC07B_ScenarioReady_Exists_AndRegistrationIsEffectivelyClosed()
+    {
+        var today = new DateOnly(2026, 9, 11);
+        var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
+
+        var periodReady = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.ReadyToScheduleDemoPeriodMarker));
+        Assert.Equal(RegistrationStatus.Open, periodReady.RegistrationStatus);
+        Assert.True(periodReady.WeekStartDate > today, "Kỳ sẵn sàng xếp lịch phải bắt đầu ở tuần tới.");
+        Assert.Equal(6, periodReady.WeekEndDate.DayNumber - periodReady.WeekStartDate.DayNumber);
+        Assert.True(periodReady.AvailabilityDeadline < _clock.UtcNow, "Deadline đăng ký phải đã qua.");
+        Assert.False(SchedulePeriodStatusHelper.IsRegistrationEffectivelyOpen(periodReady, _clock.UtcNow, today));
+        Assert.DoesNotContain(dataSet.WorkSchedules, ws => ws.SchedulePeriod == periodReady);
+        Assert.DoesNotContain(dataSet.ShiftAssignments, sa => sa.WorkDate >= periodReady.WeekStartDate && sa.WorkDate <= periodReady.WeekEndDate);
     }
 
     [Fact(DisplayName = "TC-08: Scenario A có dữ liệu Availability cả Normal và Preferred")]
@@ -133,7 +151,7 @@ public sealed class DemoDataSeederTests
         var today = new DateOnly(2026, 9, 11);
         var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
 
-        var periodA = dataSet.Periods.Single(p => p.RegistrationStatus == RegistrationStatus.Open);
+        var periodA = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.RegistrationDemoPeriodMarker));
         var availsA = dataSet.Availabilities.Where(a => a.SchedulePeriod == periodA).ToList();
 
         Assert.NotEmpty(availsA);
@@ -147,17 +165,56 @@ public sealed class DemoDataSeederTests
         }
     }
 
+    [Fact(DisplayName = "TC-08B: Scenario Ready có dữ liệu Availability cả Normal và Preferred")]
+    public void TC08B_ScenarioReady_HasNormalAndPreferredAvailabilities()
+    {
+        var today = new DateOnly(2026, 9, 11);
+        var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
+
+        var periodReady = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.ReadyToScheduleDemoPeriodMarker));
+        var availsReady = dataSet.Availabilities.Where(a => a.SchedulePeriod == periodReady).ToList();
+
+        Assert.NotEmpty(availsReady);
+        Assert.Contains(availsReady, a => a.PreferenceLevel == AvailabilityPreferenceLevel.Normal);
+        Assert.Contains(availsReady, a => a.PreferenceLevel == AvailabilityPreferenceLevel.Preferred);
+
+        // Mọi nhân viên NV01..NV08 đều có lịch rảnh trong Period Ready
+        foreach (var emp in dataSet.Employees)
+        {
+            Assert.Contains(availsReady, a => a.Employee == emp);
+        }
+    }
+
     [Fact(DisplayName = "TC-09: Scenario A có đúng 21 bản ghi StaffingRequirement")]
     public void TC09_ScenarioA_HasStaffingRequirements_21Records()
     {
         var today = new DateOnly(2026, 9, 11);
         var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
 
-        var periodA = dataSet.Periods.Single(p => p.RegistrationStatus == RegistrationStatus.Open);
+        var periodA = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.RegistrationDemoPeriodMarker));
         var reqsA = dataSet.StaffingRequirements.Where(r => r.SchedulePeriod == periodA).ToList();
 
         Assert.Equal(21, reqsA.Count);
         Assert.All(reqsA, r =>
+        {
+            Assert.Equal(1, r.RequiredSalesStaff);
+            Assert.Equal(1, r.RequiredCashiers);
+            Assert.Equal(1, r.RequiredExperiencedStaff);
+            Assert.Equal(EmployeeLevel.Level2, r.MinimumLevel);
+        });
+    }
+
+    [Fact(DisplayName = "TC-09B: Scenario Ready có đúng 21 bản ghi StaffingRequirement")]
+    public void TC09B_ScenarioReady_HasStaffingRequirements_21Records()
+    {
+        var today = new DateOnly(2026, 9, 11);
+        var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
+
+        var periodReady = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.ReadyToScheduleDemoPeriodMarker));
+        var reqsReady = dataSet.StaffingRequirements.Where(r => r.SchedulePeriod == periodReady).ToList();
+
+        Assert.Equal(21, reqsReady.Count);
+        Assert.All(reqsReady, r =>
         {
             Assert.Equal(1, r.RequiredSalesStaff);
             Assert.Equal(1, r.RequiredCashiers);
@@ -172,7 +229,7 @@ public sealed class DemoDataSeederTests
         var today = new DateOnly(2026, 9, 11);
         var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
 
-        var periodA = dataSet.Periods.Single(p => p.RegistrationStatus == RegistrationStatus.Open);
+        var periodA = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.RegistrationDemoPeriodMarker));
         var reqsA = dataSet.StaffingRequirements.Where(r => r.SchedulePeriod == periodA).ToList();
         var availsA = dataSet.Availabilities.Where(a => a.SchedulePeriod == periodA).ToList();
 
@@ -199,6 +256,48 @@ public sealed class DemoDataSeederTests
             availsA,
             new List<LeaveRequest>(),
             reqsA,
+            shiftTypes,
+            timeoutSeconds: 5);
+
+        Assert.True(proposal.Succeeded, $"OR-Tools failed with status {proposal.Status}: {proposal.Message}");
+        Assert.NotEmpty(proposal.ProposedAssignments);
+        Assert.True(proposal.ValidationResult.IsValid);
+        Assert.Empty(proposal.ValidationResult.HardErrors);
+    }
+
+    [Fact(DisplayName = "TC-10B: Scenario Ready giải thành công bằng OR-Tools CP-SAT (Feasible/Optimal)")]
+    public void TC10B_ScenarioReady_Availabilities_AreFeasibleForOrToolsSolver()
+    {
+        var today = new DateOnly(2026, 9, 11);
+        var dataSet = DemoDataSeeder.BuildDemoDataSet(today, _passwordHashService, _clock);
+
+        var periodReady = dataSet.Periods.Single(p => p.PeriodName.Contains(DemoDataSeeder.ReadyToScheduleDemoPeriodMarker));
+        var reqsReady = dataSet.StaffingRequirements.Where(r => r.SchedulePeriod == periodReady).ToList();
+        var availsReady = dataSet.Availabilities.Where(a => a.SchedulePeriod == periodReady).ToList();
+
+        for (int i = 0; i < dataSet.Employees.Count; i++)
+        {
+            dataSet.Employees[i].EmployeeId = i + 1;
+        }
+        foreach (var av in availsReady)
+        {
+            av.EmployeeId = av.Employee.EmployeeId;
+        }
+
+        var shiftTypes = new List<ShiftType>
+        {
+            new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DurationHours = 4, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1, DisplayOrder = 1 },
+            new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DurationHours = 4, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1, DisplayOrder = 2 },
+            new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DurationHours = 4, IsActive = true, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false, ConfigurationVersion = 1, DisplayOrder = 3 }
+        };
+
+        var orToolsService = new OrToolsSchedulingService(_validationService, Microsoft.Extensions.Logging.Abstractions.NullLogger<OrToolsSchedulingService>.Instance);
+        var proposal = orToolsService.GenerateProposal(
+            periodReady,
+            dataSet.Employees,
+            availsReady,
+            new List<LeaveRequest>(),
+            reqsReady,
             shiftTypes,
             timeoutSeconds: 5);
 
@@ -309,20 +408,56 @@ public sealed class DemoDataSeederTests
     [Fact(DisplayName = "TC-16: Idempotent - Complete demo dataset is recognized by IsAlreadySeeded")]
     public void TC16_Idempotency_CompleteDemoDataset_IsAlreadySeeded()
     {
-        var completePeriods = new[]
+        var completeNewPeriods = new[]
+        {
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
+        };
+
+        // Khi đầy đủ tất cả thành phần demo mới 3 kỳ: trả về true
+        Assert.True(DemoDataSeeder.IsAlreadySeeded(DemoDataSeeder.DemoEmployeeCodes, completeNewPeriods));
+
+        var completeLegacyPeriods = new[]
         {
             "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
             "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)"
         };
 
-        // Khi đầy đủ tất cả thành phần demo: trả về true
-        Assert.True(DemoDataSeeder.IsAlreadySeeded(DemoDataSeeder.DemoEmployeeCodes, completePeriods));
+        // Khi database có bộ demo legacy 2 kỳ: cũng được nhận diện là đã seed và không seed lại
+        Assert.True(DemoDataSeeder.IsAlreadySeeded(DemoDataSeeder.DemoEmployeeCodes, completeLegacyPeriods));
 
         // Khi có NV01-NV08 nhưng các kỳ không có marker demo (như ShiftSchedulingDb cũ): không throw và trả về false
         Assert.False(DemoDataSeeder.IsAlreadySeeded(DemoDataSeeder.DemoEmployeeCodes, new[] { "Kỳ lịch 1", "Kỳ lịch 31/08/2026" }));
 
         // Khi chỉ có nhân viên nghiệp vụ unrelated (không có demo indicator)
         Assert.False(DemoDataSeeder.IsAlreadySeeded(new[] { "EMP001", "EMP002" }, new[] { "Kỳ lịch tháng 8" }));
+    }
+
+    [Fact(DisplayName = "TC-16B: Post-demo user modifications on Ready/Registration => Precondition skips safely without throw")]
+    public void TC16B_Precondition_PostDemoUserModifications_DoesNotThrowAndSkipsSafely()
+    {
+        var periods = new[]
+        {
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
+        };
+
+        // 1. Khi người dùng đã thao tác tạo Draft và assignments trên Ready, sửa availability trên Registration
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 8,
+            existingPeriodNames: periods);
+
+        // EXPECTED: SkipAlreadySeeded an toàn, không ném InvalidOperationException
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
+        Assert.True(DemoDataSeeder.IsAlreadySeeded(DemoDataSeeder.DemoEmployeeCodes, periods));
+
+        // 2. Kể cả khi số lượng nhân viên bị thay đổi (ví dụ: nhân viên mới được thêm vào hoặc xóa bớt)
+        var decisionWithDifferentEmployees = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 12,
+            existingPeriodNames: periods);
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decisionWithDifferentEmployees);
     }
 
     [Fact(DisplayName = "TC-17: Foreign Key và phân công Scenario B hợp lệ hoàn toàn theo SchedulingValidationService")]
@@ -435,125 +570,107 @@ public sealed class DemoDataSeederTests
         Assert.Equal(DemoDataSeeder.SeedDecision.SkipExistingBusinessData, decision);
     }
 
-    [Fact(DisplayName = "TC-22: Precondition D - Full demo nhưng staffing = 20 => Throw partial")]
-    public void TC22_Precondition_D_FullDemo_StaffingCount20_Throws()
+    [Fact(DisplayName = "TC-22: Precondition - User creates Draft WorkSchedule and assignments on Ready period => SkipsAlreadySeeded")]
+    public void TC22_Precondition_CompleteNewDemo_UserModifiesReadyPeriod_SkipsAlreadySeeded()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            DemoDataSeeder.EvaluateSeedPrecondition(
-                totalEmployees: 8,
-                existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-                existingPeriodNames: periods,
-                registrationStaffingCount: 20,
-                registrationAvailabilityCount: 50,
-                hasNormalAvailability: true,
-                hasPreferredAvailability: true,
-                hasPublishedWorkSchedule: true,
-                publishedAssignmentCount: 42));
+        // Kể cả khi Ready period đã có WorkSchedule Draft và assignments
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 8,
+            existingPeriodNames: periods);
 
-        Assert.StartsWith("Partial demo dataset detected", ex.Message);
-        Assert.Contains("Registration staffing count: 20/21", ex.Message);
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
     }
 
-    [Fact(DisplayName = "TC-23: Precondition E - Full demo nhưng availability = 0 => Throw partial")]
-    public void TC23_Precondition_E_FullDemo_AvailabilityCountZero_Throws()
+    [Fact(DisplayName = "TC-23: Precondition - User modifies Registration availability => SkipsAlreadySeeded")]
+    public void TC23_Precondition_CompleteNewDemo_UserModifiesRegistrationAvailability_SkipsAlreadySeeded()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            DemoDataSeeder.EvaluateSeedPrecondition(
-                totalEmployees: 8,
-                existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-                existingPeriodNames: periods,
-                registrationStaffingCount: 21,
-                registrationAvailabilityCount: 0,
-                hasNormalAvailability: true,
-                hasPreferredAvailability: true,
-                hasPublishedWorkSchedule: true,
-                publishedAssignmentCount: 42));
+        // Kể cả khi nhân viên đổi lịch rảnh thành toàn bộ Normal hoặc không có Preferred
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 8,
+            existingPeriodNames: periods);
 
-        Assert.StartsWith("Partial demo dataset detected", ex.Message);
-        Assert.Contains("Registration availability count: 0", ex.Message);
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
     }
 
-    [Fact(DisplayName = "TC-24: Precondition F - Full demo chỉ có Normal, không Preferred => Throw partial")]
-    public void TC24_Precondition_F_FullDemo_OnlyNormalNoPreferred_Throws()
+    [Fact(DisplayName = "TC-24: Precondition - Staffing count of Ready/Registration modified => SkipsAlreadySeeded")]
+    public void TC24_Precondition_CompleteNewDemo_StaffingChanged_SkipsAlreadySeeded()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            DemoDataSeeder.EvaluateSeedPrecondition(
-                totalEmployees: 8,
-                existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-                existingPeriodNames: periods,
-                registrationStaffingCount: 21,
-                registrationAvailabilityCount: 50,
-                hasNormalAvailability: true,
-                hasPreferredAvailability: false,
-                hasPublishedWorkSchedule: true,
-                publishedAssignmentCount: 42));
+        // Kể cả khi định biên nhân sự của kỳ bị thay đổi trong quá trình vận hành
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 8,
+            existingPeriodNames: periods);
 
-        Assert.StartsWith("Partial demo dataset detected", ex.Message);
-        Assert.Contains("Registration has Preferred: False", ex.Message);
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
     }
 
-    [Fact(DisplayName = "TC-25: Precondition G - Full demo chỉ có 1 published assignment => Throw partial")]
-    public void TC25_Precondition_G_FullDemo_OnlyOnePublishedAssignment_Throws()
+    [Fact(DisplayName = "TC-25: Precondition - Employees changed or deleted after seed => SkipsAlreadySeeded")]
+    public void TC25_Precondition_CompleteNewDemo_EmployeesChangedOrDeleted_SkipsAlreadySeeded()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            DemoDataSeeder.EvaluateSeedPrecondition(
-                totalEmployees: 8,
-                existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-                existingPeriodNames: periods,
-                registrationStaffingCount: 21,
-                registrationAvailabilityCount: 50,
-                hasNormalAvailability: true,
-                hasPreferredAvailability: true,
-                hasPublishedWorkSchedule: true,
-                publishedAssignmentCount: 1));
+        // Kể cả khi số lượng nhân viên bị thay đổi (thêm mới hoặc xóa bớt), miễn 3 marker còn đủ
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 5,
+            existingPeriodNames: periods);
 
-        Assert.StartsWith("Partial demo dataset detected", ex.Message);
-        Assert.Contains("Published assignments count: 1/42", ex.Message);
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
     }
 
-    [Fact(DisplayName = "TC-26: Precondition H - Full demo: staffing=21, availability>0, Normal=true, Preferred=true, assignments=42 => SkipAlreadySeeded")]
-    public void TC26_Precondition_H_FullDemo_AllConditionsMet_SkipsAlreadySeeded()
+    [Fact(DisplayName = "TC-26: Precondition - Legacy demo with modified business data => SkipsLegacyDemoDataset")]
+    public void TC26_Precondition_LegacyDemo_BusinessDataModified_SkipsLegacyDemoDataset()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)"
         };
 
         var decision = DemoDataSeeder.EvaluateSeedPrecondition(
             totalEmployees: 8,
-            existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-            existingPeriodNames: periods,
-            registrationStaffingCount: 21,
-            registrationAvailabilityCount: 52,
-            hasNormalAvailability: true,
-            hasPreferredAvailability: true,
-            hasPublishedWorkSchedule: true,
-            publishedAssignmentCount: 42);
+            existingPeriodNames: periods);
+
+        Assert.Equal(DemoDataSeeder.SeedDecision.SkipLegacyDemoDataset, decision);
+    }
+
+    [Fact(DisplayName = "TC-26B: Precondition - Full new 3-period demo => SkipAlreadySeeded")]
+    public void TC26B_Precondition_FullNew3PeriodDemo_AllConditionsMet_SkipsAlreadySeeded()
+    {
+        var periods = new[]
+        {
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
+        };
+
+        var decision = DemoDataSeeder.EvaluateSeedPrecondition(
+            totalEmployees: 8,
+            existingPeriodNames: periods);
 
         Assert.Equal(DemoDataSeeder.SeedDecision.SkipAlreadySeeded, decision);
     }
@@ -564,49 +681,99 @@ public sealed class DemoDataSeederTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             DemoDataSeeder.EvaluateSeedPrecondition(
                 totalEmployees: 0,
-                existingEmployeeCodes: Array.Empty<string>(),
-                existingPeriodNames: new[] { "Kỳ lịch 14-09-2026 (Demo đăng ký)" }));
+                existingPeriodNames: new[] { "Kỳ lịch 14-09-2026 (Demo đang đăng ký)" }));
 
         Assert.StartsWith("Partial demo dataset detected", ex.Message);
     }
 
-    [Fact(DisplayName = "TC-28: Precondition - Both demo periods + thiếu employee => Partial demo => Throw InvalidOperationException")]
-    public void TC28_Precondition_BothDemoPeriods_MissingEmployees_Throws()
+    [Fact(DisplayName = "TC-28: Precondition - Only Published demo period => Partial demo => Throw InvalidOperationException")]
+    public void TC28_Precondition_OnlyPublishedDemoPeriod_Throws()
     {
-        var periods = new[]
-        {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
-        };
-
-        var partialEmployees = new[] { "NV01", "NV02" };
-
         var ex = Assert.Throws<InvalidOperationException>(() =>
             DemoDataSeeder.EvaluateSeedPrecondition(
-                totalEmployees: 2,
-                existingEmployeeCodes: partialEmployees,
-                existingPeriodNames: periods));
+                totalEmployees: 8,
+                existingPeriodNames: new[] { "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)" }));
 
         Assert.StartsWith("Partial demo dataset detected", ex.Message);
     }
 
-    [Fact(DisplayName = "TC-29: Precondition - Demo periods + thiếu Published WorkSchedule => Partial demo => Throw InvalidOperationException")]
-    public void TC29_Precondition_MissingPublishedWorkSchedule_Throws()
+    [Fact(DisplayName = "TC-29: Precondition - Published + Ready missing Registration => Throw InvalidOperationException")]
+    public void TC29_Precondition_PublishedAndReady_MissingRegistration_Throws()
     {
         var periods = new[]
         {
-            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)",
-            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)"
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)"
         };
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             DemoDataSeeder.EvaluateSeedPrecondition(
                 totalEmployees: 8,
-                existingEmployeeCodes: DemoDataSeeder.DemoEmployeeCodes,
-                existingPeriodNames: periods,
-                hasPublishedWorkSchedule: false,
-                publishedAssignmentCount: 42));
+                existingPeriodNames: periods));
 
         Assert.StartsWith("Partial demo dataset detected", ex.Message);
+    }
+
+    [Fact(DisplayName = "TC-29B: Precondition - Published + Registration missing Ready => Throw InvalidOperationException")]
+    public void TC29B_Precondition_PublishedAndRegistration_MissingReady_Throws()
+    {
+        var periods = new[]
+        {
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đang đăng ký)"
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DemoDataSeeder.EvaluateSeedPrecondition(
+                totalEmployees: 8,
+                existingPeriodNames: periods));
+
+        Assert.StartsWith("Partial demo dataset detected", ex.Message);
+    }
+
+    [Fact(DisplayName = "TC-29C: Precondition - Mixing LegacyRegistration with new Ready marker => Throw InvalidOperationException")]
+    public void TC29C_Precondition_MixingLegacyRegistrationWithNewMarkers_Throws()
+    {
+        var periods = new[]
+        {
+            "Kỳ lịch 31-08-2026 - 06-09-2026 (Demo đã công bố)",
+            "Kỳ lịch 07-09-2026 - 13-09-2026 (Demo sẵn sàng xếp lịch)",
+            "Kỳ lịch 14-09-2026 - 20-09-2026 (Demo đăng ký)" // Trộn legacy với ready mới
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DemoDataSeeder.EvaluateSeedPrecondition(
+                totalEmployees: 8,
+                existingPeriodNames: periods));
+
+        Assert.StartsWith("Partial demo dataset detected", ex.Message);
+    }
+
+    [Theory(DisplayName = "TC-30: CalculatePeriodDates tính đúng 3 mốc Thứ Hai cho mọi ngày trong tuần")]
+    [InlineData(2026, 9, 7, 2026, 8, 31, 2026, 9, 14, 2026, 9, 21)]  // Monday
+    [InlineData(2026, 9, 8, 2026, 8, 31, 2026, 9, 14, 2026, 9, 21)]  // Tuesday
+    [InlineData(2026, 9, 11, 2026, 8, 31, 2026, 9, 14, 2026, 9, 21)] // Friday
+    [InlineData(2026, 9, 12, 2026, 8, 31, 2026, 9, 14, 2026, 9, 21)] // Saturday
+    [InlineData(2026, 9, 13, 2026, 8, 31, 2026, 9, 14, 2026, 9, 21)] // Sunday
+    [InlineData(2026, 9, 14, 2026, 9, 7, 2026, 9, 21, 2026, 9, 28)]  // Next Monday
+    public void TC30_CalculatePeriodDates_AlwaysReturnsThreeMondays(
+        int todayY, int todayM, int todayD,
+        int pastY, int pastM, int pastD,
+        int readyY, int readyM, int readyD,
+        int futureY, int futureM, int futureD)
+    {
+        var today = new DateOnly(todayY, todayM, todayD);
+        var (past, ready, future) = DemoDataSeeder.CalculatePeriodDates(today);
+
+        Assert.Equal(DayOfWeek.Monday, past.DayOfWeek);
+        Assert.Equal(DayOfWeek.Monday, ready.DayOfWeek);
+        Assert.Equal(DayOfWeek.Monday, future.DayOfWeek);
+
+        Assert.Equal(new DateOnly(pastY, pastM, pastD), past);
+        Assert.Equal(new DateOnly(readyY, readyM, readyD), ready);
+        Assert.Equal(new DateOnly(futureY, futureM, futureD), future);
+
+        Assert.Equal(14, ready.DayNumber - past.DayNumber);
+        Assert.Equal(7, future.DayNumber - ready.DayNumber);
     }
 }
