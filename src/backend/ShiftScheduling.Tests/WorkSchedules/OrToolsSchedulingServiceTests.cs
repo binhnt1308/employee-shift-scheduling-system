@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Features.WorkSchedules.Services;
+using ShiftScheduling.Features.WorkSchedules.ViewModels;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
 
@@ -1314,6 +1315,45 @@ public sealed class OrToolsSchedulingServiceTests
 
         Assert.True(result.ValidationResult.IsValid);
         Assert.Empty(result.ValidationResult.HardErrors);
+    }
+
+    [Fact(DisplayName = "TC06-POS-01 - ProposedAssignmentItemViewModel ánh xạ đúng PositionLabel nghiệp vụ và JSON contract")]
+    public void ProposedAssignmentItemViewModel_PositionLabel_MapsCorrectBusinessNamesAndJsonContract()
+    {
+        var salesItem = new ProposedAssignmentItemViewModel
+        {
+            Position = EmployeePosition.Sales
+        };
+
+        var cashierItem = new ProposedAssignmentItemViewModel
+        {
+            Position = EmployeePosition.Cashier
+        };
+
+        // Kiểm tra PositionLabel nghiệp vụ
+        Assert.Equal("Tư vấn", salesItem.PositionLabel);
+        Assert.NotEqual("1", salesItem.PositionLabel);
+
+        Assert.Equal("Thu ngân", cashierItem.PositionLabel);
+        Assert.NotEqual("2", cashierItem.PositionLabel);
+
+        // Kiểm tra JSON serialization contract cho API response (camelCase theo ASP.NET Core)
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+        var salesJson = System.Text.Json.JsonSerializer.Serialize(salesItem, jsonOptions);
+        var cashierJson = System.Text.Json.JsonSerializer.Serialize(cashierItem, jsonOptions);
+
+        Assert.Contains("\"positionLabel\":\"Tư vấn\"", salesJson);
+        Assert.Contains("\"positionLabel\":\"Thu ngân\"", cashierJson);
+
+        using var salesDoc = System.Text.Json.JsonDocument.Parse(salesJson);
+        Assert.Equal("Tư vấn", salesDoc.RootElement.GetProperty("positionLabel").GetString());
+
+        using var cashierDoc = System.Text.Json.JsonDocument.Parse(cashierJson);
+        Assert.Equal("Thu ngân", cashierDoc.RootElement.GetProperty("positionLabel").GetString());
     }
 }
 
