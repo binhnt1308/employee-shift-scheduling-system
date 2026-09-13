@@ -25,9 +25,16 @@ internal sealed class FakeNotificationRepository : INotificationRepository
         Items.Add(notification);
     }
 
+    public bool ThrowOnGetActiveManagers { get; set; }
+
     public Task<IReadOnlyList<int>> GetActiveManagerAccountIdsAsync(
         CancellationToken cancellationToken = default)
     {
+        if (ThrowOnGetActiveManagers)
+        {
+            throw new InvalidOperationException("Simulated database failure during manager lookup.");
+        }
+
         return Task.FromResult<IReadOnlyList<int>>(ManagerAccountIds);
     }
 
@@ -227,6 +234,7 @@ internal sealed class FakeLeaveRequestRepository : ILeaveRequestRepository
             && request.SchedulePeriodId == schedulePeriodId
             && request.LeaveDate == leaveDate
             && request.Status != LeaveRequestStatus.Rejected
+            && request.Status != LeaveRequestStatus.Cancelled
             && (!shiftTypeId.HasValue
                 || !request.ShiftTypeId.HasValue
                 || request.ShiftTypeId == shiftTypeId));
@@ -275,6 +283,20 @@ internal sealed class FakeLeaveRequestRepository : ILeaveRequestRepository
                 && r.Status == LeaveRequestStatus.Approved).ToList());
     }
 
+    public Task<IReadOnlyList<ShiftAssignment>> GetEmployeePublishedAssignmentsAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var items = PublishedAssignments
+            .Where(a => a.EmployeeId == employeeId
+                && a.WorkSchedule.Status == ScheduleStatus.Published
+                && a.WorkSchedule.SchedulePeriod.WeekEndDate >= fromDate)
+            .OrderBy(a => a.WorkDate)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<ShiftAssignment>>(items);
+    }
+
     public void Add(LeaveRequest leaveRequest)
     {
         leaveRequest.LeaveRequestId = leaveRequest.LeaveRequestId == 0
@@ -297,7 +319,7 @@ internal sealed class FakeLeaveRequestRepository : ILeaveRequestRepository
         request.SchedulePeriod =
             Periods.Single(period => period.SchedulePeriodId == request.SchedulePeriodId);
         request.ShiftType = request.ShiftTypeId.HasValue
-            ? ShiftTypes.Single(shift => shift.ShiftTypeId == request.ShiftTypeId.Value)
+            ? ShiftTypes.SingleOrDefault(shift => shift.ShiftTypeId == request.ShiftTypeId.Value)
             : null;
     }
 }

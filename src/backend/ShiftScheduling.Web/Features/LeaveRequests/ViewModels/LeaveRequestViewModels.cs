@@ -48,6 +48,8 @@ public sealed class LeaveRequestCreateViewModel
 
     public IReadOnlyList<LeavePeriodOptionViewModel> Periods { get; set; } = [];
     public IReadOnlyList<LeaveShiftOptionViewModel> ShiftTypes { get; set; } = [];
+    public IReadOnlyList<DateOnly> AvailableDates { get; set; } = [];
+    public IReadOnlyList<LeaveAssignmentOptionViewModel> AvailableAssignments { get; set; } = [];
 }
 
 public sealed class LeaveRequestDetailsViewModel
@@ -66,6 +68,8 @@ public sealed class LeaveRequestDetailsViewModel
     public bool HasPublishedAssignment { get; init; }
     public bool HasDraftAssignment { get; init; }
     public bool CanReview { get; init; }
+    public bool CanCancel { get; init; }
+    public bool IsManager { get; init; }
     public string RowVersion { get; init; } = string.Empty;
 }
 
@@ -88,6 +92,14 @@ public sealed record LeavePeriodOptionViewModel(
     DateOnly WeekEndDate);
 
 public sealed record LeaveShiftOptionViewModel(
+    int ShiftTypeId,
+    string ShiftName,
+    TimeOnly StartTime,
+    TimeOnly EndTime);
+
+public sealed record LeaveAssignmentOptionViewModel(
+    int SchedulePeriodId,
+    DateOnly WorkDate,
     int ShiftTypeId,
     string ShiftName,
     TimeOnly StartTime,

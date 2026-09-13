@@ -51,7 +51,8 @@ public enum LeaveRequestStatus
 {
     Pending = 1,
     Approved = 2,
-    Rejected = 3
+    Rejected = 3,
+    Cancelled = 4
 }
 
 public enum ReceiverStatus
@@ -75,7 +76,8 @@ public enum NotificationType
     LeaveRequestResult = 3,
     ShiftTransferRequest = 4,
     ShiftTransferResult = 5,
-    RegistrationOpened = 6
+    RegistrationOpened = 6,
+    LeaveRequestSubmitted = 7
 }
 
 /// <summary>

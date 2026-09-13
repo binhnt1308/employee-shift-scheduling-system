@@ -57,6 +57,10 @@
                                 selected="@(Model.Status == LeaveRequestStatus.Rejected ? "selected" : null)">
                             Từ chối
                         </option>
+                        <option value="Cancelled"
+                                selected="@(Model.Status == LeaveRequestStatus.Cancelled ? "selected" : null)">
+                            Đã hủy
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex gap-2">
@@ -119,12 +123,16 @@
                                 {
                                     <span class="badge badge-custom badge-active">Đã duyệt</span>
                                 }
+                                else if (item.Status == LeaveRequestStatus.Cancelled)
+                                {
+                                    <span class="badge badge-custom badge-secondary">Đã hủy</span>
+                                }
                                 else
                                 {
                                     <span class="badge badge-custom badge-rejected">Từ chối</span>
                                 }
 
-                                @if (item.HasPublishedAssignment && item.Status != LeaveRequestStatus.Rejected)
+                                @if (Model.IsManager && item.HasPublishedAssignment && item.Status != LeaveRequestStatus.Rejected && item.Status != LeaveRequestStatus.Cancelled)
                                 {
                                     <div class="mt-2">
                                         @if (item.Status == LeaveRequestStatus.Approved)
@@ -151,6 +159,15 @@
                                        class="btn btn-sm btn-primary-custom ms-1">
                                         Xử lý
                                     </a>
+                                }
+                                @if (!Model.IsManager && item.Status == LeaveRequestStatus.Pending)
+                                {
+                                    <form asp-action="Cancel" asp-route-id="@item.LeaveRequestId" method="post" class="d-inline ms-1" onsubmit="return confirm('Bạn có chắc muốn hủy đơn xin nghỉ này không?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Hủy
+                                        </button>
+                                    </form>
                                 }
                             </td>
                         </tr>

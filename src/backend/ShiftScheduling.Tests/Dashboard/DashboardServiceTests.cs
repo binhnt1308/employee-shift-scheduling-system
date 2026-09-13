@@ -288,4 +288,123 @@ public sealed class DashboardServiceTests
         var resultUpcoming = await service3.GetDashboardAsync(userAccountId: 8);
         Assert.Equal("Kỳ lịch sắp tới", resultUpcoming.EmployeePeriodLabel);
     }
+
+    [Fact(DisplayName = "TC-DASH-EMP-05 - Employee Dashboard populates FullName, week schedule 7 days, and shift details")]
+    public async Task GetDashboardAsync_WhenEmployeeLoggedIn_PopulatesFullNameAndWeekSchedule()
+    {
+        var accountRepo = new FakeAccountRepository();
+        var employeeRepo = new FakeEmployeeRepository();
+        var shiftTypeRepo = new FakeShiftTypeRepository();
+        var scheduleRepo = new FakeWorkScheduleRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+
+        shiftTypeRepo.ShiftTypes.Add(new ShiftType
+        {
+            ShiftTypeId = 1,
+            ShiftCode = "MORNING",
+            ShiftName = "Ca sáng",
+            IsActive = true,
+            StartTime = new TimeOnly(8, 0),
+            EndTime = new TimeOnly(12, 0)
+        });
+
+        var emp = new Employee
+        {
+            EmployeeId = 50,
+            EmployeeCode = "NV50",
+            FullName = "Nguyễn Văn Test"
+        };
+        var userAcc = new UserAccount
+        {
+            UserAccountId = 50,
+            Username = "nv50",
+            Role = UserRole.Employee,
+            Employee = emp
+        };
+        accountRepo.Accounts.Add(userAcc);
+
+        var publishedSchedule = new WorkSchedule
+        {
+            WorkScheduleId = 500,
+            SchedulePeriodId = 500,
+            Status = ScheduleStatus.Published,
+            ShiftAssignments = new List<ShiftAssignment>
+            {
+                new() { ShiftAssignmentId = 5001, EmployeeId = 50, WorkDate = new DateOnly(2026, 9, 8), ShiftTypeId = 1 },
+                new() { ShiftAssignmentId = 5002, EmployeeId = 50, WorkDate = new DateOnly(2026, 9, 10), ShiftTypeId = 1 }
+            }
+        };
+        scheduleRepo.Schedules.Add(publishedSchedule);
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 500,
+            PeriodName = "Kỳ 500",
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13)
+        };
+        period.WorkSchedules.Add(publishedSchedule);
+        periodRepo.Add(period);
+
+        var clock = new FakeClock(new DateTime(2026, 9, 8, 8, 30, 0, DateTimeKind.Utc));
+        var service = new DashboardService(accountRepo, employeeRepo, shiftTypeRepo, periodRepo, clock);
+
+        var result = await service.GetDashboardAsync(userAccountId: 50);
+
+        Assert.NotNull(result);
+        Assert.Equal("Nguyễn Văn Test", result.EmployeeFullName);
+        Assert.True(result.HasSchedule);
+        Assert.True(result.HasMySchedule);
+        Assert.Equal("badge-active", result.EmployeeScheduleBadgeClass);
+        Assert.Equal(2, result.EmployeeTotalAssignedShifts);
+        Assert.Equal(7, result.EmployeeWeekSchedule.Count);
+
+        // Monday (07/09) - no shift
+        Assert.Empty(result.EmployeeWeekSchedule[0].Shifts);
+        Assert.False(result.EmployeeWeekSchedule[0].IsToday);
+
+        // Tuesday (08/09) - today, 1 shift
+        Assert.True(result.EmployeeWeekSchedule[1].IsToday);
+        Assert.Single(result.EmployeeWeekSchedule[1].Shifts);
+        Assert.Equal("Ca sáng", result.EmployeeWeekSchedule[1].Shifts[0].ShiftName);
+        Assert.Equal("08:00 - 12:00", result.EmployeeWeekSchedule[1].Shifts[0].ShiftHours);
+
+        // Thursday (10/09) - 1 shift
+        Assert.Single(result.EmployeeWeekSchedule[3].Shifts);
+    }
+
+    [Fact(DisplayName = "TC-DASH-EMP-06 - When registration open and schedule unpublished -> IsRegistrationOpen is true and badge is primary")]
+    public async Task GetDashboardAsync_WhenRegistrationOpen_SetsIsRegistrationOpenTrue()
+    {
+        var accountRepo = new FakeAccountRepository();
+        var employeeRepo = new FakeEmployeeRepository();
+        var shiftTypeRepo = new FakeShiftTypeRepository();
+        var periodRepo = new FakeSchedulePeriodRepository();
+
+        var emp = new Employee { EmployeeId = 60, EmployeeCode = "NV60", FullName = "Trần Thị Test" };
+        var userAcc = new UserAccount { UserAccountId = 60, Username = "nv60", Role = UserRole.Employee, Employee = emp };
+        accountRepo.Accounts.Add(userAcc);
+
+        var period = new SchedulePeriod
+        {
+            SchedulePeriodId = 600,
+            PeriodName = "Kỳ mở đăng ký",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
+            RegistrationStatus = RegistrationStatus.Open,
+            AvailabilityDeadline = new DateTime(2026, 9, 12, 17, 0, 0, DateTimeKind.Utc)
+        };
+        periodRepo.Add(period);
+
+        // Current time is 2026-09-10 (before WeekStartDate and before AvailabilityDeadline)
+        var clock = new FakeClock(new DateTime(2026, 9, 10, 10, 0, 0, DateTimeKind.Utc));
+        var service = new DashboardService(accountRepo, employeeRepo, shiftTypeRepo, periodRepo, clock);
+
+        var result = await service.GetDashboardAsync(userAccountId: 60);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsRegistrationOpen);
+        Assert.Equal("badge-primary-custom", result.EmployeeScheduleBadgeClass);
+        Assert.Equal("Lịch làm việc chưa được công bố", result.EmployeeScheduleStatusDisplay);
+    }
 }

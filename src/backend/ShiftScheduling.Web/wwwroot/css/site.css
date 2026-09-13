@@ -425,6 +425,100 @@ body {
     margin-top: 0.25rem;
 }
 
+/* Quick Actions & Dashboard Card Buttons */
+.btn-action-card {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-action-card:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: #c7d2fe;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-action-card .action-icon {
+    color: var(--primary);
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.btn-action-card-primary {
+    background: var(--primary-gradient);
+    color: #ffffff !important;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.btn-action-card-primary:hover {
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.btn-action-card-primary .action-icon {
+    color: #ffffff;
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+/* Nav Pills Custom */
+.nav-pills-custom {
+    gap: 0.5rem;
+}
+
+.nav-pills-custom .nav-link {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav-pills-custom .nav-link:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: #c7d2fe;
+}
+
+.nav-pills-custom .nav-link.active {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.nav-pills-custom .nav-link.active .badge {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
 /* Footer */
 .footer-custom {
     margin-top: auto;
@@ -433,4 +527,285 @@ body {
     padding: 1.25rem 0;
     color: var(--text-muted);
     font-size: 0.875rem;
+}
+
+/* Dashboard Enhancements: Banners & Tints */
+.dashboard-banner-manager {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.10), rgba(59, 130, 246, 0.06));
+    border: 1px solid rgba(79, 70, 229, 0.15) !important;
+}
+
+.dashboard-banner-admin {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(14, 165, 233, 0.06));
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Dashboard KPI Card Tints */
+.kpi-card-teal {
+    background: rgba(6, 182, 212, 0.05) !important;
+    border: 1px solid rgba(6, 182, 212, 0.20) !important;
+}
+.kpi-card-teal .kpi-icon-box {
+    background: rgba(6, 182, 212, 0.15);
+    color: #0891b2;
+}
+
+.kpi-card-amber {
+    background: rgba(245, 158, 11, 0.05) !important;
+    border: 1px solid rgba(245, 158, 11, 0.20) !important;
+}
+.kpi-card-amber .kpi-icon-box {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+
+.kpi-card-rose {
+    background: rgba(244, 63, 94, 0.05) !important;
+    border: 1px solid rgba(244, 63, 94, 0.20) !important;
+}
+.kpi-card-rose .kpi-icon-box {
+    background: rgba(244, 63, 94, 0.15);
+    color: #e11d48;
+}
+
+.kpi-card-indigo {
+    background: rgba(99, 102, 241, 0.05) !important;
+    border: 1px solid rgba(99, 102, 241, 0.20) !important;
+}
+.kpi-card-indigo .kpi-icon-box {
+    background: rgba(99, 102, 241, 0.15);
+    color: #4f46e5;
+}
+
+.kpi-card-sky {
+    background: rgba(14, 165, 233, 0.05) !important;
+    border: 1px solid rgba(14, 165, 233, 0.20) !important;
+}
+.kpi-card-sky .kpi-icon-box {
+    background: rgba(14, 165, 233, 0.15);
+    color: #0284c7;
+}
+
+.kpi-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+/* Action Icon Box in Quick Actions */
+.action-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(79, 70, 229, 0.10);
+    color: var(--primary);
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.btn-action-card:hover .action-icon-box {
+    background: var(--primary);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Card Header Icon Pill */
+.card-header-icon-pill {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(79, 70, 229, 0.10);
+    color: var(--primary);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+/* Subtle Card Accent Backgrounds */
+.dashboard-banner-employee {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%);
+    border: 1px solid rgba(79, 70, 229, 0.15) !important;
+}
+
+/* Employee Action Cards: Neutral by default, Purple Gradient on Hover & Active */
+.employee-action-card {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.employee-action-card .action-label {
+    font-weight: 600;
+    color: var(--text-main);
+    transition: color 0.2s ease;
+}
+
+.employee-action-card .action-icon {
+    color: var(--primary);
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+    transition: color 0.2s ease;
+}
+
+.employee-action-card .action-arrow {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.employee-action-card .action-badge {
+    font-size: 0.72rem;
+    transition: all 0.2s ease;
+}
+
+.employee-action-card:hover,
+.employee-action-card.active {
+    background: var(--primary-gradient);
+    color: #ffffff !important;
+    border-color: transparent;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+}
+
+.employee-action-card:hover .action-label,
+.employee-action-card.active .action-label {
+    color: #ffffff !important;
+}
+
+.employee-action-card:hover .action-icon,
+.employee-action-card.active .action-icon {
+    color: #ffffff !important;
+}
+
+.employee-action-card:hover .action-icon-box,
+.employee-action-card.active .action-icon-box {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    transform: scale(1.05);
+}
+
+.employee-action-card:hover .action-arrow,
+.employee-action-card.active .action-arrow {
+    color: #ffffff !important;
+    transform: translateX(2px);
+}
+
+.employee-action-card:hover .action-badge,
+.employee-action-card.active .action-badge {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Also ensure standard btn-action-card supports active */
+.btn-action-card.active {
+    background: var(--primary-gradient);
+    color: #ffffff !important;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.btn-action-card.active .action-icon-box {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+/* Report Stat Cards Tinted */
+.report-stat-card {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.report-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.report-stat-card-indigo {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.02) 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.20) !important;
+}
+.report-stat-card-indigo .report-stat-icon-box {
+    background: rgba(99, 102, 241, 0.15);
+    color: #4f46e5;
+}
+.report-stat-card-indigo .report-stat-value {
+    color: #4338ca;
+}
+
+.report-stat-card-teal {
+    background: linear-gradient(135deg, rgba(13, 148, 136, 0.08) 0%, rgba(13, 148, 136, 0.02) 100%) !important;
+    border: 1px solid rgba(13, 148, 136, 0.20) !important;
+}
+.report-stat-card-teal .report-stat-icon-box {
+    background: rgba(13, 148, 136, 0.15);
+    color: #0d9488;
+}
+.report-stat-card-teal .report-stat-value {
+    color: #0f766e;
+}
+
+.report-stat-card-cyan {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(14, 165, 233, 0.02) 100%) !important;
+    border: 1px solid rgba(14, 165, 233, 0.20) !important;
+}
+.report-stat-card-cyan .report-stat-icon-box {
+    background: rgba(14, 165, 233, 0.15);
+    color: #0284c7;
+}
+.report-stat-card-cyan .report-stat-value {
+    color: #0369a1;
+}
+
+.report-stat-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.report-stat-card:hover .report-stat-icon-box {
+    transform: scale(1.06);
+}
+
+/* Custom Progress Bars */
+.progress-custom {
+    height: 10px;
+    background-color: #f1f5f9;
+    border-radius: 50px;
+    overflow: hidden;
+}
+
+.progress-bar-purple {
+    background: var(--primary-gradient);
+    border-radius: 50px;
+    transition: width 0.4s ease;
 }

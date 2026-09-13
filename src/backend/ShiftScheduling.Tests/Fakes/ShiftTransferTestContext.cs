@@ -47,13 +47,15 @@ internal sealed class ShiftTransferTestContext
         Repository.Availabilities.Add(CreateAvailability(Receiver, TargetAssignment));
         Repository.Requirements.Add(CreateRequirement(TargetAssignment));
 
+        EmailSender = new FakeEmailSender();
         Service = new ShiftTransferService(
             Repository,
             Notifications,
             AuditLogs,
             UnitOfWork,
             Clock,
-            NullLogger<ShiftTransferService>.Instance);
+            NullLogger<ShiftTransferService>.Instance,
+            EmailSender);
     }
 
     public FakeShiftTransferRepository Repository { get; }
@@ -61,6 +63,7 @@ internal sealed class ShiftTransferTestContext
     public FakeUnitOfWork UnitOfWork { get; }
     public FakeAuditLogRepository AuditLogs { get; }
     public FakeClock Clock { get; }
+    public FakeEmailSender EmailSender { get; }
     public ShiftTransferService Service { get; }
     public SchedulePeriod Period { get; }
     public WorkSchedule Schedule { get; }
@@ -134,7 +137,8 @@ internal sealed class ShiftTransferTestContext
         string name,
         EmployeeLevel level,
         EmployeePosition position = EmployeePosition.Sales,
-        EmploymentType employmentType = EmploymentType.PartTime)
+        EmploymentType employmentType = EmploymentType.PartTime,
+        string? email = null)
     {
         var account = new UserAccount
         {
@@ -153,6 +157,7 @@ internal sealed class ShiftTransferTestContext
             Position = position,
             EmploymentType = employmentType,
             Level = level,
+            Email = email ?? $"{code.ToLowerInvariant()}@example.com",
             IsActive = true
         };
     }

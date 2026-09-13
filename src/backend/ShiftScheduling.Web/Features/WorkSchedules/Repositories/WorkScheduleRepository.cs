@@ -49,6 +49,8 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
         return await _dbContext.WorkSchedules
             .AsNoTracking()
             .Include(w => w.SchedulePeriod)
+                .ThenInclude(p => p.StaffingRequirements)
+                    .ThenInclude(r => r.ShiftType)
             .Include(w => w.ShiftAssignments)
             .ThenInclude(a => a.Employee)
             .Include(w => w.ShiftAssignments)
@@ -159,6 +161,63 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
             .Include(ws => ws.ShiftAssignments)
                 .ThenInclude(sa => sa.ShiftType)
             .Where(ws => ws.Status == ScheduleStatus.Published)
+            .OrderByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<WorkSchedule?> GetDefaultPublishedScheduleAsync(
+        DateOnly currentDate,
+        CancellationToken cancellationToken = default)
+    {
+        var baseQuery = _dbContext.WorkSchedules
+            .AsNoTracking()
+            .Include(ws => ws.SchedulePeriod)
+                .ThenInclude(p => p.StaffingRequirements)
+                    .ThenInclude(r => r.ShiftType)
+            .Include(ws => ws.ShiftAssignments)
+                .ThenInclude(sa => sa.ShiftType)
+            .Where(ws => ws.Status == ScheduleStatus.Published);
+
+        // 1. Published schedule bao phủ ngày hiện tại (WeekStartDate <= currentDate <= WeekEndDate)
+        var current = await baseQuery
+            .Where(ws => ws.SchedulePeriod.WeekStartDate <= currentDate && currentDate <= ws.SchedulePeriod.WeekEndDate)
+            .OrderByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (current is not null)
+        {
+            return current;
+        }
+
+        // 2. Nếu không có: Published schedule gần nhất trong tương lai (WeekStartDate > currentDate, OrderBy WeekStartDate ASC)
+        var future = await baseQuery
+            .Where(ws => ws.SchedulePeriod.WeekStartDate > currentDate)
+            .OrderBy(ws => ws.SchedulePeriod.WeekStartDate)
+            .ThenByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (future is not null)
+        {
+            return future;
+        }
+
+        // 3. Nếu không có: Published schedule gần nhất trong quá khứ (OrderBy WeekEndDate DESC, sau đó PublishedAt DESC)
+        var past = await baseQuery
+            .Where(ws => ws.SchedulePeriod.WeekEndDate < currentDate)
+            .OrderByDescending(ws => ws.SchedulePeriod.WeekEndDate)
+            .ThenByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (past is not null)
+        {
+            return past;
+        }
+
+        return await baseQuery
             .OrderByDescending(ws => ws.PublishedAt)
             .ThenByDescending(ws => ws.WorkScheduleId)
             .FirstOrDefaultAsync(cancellationToken);

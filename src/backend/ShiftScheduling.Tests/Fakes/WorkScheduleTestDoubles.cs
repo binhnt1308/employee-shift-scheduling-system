@@ -123,6 +123,55 @@ internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
             .FirstOrDefault());
     }
 
+    public Task<WorkSchedule?> GetDefaultPublishedScheduleAsync(
+        DateOnly currentDate,
+        CancellationToken cancellationToken = default)
+    {
+        var published = Schedules
+            .Where(s => s.Status == ScheduleStatus.Published)
+            .ToList();
+
+        var current = published
+            .Where(ws => ws.SchedulePeriod.WeekStartDate <= currentDate && currentDate <= ws.SchedulePeriod.WeekEndDate)
+            .OrderByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefault();
+
+        if (current is not null)
+        {
+            return Task.FromResult<WorkSchedule?>(current);
+        }
+
+        var future = published
+            .Where(ws => ws.SchedulePeriod.WeekStartDate > currentDate)
+            .OrderBy(ws => ws.SchedulePeriod.WeekStartDate)
+            .ThenByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefault();
+
+        if (future is not null)
+        {
+            return Task.FromResult<WorkSchedule?>(future);
+        }
+
+        var past = published
+            .Where(ws => ws.SchedulePeriod.WeekEndDate < currentDate)
+            .OrderByDescending(ws => ws.SchedulePeriod.WeekEndDate)
+            .ThenByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefault();
+
+        if (past is not null)
+        {
+            return Task.FromResult<WorkSchedule?>(past);
+        }
+
+        return Task.FromResult(published
+            .OrderByDescending(ws => ws.PublishedAt)
+            .ThenByDescending(ws => ws.WorkScheduleId)
+            .FirstOrDefault());
+    }
+
     public Task<bool> HasFuturePublishedAssignmentAsync(
         int employeeId,
         DateOnly fromDate,

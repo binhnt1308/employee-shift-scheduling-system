@@ -33,11 +33,12 @@
     </div>
 }
 
+<!-- Bộ lọc gọn gàng -->
 <div class="card card-custom border-0 shadow-sm mb-4">
-    <div class="card-body">
-        <form method="get" asp-action="Index" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold">Kỳ lịch (Đã công bố)</label>
+    <div class="card-body p-3">
+        <form method="get" asp-action="Index" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold mb-1 text-dark">Kỳ lịch</label>
                 <select name="schedulePeriodId" class="form-select form-select-sm" onchange="this.form.submit()">
                     @if (!Model.PeriodOptions.Any())
                     {
@@ -49,8 +50,8 @@
                     }
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold">Nhân viên</label>
+            <div class="col-12 col-md-3">
+                <label class="form-label small fw-bold mb-1 text-dark">Nhân viên</label>
                 <select name="employeeId" class="form-select form-select-sm">
                     <option value="">-- Tất cả nhân viên --</option>
                     @foreach (var emp in Model.EmployeeOptions)
@@ -59,271 +60,418 @@
                     }
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label small fw-semibold">Vị trí</label>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1 text-dark">Vị trí</label>
                 <select name="position" class="form-select form-select-sm">
                     <option value="">-- Tất cả --</option>
                     <option value="Sales" selected="@(Model.PositionFilter == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "selected" : null)">Tư vấn</option>
                     <option value="Cashier" selected="@(Model.PositionFilter == ShiftScheduling.Models.Enums.EmployeePosition.Cashier ? "selected" : null)">Thu ngân</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label small fw-semibold">Hình thức</label>
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-bold mb-1 text-dark">Hình thức</label>
                 <select name="employmentType" class="form-select form-select-sm">
                     <option value="">-- Tất cả --</option>
                     <option value="PartTime" selected="@(Model.EmploymentTypeFilter == ShiftScheduling.Models.Enums.EmploymentType.PartTime ? "selected" : null)">Bán thời gian (PT)</option>
                     <option value="FullTime" selected="@(Model.EmploymentTypeFilter == ShiftScheduling.Models.Enums.EmploymentType.FullTime ? "selected" : null)">Toàn thời gian (FT)</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-sm btn-primary-custom w-100 me-2"><i class="fa-solid fa-filter me-1"></i>Lọc</button>
-                <a asp-action="Index" asp-route-schedulePeriodId="@Model.SchedulePeriodId" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-rotate-left"></i></a>
+            <div class="col-12 col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary-custom flex-grow-1 justify-content-center">
+                    <i class="fa-solid fa-filter me-1"></i>Lọc
+                </button>
+                <a asp-action="Index" asp-route-schedulePeriodId="@Model.SchedulePeriodId" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center px-2" title="Bỏ lọc">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-@if (Model.CoverageSummary is not null)
+<!-- Summary KPI: 2 Card ngang hàng -->
+@if (Model.CoverageSummary is not null || Model.FairnessSummary is not null)
 {
-    var summary = Model.CoverageSummary;
-    var badgeClass = !summary.HasRequirements
-        ? "bg-secondary"
-        : summary.IsFullyCovered
-            ? "bg-success"
-            : "bg-warning text-dark";
-    var progressClass = !summary.HasRequirements
-        ? "bg-secondary"
-        : summary.IsFullyCovered
-            ? "bg-success"
-            : "bg-warning";
-    var progressValue = (summary.CoverageRate ?? 0m)
-        .ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+    <div class="row g-3 mb-4">
+        <!-- CARD 1: Tỷ lệ phủ ca -->
+        @if (Model.CoverageSummary is not null)
+        {
+            var summary = Model.CoverageSummary;
+            var progressValue = (summary.CoverageRate ?? 0m)
+                .ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 
-    <div class="card card-custom border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <div>
-                    <h5 class="fw-bold mb-0">
-                        <i class="fa-solid fa-chart-pie text-primary me-2"></i>Tỷ lệ phủ ca toàn kỳ
-                    </h5>
-                    <div class="text-muted small mt-1">
+            <div class="@(Model.FairnessSummary is not null ? "col-lg-6" : "col-12")">
+                <div class="card card-custom border-0 shadow-sm h-100">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center py-2 px-3">
+                        <span class="fw-bold">
+                            <i class="fa-solid fa-chart-pie text-primary me-2"></i>Tỷ lệ phủ ca
+                        </span>
                         @if (summary.HasRequirements)
                         {
-                            <span>Đã đáp ứng <strong>@summary.TotalCoveredSlots/@summary.TotalRequiredSlots</strong> vị trí định biên</span>
-                            <span class="mx-2">•</span>
-                            <span>Tư vấn: <strong>@summary.CoveredSalesSlots/@summary.RequiredSalesSlots</strong></span>
-                            <span class="mx-2">•</span>
-                            <span>Thu ngân: <strong>@summary.CoveredCashierSlots/@summary.RequiredCashierSlots</strong></span>
+                            <span class="badge badge-custom @(summary.IsFullyCovered ? "badge-active" : "badge-pending")">
+                                @(summary.IsFullyCovered ? "Hoàn thành" : "Cần bổ sung")
+                            </span>
                         }
-                        else
+                    </div>
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-baseline mb-2 flex-wrap gap-2">
+                            <div class="display-6 fw-bold text-primary font-monospace">
+                                @summary.FormattedCoverageRate
+                            </div>
+                            @if (summary.HasRequirements)
+                            {
+                                <div class="text-muted small">
+                                    <strong>@summary.TotalCoveredSlots / @summary.TotalRequiredSlots</strong> vị trí đã được phân công
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted small">
+                                    Chưa thiết lập định biên nhân sự
+                                </div>
+                            }
+                        </div>
+                        @if (summary.HasRequirements)
                         {
-                            <span>Kỳ lịch chưa thiết lập định biên nhân sự.</span>
+                            <div>
+                                <div class="progress mb-2" style="height: 6px; background-color: #f1f5f9; border-radius: 50px;">
+                                    <div class="progress-bar" role="progressbar" style="width: @(progressValue)%; background: var(--primary-gradient); border-radius: 50px;" aria-valuenow="@progressValue" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small" style="font-size: 0.8rem;">
+                                    <span>Tư vấn: <strong>@summary.CoveredSalesSlots/@summary.RequiredSalesSlots</strong></span>
+                                    <span>Thu ngân: <strong>@summary.CoveredCashierSlots/@summary.RequiredCashierSlots</strong></span>
+                                </div>
+                            </div>
                         }
                     </div>
                 </div>
-                <div>
-                    <span class="badge @badgeClass fs-6 px-3 py-2">
-                        @summary.FormattedCoverageRate
-                    </span>
+            </div>
+        }
+
+        <!-- CARD 2: Cân bằng lịch phân công -->
+        @if (Model.FairnessSummary is not null)
+        {
+            var fairness = Model.FairnessSummary;
+
+            <div class="@(Model.CoverageSummary is not null ? "col-lg-6" : "col-12")">
+                <div class="card card-custom border-0 shadow-sm h-100">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center py-2 px-3">
+                        <span class="fw-bold">
+                            <i class="fa-solid fa-scale-balanced text-primary me-2"></i>Cân bằng lịch phân công
+                        </span>
+                        <span class="text-muted small fw-normal">Min - Max & Chênh lệch</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <!-- Full-time -->
+                            <div class="col-sm-6">
+                                <div class="p-2 px-3 rounded bg-light border h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark small">
+                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>Toàn thời gian (FT)
+                                        </span>
+                                        <span class="badge badge-custom badge-primary-custom" style="font-size: 0.7rem;">
+                                            @fairness.FullTime.EmployeeCount NV
+                                        </span>
+                                    </div>
+                                    @if (fairness.FullTime.HasComparison)
+                                    {
+                                        <div class="font-monospace text-dark fw-bold">
+                                            @fairness.FullTime.FormattedMinimumHours - @fairness.FullTime.FormattedMaximumHours
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            Chênh lệch: <strong class="text-primary font-monospace">@fairness.FullTime.FormattedSpreadHours</strong>
+                                        </div>
+                                    }
+                                    else if (fairness.FullTime.HasData)
+                                    {
+                                        <div class="small text-muted mt-1">
+                                            @fairness.FullTime.FormattedMinimumHours (1 nhân viên)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-muted mt-1">Chưa có nhân viên</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Part-time -->
+                            <div class="col-sm-6">
+                                <div class="p-2 px-3 rounded bg-light border h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark small">
+                                            <i class="fa-solid fa-user-clock text-secondary me-1"></i>Bán thời gian (PT)
+                                        </span>
+                                        <span class="badge badge-custom badge-primary-custom" style="font-size: 0.7rem;">
+                                            @fairness.PartTime.EmployeeCount NV
+                                        </span>
+                                    </div>
+                                    @if (fairness.PartTime.HasComparison)
+                                    {
+                                        <div class="font-monospace text-dark fw-bold">
+                                            @fairness.PartTime.FormattedMinimumHours - @fairness.PartTime.FormattedMaximumHours
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            Chênh lệch: <strong class="text-primary font-monospace">@fairness.PartTime.FormattedSpreadHours</strong>
+                                        </div>
+                                    }
+                                    else if (fairness.PartTime.HasData)
+                                    {
+                                        <div class="small text-muted mt-1">
+                                            @fairness.PartTime.FormattedMinimumHours (1 nhân viên)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-muted mt-1">Chưa có nhân viên</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            @if (summary.HasRequirements)
-            {
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar @progressClass" role="progressbar" style="width: @(progressValue)%" aria-valuenow="@progressValue" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-            }
-        </div>
+        }
     </div>
 }
 
-<div class="card card-custom border-0 shadow-sm mb-4">
-    <div class="card-header bg-light py-3 fw-bold">
-        <i class="fa-solid fa-table me-2"></i>Bảng tổng hợp số ca và giờ làm - @Model.PeriodName
+<!-- Khu vực chính: 2 Tabs -->
+<ul class="nav nav-pills nav-pills-custom mb-3" id="reportTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="summary-tab" data-bs-toggle="pill" data-bs-target="#summary-pane" type="button" role="tab" aria-controls="summary-pane" aria-selected="true">
+            <i class="fa-solid fa-table me-2"></i>Tổng hợp nhân viên
+            <span class="badge badge-custom ms-1">@Model.Rows.Count</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="details-tab" data-bs-toggle="pill" data-bs-target="#details-pane" type="button" role="tab" aria-controls="details-pane" aria-selected="false">
+            <i class="fa-solid fa-clock-rotate-left me-2"></i>Chi tiết ngày công · <span class="badge badge-custom ms-1">@Model.Details.Count lượt phân công</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="reportTabsContent">
+    <!-- TAB 1: Tổng hợp nhân viên -->
+    <div class="tab-pane fade show active" id="summary-pane" role="tabpanel" aria-labelledby="summary-tab" tabindex="0">
+        <div class="card card-custom border-0 shadow-sm mb-4">
+            <div class="card-header-custom d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fa-solid fa-table text-primary me-2"></i>Bảng tổng hợp số ca và giờ làm
+                    @if (!string.IsNullOrEmpty(Model.PeriodName))
+                    {
+                        <span class="text-muted small fw-normal ms-1">(@Model.PeriodName)</span>
+                    }
+                </div>
+                <span class="text-muted small">@Model.Rows.Count nhân sự</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;" class="text-center">STT</th>
+                                <th>Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Vị trí</th>
+                                <th>Hình thức</th>
+                                <th class="text-center">Số ca</th>
+                                <th class="text-center">Số ngày</th>
+                                <th class="text-center">Tổng giờ</th>
+                                <th>Cảnh báo / Mức dự kiến</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Rows.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">Chưa có dữ liệu tổng hợp.</td>
+                                </tr>
+                            }
+                            @foreach (var row in Model.Rows)
+                            {
+                                <tr>
+                                    <td class="text-center text-muted fw-semibold">@row.Index</td>
+                                    <td><strong class="text-dark">@row.EmployeeCode</strong></td>
+                                    <td class="fw-semibold">@row.FullName</td>
+                                    <td>
+                                        @if (row.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
+                                        {
+                                            <span class="badge badge-custom badge-primary-custom">Tư vấn</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-custom badge-info-custom">Thu ngân</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-custom badge-ended">
+                                            @(row.EmploymentType == ShiftScheduling.Models.Enums.EmploymentType.PartTime ? "PT" : "FT")
+                                        </span>
+                                    </td>
+                                    <td class="text-center font-monospace fw-bold text-dark">@row.TotalShifts</td>
+                                    <td class="text-center font-monospace">@row.TotalWorkDays ngày</td>
+                                    <td class="text-center font-monospace text-primary fw-bold">@row.FormattedTotalHours</td>
+                                    <td>
+                                        @if (row.IsTargetMet)
+                                        {
+                                            <span class="badge badge-custom badge-active"><i class="fa-solid fa-check me-1"></i>@row.Warning</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-custom badge-pending"><i class="fa-solid fa-triangle-exclamation me-1"></i>@row.Warning</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 60px;" class="text-center">STT</th>
-                        <th>Mã NV</th>
-                        <th>Họ tên</th>
-                        <th>Vị trí</th>
-                        <th>Hình thức</th>
-                        <th class="text-center">Số ca</th>
-                        <th class="text-center">Số ngày</th>
-                        <th class="text-center">Tổng giờ</th>
-                        <th>Cảnh báo / Mức dự kiến</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Rows.Any())
-                    {
-                        <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">Chưa có dữ liệu tổng hợp.</td>
-                        </tr>
-                    }
-                    @foreach (var row in Model.Rows)
-                    {
-                        <tr>
-                            <td class="text-center fw-bold">@row.Index</td>
-                            <td><strong class="text-dark">@row.EmployeeCode</strong></td>
-                            <td class="fw-semibold">@row.FullName</td>
-                            <td>
-                                @if (row.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
-                                {
-                                    <span class="badge bg-primary">Tư vấn</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">Thu ngân</span>
-                                }
-                            </td>
-                            <td>
-                                @if (row.EmploymentType == ShiftScheduling.Models.Enums.EmploymentType.PartTime)
-                                {
-                                    <span class="badge bg-outline-secondary border text-dark">PT</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">FT</span>
-                                }
-                            </td>
-                            <td class="text-center font-monospace fw-bold">@row.TotalShifts</td>
-                            <td class="text-center font-monospace">@row.TotalWorkDays ngày</td>
-                            <td class="text-center font-monospace text-primary fw-bold">@row.FormattedTotalHours</td>
-                            <td>
-                                @if (row.IsTargetMet)
-                                {
-                                    <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="fa-solid fa-check me-1"></i>@row.Warning</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>@row.Warning</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+    <!-- TAB 2: Chi tiết ngày công & điều chỉnh giờ làm -->
+    <div class="tab-pane fade" id="details-pane" role="tabpanel" aria-labelledby="details-tab" tabindex="0">
+        <div class="card card-custom border-0 shadow-sm mb-4">
+            <div class="card-header-custom">
+                <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Chi tiết ngày công & điều chỉnh giờ làm
+                @if (!string.IsNullOrEmpty(Model.PeriodName))
+                {
+                    <span class="text-muted small fw-normal ms-1">(@Model.PeriodName)</span>
+                }
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;" class="text-center">STT</th>
+                                <th>Mã NV</th>
+                                <th>Họ tên</th>
+                                <th>Ngày làm</th>
+                                <th>Ca làm việc</th>
+                                <th class="text-center">Kế hoạch</th>
+                                <th class="text-center">Ghi nhận</th>
+                                <th>Nguồn giờ</th>
+                                <th>Lý do điều chỉnh</th>
+                                <th style="min-width: 310px;">Thao tác điều chỉnh</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Details.Any())
+                            {
+                                <tr>
+                                    <td colspan="10" class="text-center py-4 text-muted">Chưa có dữ liệu phân công ca.</td>
+                                </tr>
+                            }
+                            @{
+                                var detailIndex = 1;
+                            }
+                            @foreach (var item in Model.Details)
+                            {
+                                <tr>
+                                    <td class="text-center text-muted fw-semibold">@(detailIndex++)</td>
+                                    <td><strong class="text-dark">@item.EmployeeCode</strong></td>
+                                    <td class="fw-semibold">@item.FullName</td>
+                                    <td>@item.WorkDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="badge badge-custom badge-ended">@item.ShiftName</span>
+                                        <small class="text-muted d-block font-monospace">@item.ShiftTimeRange</small>
+                                    </td>
+                                    <td class="text-center font-monospace">@item.PlannedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
+                                    <td class="text-center font-monospace fw-bold text-primary">@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
+                                    <td>
+                                        @if (item.IsManagerAdjusted)
+                                        {
+                                            <span class="badge badge-custom badge-pending"><i class="fa-solid fa-user-pen me-1"></i>Quản lý điều chỉnh</span>
+                                        }
+                                        else if (item.HasApprovedLeave)
+                                        {
+                                            <span class="badge badge-custom badge-info-custom"><i class="fa-solid fa-calendar-xmark me-1"></i>Nghỉ đã duyệt</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-custom badge-ended"><i class="fa-solid fa-calendar-check me-1"></i>Theo lịch</span>
+                                        }
+                                    </td>
+                                    <td class="small">
+                                        @if (!string.IsNullOrWhiteSpace(item.AdjustmentReason))
+                                        {
+                                            <span class="text-muted fst-italic">@item.AdjustmentReason</span>
+                                        }
+                                        else if (item.HasApprovedLeave)
+                                        {
+                                            <span class="text-info fst-italic">Nghỉ phép được duyệt</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.CanAdjust)
+                                        {
+                                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                <form method="post" asp-action="AdjustWorkdayHours" class="d-flex align-items-center gap-1">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
+                                                    <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
+                                                    <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
+                                                    <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
+                                                    <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
+                                                    <input type="number" step="0.25" min="0" max="24" name="ActualWorkedHours" value="@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" class="form-control form-control-sm text-end" style="width: 75px;" required />
+                                                    <input type="text" name="WorkdayAdjustmentReason" value="@(item.IsManagerAdjusted ? item.AdjustmentReason : "")" placeholder="Lý do điều chỉnh..." class="form-control form-control-sm" style="width: 140px;" maxlength="500" />
+                                                    <button type="submit" class="btn btn-sm btn-primary-custom" title="Lưu điều chỉnh"><i class="fa-solid fa-check"></i> Lưu</button>
+                                                </form>
+                                                @if (item.IsManagerAdjusted)
+                                                {
+                                                    <form method="post" asp-action="AdjustWorkdayHours" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
+                                                        <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
+                                                        <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
+                                                        <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
+                                                        <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
+                                                        <input type="hidden" name="IsReset" value="true" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Đặt lại theo hệ thống" onclick="return confirm('Đặt lại giờ công theo hệ thống tính toán?');">
+                                                            <i class="fa-solid fa-rotate-left"></i> Đặt lại
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-custom badge-ended"><i class="fa-solid fa-hourglass-half me-1"></i>Chưa kết thúc ca</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="card card-custom border-0 shadow-sm">
-    <div class="card-header bg-light py-3 fw-bold">
-        <i class="fa-solid fa-clock-rotate-left me-2"></i>Chi tiết ngày công & điều chỉnh giờ làm - @Model.PeriodName
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 60px;" class="text-center">STT</th>
-                        <th>Mã NV</th>
-                        <th>Họ tên</th>
-                        <th>Ngày làm</th>
-                        <th>Ca làm việc</th>
-                        <th class="text-center">Kế hoạch</th>
-                        <th class="text-center">Ghi nhận</th>
-                        <th>Nguồn giờ</th>
-                        <th>Lý do điều chỉnh</th>
-                        <th style="min-width: 320px;">Thao tác điều chỉnh</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Details.Any())
-                    {
-                        <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">Chưa có dữ liệu phân công ca.</td>
-                        </tr>
-                    }
-                    @{
-                        var detailIndex = 1;
-                    }
-                    @foreach (var item in Model.Details)
-                    {
-                        <tr>
-                            <td class="text-center fw-bold">@(detailIndex++)</td>
-                            <td><strong class="text-dark">@item.EmployeeCode</strong></td>
-                            <td class="fw-semibold">@item.FullName</td>
-                            <td>@item.WorkDate.ToString("dd/MM/yyyy")</td>
-                            <td>
-                                <span class="badge bg-light text-dark border">@item.ShiftName</span>
-                                <small class="text-muted d-block">@item.ShiftTimeRange</small>
-                            </td>
-                            <td class="text-center font-monospace">@item.PlannedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
-                            <td class="text-center font-monospace fw-bold text-primary">@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h</td>
-                            <td>
-                                @if (item.IsManagerAdjusted)
-                                {
-                                    <span class="badge bg-warning text-dark"><i class="fa-solid fa-user-pen me-1"></i>Quản lý điều chỉnh</span>
-                                }
-                                else if (item.HasApprovedLeave)
-                                {
-                                    <span class="badge bg-info text-dark"><i class="fa-solid fa-calendar-xmark me-1"></i>Nghỉ đã duyệt — tự động 0 giờ</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border"><i class="fa-solid fa-calendar-check me-1"></i>Theo lịch</span>
-                                }
-                            </td>
-                            <td class="small">
-                                @if (!string.IsNullOrWhiteSpace(item.AdjustmentReason))
-                                {
-                                    <span class="text-muted fst-italic">@item.AdjustmentReason</span>
-                                }
-                                else if (item.HasApprovedLeave)
-                                {
-                                    <span class="text-info fst-italic">Nghỉ phép được duyệt</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (item.CanAdjust)
-                                {
-                                    <div class="d-flex align-items-center gap-1 flex-wrap">
-                                        <form method="post" asp-action="AdjustWorkdayHours" class="d-flex align-items-center gap-1">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
-                                            <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
-                                            <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
-                                            <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
-                                            <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
-                                            <input type="number" step="0.25" min="0" max="24" name="ActualWorkedHours" value="@item.EffectiveWorkedHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" class="form-control form-control-sm text-end" style="width: 75px;" required />
-                                            <input type="text" name="WorkdayAdjustmentReason" value="@(item.IsManagerAdjusted ? item.AdjustmentReason : "")" placeholder="Lý do điều chỉnh..." class="form-control form-control-sm" style="width: 140px;" maxlength="500" />
-                                            <button type="submit" class="btn btn-sm btn-primary-custom" title="Lưu điều chỉnh"><i class="fa-solid fa-check"></i> Lưu</button>
-                                        </form>
-                                        @if (item.IsManagerAdjusted)
-                                        {
-                                            <form method="post" asp-action="AdjustWorkdayHours" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="SchedulePeriodId" value="@Model.SchedulePeriodId" />
-                                                <input type="hidden" name="ShiftAssignmentId" value="@item.ShiftAssignmentId" />
-                                                <input type="hidden" name="ReturnEmployeeId" value="@Model.EmployeeIdFilter" />
-                                                <input type="hidden" name="ReturnPosition" value="@Model.PositionFilter" />
-                                                <input type="hidden" name="ReturnEmploymentType" value="@Model.EmploymentTypeFilter" />
-                                                <input type="hidden" name="IsReset" value="true" />
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Đặt lại theo hệ thống" onclick="return confirm('Đặt lại giờ công theo hệ thống tính toán?');">
-                                                    <i class="fa-solid fa-rotate-left"></i> Đặt lại
-                                                </button>
-                                            </form>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary bg-opacity-25 text-muted"><i class="fa-solid fa-hourglass-half me-1"></i>Chưa kết thúc ca</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tabKey = "managerReportActiveTab";
+            const savedTab = sessionStorage.getItem(tabKey);
+            if (savedTab) {
+                const triggerEl = document.querySelector(savedTab);
+                if (triggerEl) {
+                    const tab = bootstrap.Tab.getOrCreateInstance(triggerEl);
+                    tab.show();
+                }
+            }
+            document.querySelectorAll('#reportTabs button[data-bs-toggle="pill"]').forEach(function (btn) {
+                btn.addEventListener('shown.bs.tab', function (e) {
+                    sessionStorage.setItem(tabKey, '#' + e.target.id);
+                });
+            });
+        });
+    </script>
+}

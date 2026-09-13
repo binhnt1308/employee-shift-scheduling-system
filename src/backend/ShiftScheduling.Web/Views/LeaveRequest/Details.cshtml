@@ -23,6 +23,10 @@
         {
             <span class="badge badge-custom badge-active">Đã duyệt</span>
         }
+        else if (Model.Status == LeaveRequestStatus.Cancelled)
+        {
+            <span class="badge badge-custom badge-secondary">Đã hủy</span>
+        }
         else
         {
             <span class="badge badge-custom badge-rejected">Từ chối</span>
@@ -44,22 +48,28 @@
             <dd class="col-sm-9">@(Model.ManagerNote ?? "—")</dd>
         </dl>
 
-        @if (Model.HasPublishedAssignment && Model.Status != LeaveRequestStatus.Rejected)
+        @if (Model.IsManager && Model.HasPublishedAssignment && Model.Status != LeaveRequestStatus.Rejected && Model.Status != LeaveRequestStatus.Cancelled)
         {
             <div class="alert alert-custom alert-custom-warning mt-4 mb-0">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <div>
                     @if (Model.Status == LeaveRequestStatus.Approved)
                     {
-                        <span>
-                            Đơn đã duyệt ảnh hưởng đến lịch chính thức.
-                            Ca liên quan cần được Quản lý điều chỉnh.
-                        </span>
+                        <span>Đơn đã duyệt trùng với lịch đã công bố. Cần điều chỉnh lịch hoặc bố trí người thay thế.</span>
                     }
                     else
                     {
                         <span>Nếu duyệt đơn này, lịch chính thức hiện tại sẽ có ca cần được điều chỉnh.</span>
                     }
+                </div>
+            </div>
+        }
+        else if (!Model.IsManager && Model.Status == LeaveRequestStatus.Approved)
+        {
+            <div class="alert alert-custom alert-custom-success mt-4 mb-0">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <span>Đơn xin nghỉ đã được duyệt.</span>
                 </div>
             </div>
         }
@@ -72,6 +82,18 @@
                    class="btn btn-primary-custom">
                     Xử lý đơn
                 </a>
+            </div>
+        }
+
+        @if (Model.CanCancel)
+        {
+            <div class="mt-4">
+                <form asp-action="Cancel" asp-route-id="@Model.LeaveRequestId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn hủy đơn xin nghỉ này không?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fa-solid fa-ban"></i> Hủy đơn
+                    </button>
+                </form>
             </div>
         }
     </div>

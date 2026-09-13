@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using ShiftScheduling.Common.Auditing;
+using ShiftScheduling.Common.Email;
 using ShiftScheduling.Common.Notifications;
 using ShiftScheduling.Common.Security;
 using ShiftScheduling.Common.Time;
@@ -21,6 +22,7 @@ using ShiftScheduling.Features.ShiftTransfers.Services;
 using ShiftScheduling.Features.ShiftTypes.Repositories;
 using ShiftScheduling.Features.ShiftTypes.Services;
 using ShiftScheduling.Infrastructure.Persistence;
+using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,6 +52,8 @@ builder.Services.AddScoped<IClock, SystemClock>();
 builder.Services.AddScoped<IPasswordHashService, Pbkdf2PasswordHashService>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 builder.Services.AddScoped<IAuthenticationRepository, AuthenticationRepository>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -187,6 +191,14 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var demoDataEnabled = app.Configuration.GetValue<bool?>("DemoData:Enabled") ?? app.Environment.IsDevelopment();
+    if (demoDataEnabled)
+    {
+        var passwordHashService = scope.ServiceProvider.GetRequiredService<IPasswordHashService>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+        await DemoDataSeeder.SeedAsync(dbContext, passwordHashService, clock);
+    }
 }
 
 await app.RunAsync();

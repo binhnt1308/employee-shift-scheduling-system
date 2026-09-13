@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ShiftScheduling.Common.Auditing;
+using ShiftScheduling.Common.Email;
 using ShiftScheduling.Common.Notifications;
 using ShiftScheduling.Common.Time;
 using ShiftScheduling.Features.ShiftTransfers.Repositories;
@@ -21,6 +22,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
     private readonly ILogger<ShiftTransferService> _logger;
+    private readonly IEmailSender? _emailSender;
 
     public ShiftTransferService(
         IShiftTransferRepository repository,
@@ -28,7 +30,8 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClock clock,
-        ILogger<ShiftTransferService> logger)
+        ILogger<ShiftTransferService> logger,
+        IEmailSender? emailSender = null)
     {
         _repository = repository;
         _notificationRepository = notificationRepository;
@@ -36,6 +39,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
         _unitOfWork = unitOfWork;
         _clock = clock;
         _logger = logger;
+        _emailSender = emailSender;
     }
 
     /// <inheritdoc />
@@ -310,6 +314,7 @@ public sealed partial class ShiftTransferService : IShiftTransferService
             BuildAuditValues(request!));
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await NotifyTransferResultAsync(request!, cancellationToken);
+        await TrySendTransferEmailsAsync(request!, cancellationToken);
         return ServiceResult.Success();
     }
 }

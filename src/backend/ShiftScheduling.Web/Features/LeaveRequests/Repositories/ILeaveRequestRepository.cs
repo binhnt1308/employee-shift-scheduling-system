@@ -73,6 +73,11 @@ public interface ILeaveRequestRepository
         int schedulePeriodId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ShiftAssignment>> GetEmployeePublishedAssignmentsAsync(
+        int employeeId,
+        DateOnly fromDate,
+        CancellationToken cancellationToken = default);
+
     void Add(LeaveRequest leaveRequest);
 
     void SetOriginalRowVersion(LeaveRequest request, byte[] rowVersion);
