@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+using ShiftScheduling.Features.Reports.ModelBinders;
 using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Reports.ViewModels;
@@ -116,7 +118,10 @@ public sealed class AdjustWorkdayHoursRequest
 {
     public int SchedulePeriodId { get; set; }
     public int ShiftAssignmentId { get; set; }
+
+    [ModelBinder(typeof(WorkdayHoursModelBinder))]
     public decimal? ActualWorkedHours { get; set; }
+
     public string? WorkdayAdjustmentReason { get; set; }
     public bool IsReset { get; set; }
     public int? ReturnEmployeeId { get; set; }
