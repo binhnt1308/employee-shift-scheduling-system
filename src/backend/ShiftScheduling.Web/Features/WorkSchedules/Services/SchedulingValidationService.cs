@@ -328,7 +328,7 @@ public sealed partial class SchedulingValidationService : ISchedulingValidationS
             if (maxPt - minPt > 2)
             {
                 warnings.Add($"Chênh lệch số ca làm việc giữa các nhân viên PT lớn"
-                    + " ({minPt} ca đến {maxPt} ca).");
+                    + $" ({minPt} ca đến {maxPt} ca).");
             }
         }
 
@@ -340,7 +340,7 @@ public sealed partial class SchedulingValidationService : ISchedulingValidationS
             if (maxFt - minFt > 1)
             {
                 warnings.Add($"Chênh lệch số ngày làm việc giữa các nhân viên FT lớn"
-                    + " ({minFt} ngày đến {maxFt} ngày).");
+                    + $" ({minFt} ngày đến {maxFt} ngày).");
             }
         }
     }
