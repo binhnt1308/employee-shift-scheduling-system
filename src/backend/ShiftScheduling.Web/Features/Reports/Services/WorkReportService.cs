@@ -92,45 +92,20 @@ public sealed partial class WorkReportService : IWorkReportService
         EmployeePosition? positionFilter,
         EmploymentType? employmentTypeFilter)
     {
-        var employeeOptions = activeEmployees.Select(e => new ReportEmployeeOptionViewModel
-        {
-            EmployeeId = e.EmployeeId,
-            DisplayName = $"{e.EmployeeCode} - {e.FullName}"
-        }).ToList();
-
+        var employeeOptions = BuildEmployeeOptions(activeEmployees);
         var assignments = publishedSchedule?.ShiftAssignments.ToList() ?? new List<ShiftAssignment>();
+        bool isPublished = publishedSchedule?.Status == ScheduleStatus.Published;
 
         var rows = BuildReportRows(
-            activeEmployees,
-            assignments,
-            period.SchedulePeriodId,
-            leaveLookup,
-            employeeIdFilter,
-            positionFilter,
-            employmentTypeFilter);
+            activeEmployees, assignments, period.SchedulePeriodId, leaveLookup,
+            employeeIdFilter, positionFilter, employmentTypeFilter);
 
         var details = BuildWorkdayDetails(
-            assignments,
-            period.SchedulePeriodId,
-            leaveLookup,
-            employeeIdFilter,
-            positionFilter,
-            employmentTypeFilter,
-            publishedSchedule?.Status == ScheduleStatus.Published);
+            assignments, period.SchedulePeriodId, leaveLookup,
+            employeeIdFilter, positionFilter, employmentTypeFilter, isPublished);
 
-        var coverageSummary = publishedSchedule is not null
-            ? CalculateCoverageSummary(
-                period.StaffingRequirements.ToList(),
-                assignments)
-            : null;
-
-        var fairnessSummary = publishedSchedule is not null
-            ? CalculateFairnessSummary(
-                period,
-                activeEmployees,
-                assignments,
-                period.StaffingRequirements.ToList())
-            : null;
+        var (coverageSummary, fairnessSummary) = CalculateReportSummaries(
+            period, publishedSchedule, activeEmployees, assignments, leaveLookup);
 
         return new ManagerWorkReportOverviewViewModel
         {
@@ -148,6 +123,31 @@ public sealed partial class WorkReportService : IWorkReportService
             CoverageSummary = coverageSummary,
             FairnessSummary = fairnessSummary
         };
+    }
+
+    private static List<ReportEmployeeOptionViewModel> BuildEmployeeOptions(IReadOnlyList<Employee> employees) =>
+        employees.Select(e => new ReportEmployeeOptionViewModel
+        {
+            EmployeeId = e.EmployeeId,
+            DisplayName = $"{e.EmployeeCode} - {e.FullName}"
+        }).ToList();
+
+    private static (ShiftCoverageSummaryViewModel? Coverage, WorkloadFairnessSummaryViewModel? Fairness) CalculateReportSummaries(
+        SchedulePeriod period,
+        WorkSchedule? publishedSchedule,
+        IReadOnlyList<Employee> activeEmployees,
+        IReadOnlyList<ShiftAssignment> assignments,
+        ApprovedLeaveLookup leaveLookup)
+    {
+        if (publishedSchedule is null)
+        {
+            return (null, null);
+        }
+
+        var reqs = period.StaffingRequirements.ToList();
+        var coverage = CalculateCoverageSummary(reqs, assignments, leaveLookup, period.SchedulePeriodId);
+        var fairness = CalculateFairnessSummary(period, activeEmployees, assignments, reqs);
+        return (coverage, fairness);
     }
 
     private static int ResolveSchedulePeriodId(
