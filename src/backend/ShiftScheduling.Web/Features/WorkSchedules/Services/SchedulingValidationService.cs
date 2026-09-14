@@ -8,7 +8,7 @@ namespace ShiftScheduling.Features.WorkSchedules.Services;
 /// <summary>
 /// Service kiểm tra toàn bộ các ràng buộc bắt buộc (BR02-BR13) và cảnh báo ưu tiên (BR18-BR19).
 /// </summary>
-public sealed class SchedulingValidationService : ISchedulingValidationService
+public sealed partial class SchedulingValidationService : ISchedulingValidationService
 {
     /// <inheritdoc />
     public ScheduleValidationResultViewModel ValidateSchedule(
@@ -23,22 +23,9 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         var hardErrors = new List<string>();
         var warnings = new List<string>();
 
-        var availSet = availabilities
-            .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId))
-            .ToHashSet();
+        var availSet = BuildAvailabilitySet(availabilities);
         var leaveLookup = new ApprovedLeaveLookup(approvedLeaves);
-        var shiftTypeMap = shiftTypes
-            .DistinctBy(s => s.ShiftTypeId)
-            .ToDictionary(s => s.ShiftTypeId);
-
-        foreach (var req in staffingRequirements)
-        {
-            if (req.ShiftType != null && !shiftTypeMap.ContainsKey(req.ShiftTypeId))
-            {
-                shiftTypeMap[req.ShiftTypeId] = req.ShiftType;
-            }
-        }
-
+        var shiftTypeMap = BuildShiftTypeMap(shiftTypes, staffingRequirements);
         var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
 
         if (staffingRequirements == null || staffingRequirements.Count == 0)
@@ -46,13 +33,8 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
             hardErrors.Add("Kỳ lịch chưa có định mức nhân sự (Staffing Requirements).");
         }
 
-        var fixedShiftIds = (staffingRequirements != null && staffingRequirements.Count > 0)
-            ? staffingRequirements.Select(r => r.ShiftTypeId).ToHashSet()
-            : new HashSet<int>();
-
-        var validAssignments = assignments
-            .Where(a => fixedShiftIds.Contains(a.ShiftTypeId))
-            .ToList();
+        var fixedShiftIds = ExtractFixedShiftIds(staffingRequirements);
+        var validAssignments = FilterAssignmentsByStaffing(assignments, fixedShiftIds);
 
         // 1. Kiểm tra định mức nhân sự từng ca (BR12, BR13)
         ValidateStaffingRequirements(
@@ -76,67 +58,59 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
     }
 
     /// <summary>
-    /// Kiểm tra định mức nhân sự theo vị trí (BR12) và yêu cầu nhân viên kinh nghiệm (BR13).
+    /// Tạo tập hợp đăng ký rảnh của nhân viên để tra cứu O(1).
     /// </summary>
-    private static void ValidateStaffingRequirements(
-        IReadOnlyList<StaffingRequirement>? staffingRequirements,
-        HashSet<int> fixedShiftIds,
-        List<ShiftAssignment> validAssignments,
-        Dictionary<int, Employee> empMap,
-        Dictionary<int, ShiftType> shiftTypeMap,
-        List<string> hardErrors)
+    private static HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> BuildAvailabilitySet(
+        IReadOnlyList<Availability> availabilities)
     {
-        if (staffingRequirements == null || staffingRequirements.Count == 0)
+        return availabilities
+            .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId))
+            .ToHashSet();
+    }
+
+    /// <summary>
+    /// Lấy tập hợp mã các loại ca được cấu hình trong định mức nhân sự.
+    /// </summary>
+    private static HashSet<int> ExtractFixedShiftIds(
+        IReadOnlyList<StaffingRequirement>? staffingRequirements)
+    {
+        return (staffingRequirements != null && staffingRequirements.Count > 0)
+            ? staffingRequirements.Select(r => r.ShiftTypeId).ToHashSet()
+            : new HashSet<int>();
+    }
+
+    /// <summary>
+    /// Xây dựng từ điển ShiftType và bổ sung thông tin loại ca từ Staffing Requirements nếu cần.
+    /// </summary>
+    private static Dictionary<int, ShiftType> BuildShiftTypeMap(
+        IReadOnlyList<ShiftType> shiftTypes,
+        IReadOnlyList<StaffingRequirement> staffingRequirements)
+    {
+        var shiftTypeMap = shiftTypes
+            .DistinctBy(s => s.ShiftTypeId)
+            .ToDictionary(s => s.ShiftTypeId);
+
+        foreach (var req in staffingRequirements)
         {
-            return;
+            if (req.ShiftType != null && !shiftTypeMap.ContainsKey(req.ShiftTypeId))
+            {
+                shiftTypeMap[req.ShiftTypeId] = req.ShiftType;
+            }
         }
 
-        var reqs = staffingRequirements.Where(r => fixedShiftIds.Contains(r.ShiftTypeId));
+        return shiftTypeMap;
+    }
 
-        foreach (var req in reqs)
-        {
-            var shiftName = req.ShiftType?.ShiftName
-                ?? (shiftTypeMap.TryGetValue(req.ShiftTypeId, out var st) ? st.ShiftName : $"Ca {req.ShiftTypeId}");
-            var shiftAssigns = validAssignments
-                .Where(a => a.WorkDate == req.WorkDate && a.ShiftTypeId == req.ShiftTypeId)
-                .ToList();
-
-            var salesCount = shiftAssigns.Count(
-                a => empMap.TryGetValue(a.EmployeeId, out var e) && e.Position == EmployeePosition.Sales);
-            var cashierCount = shiftAssigns.Count(
-                a => empMap.TryGetValue(a.EmployeeId, out var e) && e.Position == EmployeePosition.Cashier);
-
-            // BR12: Định mức nhân sự theo vị trí
-            if (salesCount < req.RequiredSalesStaff)
-            {
-                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
-                    $"Thiếu {req.RequiredSalesStaff - salesCount} nhân viên Tư vấn.");
-            }
-            if (salesCount > req.RequiredSalesStaff)
-            {
-                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
-                    $"Dư {salesCount - req.RequiredSalesStaff} nhân viên Tư vấn.");
-            }
-            if (cashierCount < req.RequiredCashiers)
-            {
-                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
-                    $"Thiếu {req.RequiredCashiers - cashierCount} nhân viên Thu ngân.");
-            }
-            if (cashierCount > req.RequiredCashiers)
-            {
-                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
-                    $"Dư {cashierCount - req.RequiredCashiers} nhân viên Thu ngân.");
-            }
-
-            // BR13: Mỗi ca phải có ít nhất 1 nhân viên Level 2+ khi ca có yêu cầu nhân sự
-            var hasLvl2Plus = shiftAssigns.Any(
-                a => empMap.TryGetValue(a.EmployeeId, out var e) && e.Level >= EmployeeLevel.Level2);
-            if (!hasLvl2Plus && (req.RequiredSalesStaff + req.RequiredCashiers > 0))
-            {
-                hardErrors.Add($"Ngày {req.WorkDate:dd/MM} {shiftName}: " +
-                    "Chưa có nhân viên kinh nghiệm (Level 2 trở lên).");
-            }
-        }
+    /// <summary>
+    /// Lọc danh sách phân công chỉ thuộc các ca có trong định mức nhân sự của kỳ.
+    /// </summary>
+    private static List<ShiftAssignment> FilterAssignmentsByStaffing(
+        IReadOnlyList<ShiftAssignment> assignments,
+        HashSet<int> fixedShiftIds)
+    {
+        return assignments
+            .Where(a => fixedShiftIds.Contains(a.ShiftTypeId))
+            .ToList();
     }
 
     /// <summary>
@@ -201,6 +175,40 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
                 ? shiftType.DurationHours
                 : 0m);
 
+        EvaluateEmployeeRules(
+            period, emp, userAssigns, availSet, leaveLookup, shiftTypeMap, policyMax, allowSplit, hardErrors);
+
+        var warningText = GetWorkloadWarning(emp, totalShiftsCount, workDaysCount);
+
+        return new EmployeeSummaryItemViewModel
+        {
+            EmployeeId = emp.EmployeeId,
+            EmployeeCode = emp.EmployeeCode,
+            FullName = emp.FullName,
+            Position = emp.Position,
+            EmploymentType = emp.EmploymentType,
+            Level = emp.Level,
+            TotalShifts = totalShiftsCount,
+            TotalWorkDays = workDaysCount,
+            TotalHours = totalHours,
+            Warning = warningText
+        };
+    }
+
+    /// <summary>
+    /// Kích hoạt các kiểm tra quy tắc phân công và ràng buộc làm việc của nhân viên.
+    /// </summary>
+    private static void EvaluateEmployeeRules(
+        SchedulePeriod period,
+        Employee emp,
+        List<ShiftAssignment> userAssigns,
+        HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> availSet,
+        ApprovedLeaveLookup leaveLookup,
+        Dictionary<int, ShiftType> shiftTypeMap,
+        int policyMax,
+        bool allowSplit,
+        List<string> hardErrors)
+    {
         if (!emp.IsActive && userAssigns.Count > 0)
         {
             hardErrors.Add($"Nhân viên {emp.FullName} ({emp.EmployeeCode})"
@@ -218,22 +226,6 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
         var restErrors = SchedulingRestRuleEvaluator.EvaluateEmployeeRestRules(
             emp, userAssigns, shiftTypeMap, period.WeekStartDate);
         hardErrors.AddRange(restErrors);
-
-        var warningText = GetWorkloadWarning(emp, totalShiftsCount, workDaysCount);
-
-        return new EmployeeSummaryItemViewModel
-        {
-            EmployeeId = emp.EmployeeId,
-            EmployeeCode = emp.EmployeeCode,
-            FullName = emp.FullName,
-            Position = emp.Position,
-            EmploymentType = emp.EmploymentType,
-            Level = emp.Level,
-            TotalShifts = totalShiftsCount,
-            TotalWorkDays = workDaysCount,
-            TotalHours = totalHours,
-            Warning = warningText
-        };
     }
 
     /// <summary>
@@ -351,17 +343,6 @@ public sealed class SchedulingValidationService : ISchedulingValidationService
                     + " ({minFt} ngày đến {maxFt} ngày).");
             }
         }
-    }
-
-    /// <summary>
-    /// Kiểm tra xem mã ca có thuộc 3 ca cố định của hệ thống theo BR03 hay không.
-    /// </summary>
-    private static bool IsFixedShiftCode(string? shiftCode)
-    {
-        if (string.IsNullOrWhiteSpace(shiftCode)) return false;
-        return shiftCode.Equals(ShiftTypeConstants.MorningCode, StringComparison.OrdinalIgnoreCase)
-            || shiftCode.Equals(ShiftTypeConstants.AfternoonCode, StringComparison.OrdinalIgnoreCase)
-            || shiftCode.Equals(ShiftTypeConstants.EveningCode, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
