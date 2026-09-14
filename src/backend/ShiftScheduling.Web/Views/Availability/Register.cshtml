@@ -1,4 +1,5 @@
-﻿@using ShiftScheduling.Models.Enums
+@using ShiftScheduling.Common.Time
+@using ShiftScheduling.Models.Enums
 @model ShiftScheduling.Features.Availabilities.ViewModels.AvailabilityRegisterViewModel
 @{
     ViewData["Title"] = "Đăng ký ca rảnh - " + Model.PeriodName;
@@ -47,38 +48,60 @@
                 <table class="table table-bordered align-middle text-center mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 200px;">Ngày trong tuần</th>
-                            <th>Ca sáng (08:00 - 12:00)</th>
-                            <th>Ca chiều (12:00 - 16:00)</th>
-                            <th>Ca tối (16:00 - 20:00)</th>
+                            <th style="width: 140px; min-width: 140px;">Ca làm việc</th>
+                            @foreach (var day in Model.Days)
+                            {
+                                <th style="min-width: 160px;">
+                                    <div class="fw-bold">@day.WorkDate.DayOfWeek.ToShortVietnameseDay()</div>
+                                    <div class="text-muted small">@day.WorkDate.ToString("dd/MM")</div>
+                                </th>
+                            }
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var day in Model.Days)
+                        @{
+                            var shiftTemplates = Model.Days.FirstOrDefault()?.Shifts ?? new();
+                        }
+                        @foreach (var st in shiftTemplates)
                         {
                             <tr>
-                                <td class="fw-semibold text-start ps-3 bg-light bg-opacity-50">
-                                    @day.DayOfWeekName
+                                <td class="fw-semibold bg-light bg-opacity-50 text-center align-middle">
+                                    <div class="fw-bold">@st.ShiftName</div>
+                                    <div class="text-muted small">@st.StartTime.ToString("HH:mm")–@st.EndTime.ToString("HH:mm")</div>
                                 </td>
-                                @foreach (var shift in day.Shifts)
+                                @foreach (var day in Model.Days)
                                 {
-                                    var key = $"{shift.WorkDate:yyyy-MM-dd}_{shift.ShiftTypeId}";
-                                    var isChecked = shift.IsSelected;
-                                    var isPreferred = shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred;
-                                    <td class="p-2 cell-shift @(isChecked ? (isPreferred ? "bg-warning bg-opacity-10" : "bg-primary bg-opacity-10") : "")" data-date="@shift.WorkDate.ToString("yyyy-MM-dd")" data-dayofweek="@((int)shift.WorkDate.DayOfWeek == 0 ? 7 : (int)shift.WorkDate.DayOfWeek)" data-shifttypeid="@shift.ShiftTypeId" data-shiftcode="@shift.ShiftCode">
-                                        <div class="d-flex flex-column align-items-center gap-1">
-                                            <div class="form-check form-check-inline m-0">
-                                                <input class="form-check-input chk-shift" type="checkbox" name="selectedShiftKeys" value="@key" id="chk_@key" @(isChecked ? "checked" : "") @(!Model.IsEditable ? "disabled" : "") />
-                                                <label class="form-check-label fw-semibold cursor-pointer" for="chk_@key">
-                                                    @shift.ShiftName
-                                                </label>
+                                    var shift = day.Shifts.FirstOrDefault(s => s.ShiftTypeId == st.ShiftTypeId);
+                                    if (shift != null)
+                                    {
+                                        var key = $"{shift.WorkDate:yyyy-MM-dd}_{shift.ShiftTypeId}";
+                                        var isChecked = shift.IsSelected;
+                                        var isPreferred = shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred;
+                                        <td class="p-2 cell-shift @(isChecked ? (isPreferred ? "bg-warning bg-opacity-10" : "bg-primary bg-opacity-10") : "")"
+                                            data-date="@shift.WorkDate.ToString("yyyy-MM-dd")"
+                                            data-dayofweek="@((int)shift.WorkDate.DayOfWeek == 0 ? 7 : (int)shift.WorkDate.DayOfWeek)"
+                                            data-shifttypeid="@shift.ShiftTypeId"
+                                            data-shiftcode="@shift.ShiftCode">
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                <div class="form-check form-check-inline m-0">
+                                                    <input class="form-check-input chk-shift" type="checkbox" name="selectedShiftKeys" value="@key" id="chk_@key" @(isChecked ? "checked" : "") @(!Model.IsEditable ? "disabled" : "") />
+                                                    <label class="form-check-label fw-semibold cursor-pointer" for="chk_@key">
+                                                        Có thể làm
+                                                    </label>
+                                                </div>
+                                                <select name="shiftPreferences[@key]" class="form-select form-select-sm pref-select" style="max-width: 140px; font-size: 0.8rem;" id="pref_@key" @(!isChecked || !Model.IsEditable ? "disabled" : "")>
+                                                    <option value="Normal" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Normal ? "selected" : null)">Bình thường</option>
+                                                    <option value="Preferred" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred ? "selected" : null)">⭐ Ưu tiên</option>
+                                                </select>
                                             </div>
-                                            <select name="shiftPreferences[@key]" class="form-select form-select-sm pref-select" style="max-width: 140px; font-size: 0.8rem;" id="pref_@key" @(!isChecked || !Model.IsEditable ? "disabled" : "")>
-                                                <option value="Normal" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Normal ? "selected" : null)">Bình thường</option>
-                                                <option value="Preferred" selected="@(shift.PreferenceLevel == AvailabilityPreferenceLevel.Preferred ? "selected" : null)">⭐ Ưu tiên</option>
-                                            </select>
-                                        </div>
-                                    </td>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td class="p-2 text-muted small italic text-center align-middle bg-light bg-opacity-25">
+                                            <span>-</span>
+                                        </td>
+                                    }
                                 }
                             </tr>
                         }

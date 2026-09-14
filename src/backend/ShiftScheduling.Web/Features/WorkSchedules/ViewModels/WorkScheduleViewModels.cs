@@ -74,6 +74,7 @@ public sealed class AssignedEmployeeItemViewModel
     public EmploymentType EmploymentType { get; set; }
     public EmployeeLevel Level { get; set; }
     public AssignmentSource Source { get; set; }
+    public bool IsPreferred { get; set; }
 }
 
 public sealed class EligibleEmployeeOptionViewModel

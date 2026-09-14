@@ -1,3 +1,4 @@
+@using ShiftScheduling.Common.Time
 @model ShiftScheduling.Features.Availabilities.ViewModels.ManagerAvailabilityOverviewViewModel
 @{
     ViewData["Title"] = "Tổng quan lịch rảnh nhân viên";
@@ -80,62 +81,87 @@ else
         <i class="fa-solid fa-table me-2"></i>@Model.PeriodName (@Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy"))
     </div>
     <div class="card-body p-0">
+        <div class="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-3 small text-muted">
+            <span class="fw-semibold text-dark"><i class="fa-solid fa-circle-info text-primary me-1"></i>Chú thích:</span>
+            <span><span class="text-warning fw-bold">★</span> Nguyện vọng ưu tiên</span>
+            <span class="d-inline-flex align-items-center gap-1"><span class="legend-swatch legend-swatch-sales"></span> Tư vấn</span>
+            <span class="d-inline-flex align-items-center gap-1"><span class="legend-swatch legend-swatch-cashier"></span> Thu ngân</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0">
                 <thead class="table-light text-center">
                     <tr>
-                        <th style="width: 200px;">Ngày</th>
-                        <th>Ca sáng (08:00 - 12:00)</th>
-                        <th>Ca chiều (12:00 - 16:00)</th>
-                        <th>Ca tối (16:00 - 20:00)</th>
+                        <th style="width: 140px; min-width: 140px;">Ca làm việc</th>
+                        @foreach (var day in Model.Days)
+                        {
+                            <th style="min-width: 220px;">
+                                <div class="fw-bold">@day.WorkDate.DayOfWeek.ToShortVietnameseDay()</div>
+                                <div class="text-muted small">@day.WorkDate.ToString("dd/MM")</div>
+                            </th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var day in Model.Days)
+                    @foreach (var st in Model.ShiftOptions)
                     {
-                        <tr>
-                            <td class="fw-semibold bg-light bg-opacity-50 ps-3">
-                                @day.DayOfWeekName
+                        var shiftTime = st.ShiftTypeId switch
+                        {
+                            1 => "08:00–12:00",
+                            2 => "12:00–16:00",
+                            3 => "16:00–20:00",
+                            _ => ""
+                        };
+                        <tr class="calendar-shift-row @(st.ShiftTypeId == 2 ? "manager-calendar-afternoon" : "")">
+                            <td class="calendar-shift-title-cell fw-semibold">
+                                <div class="fw-bold">@st.ShiftName</div>
+                                @if (!string.IsNullOrEmpty(shiftTime))
+                                {
+                                    <div class="text-muted small">@shiftTime</div>
+                                }
                             </td>
-                            @foreach (var st in Model.ShiftOptions)
+                            @foreach (var day in Model.Days)
                             {
                                 var shift = day.Shifts.FirstOrDefault(s => s.ShiftTypeId == st.ShiftTypeId);
-                                <td class="align-top p-2" style="min-width: 220px;">
+                                <td class="calendar-cell">
                                     @if (shift != null)
                                     {
-                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
-                                            <span class="badge bg-secondary">@shift.ShiftName</span>
-                                            <span class="badge bg-info text-dark font-monospace">@shift.AvailableEmployees.Count người</span>
+                                        var sortedEmployees = shift.AvailableEmployees
+                                            .OrderByDescending(e => e.PreferenceLevel == ShiftScheduling.Models.Enums.AvailabilityPreferenceLevel.Preferred)
+                                            .ThenBy(e => e.EmployeeCode)
+                                            .ToList();
+
+                                        <div class="calendar-cell-header justify-content-end">
+                                            <span class="badge bg-light text-secondary border font-monospace">@sortedEmployees.Count người rảnh</span>
                                         </div>
-                                        @if (!shift.AvailableEmployees.Any())
+                                        @if (!sortedEmployees.Any())
                                         {
                                             <div class="text-muted small italic text-center py-2">Chưa có nhân viên rảnh</div>
                                         }
                                         else
                                         {
-                                            <div class="d-flex flex-column gap-1">
-                                                @foreach (var emp in shift.AvailableEmployees)
+                                            <div class="calendar-chips-container">
+                                                @foreach (var emp in sortedEmployees)
                                                 {
-                                                    <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
-                                                        <div>
-                                                            <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
-                                                        </div>
-                                                        <div>
-                                                            @if (emp.PreferenceLevel == ShiftScheduling.Models.Enums.AvailabilityPreferenceLevel.Preferred)
-                                                            {
-                                                                <span class="badge bg-warning text-dark me-1" title="Nguyện vọng: Ưu tiên"><i class="fa-solid fa-star me-1"></i>Ưu tiên</span>
-                                                            }
-                                                            @if (emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales)
-                                                            {
-                                                                <span class="badge bg-primary me-1">Sales</span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <span class="badge bg-success me-1">TN</span>
-                                                            }
-                                                            <span class="badge bg-outline-secondary border text-muted">@emp.Level</span>
-                                                        </div>
-                                                    </div>
+                                                    var isPreferred = emp.PreferenceLevel == ShiftScheduling.Models.Enums.AvailabilityPreferenceLevel.Preferred;
+                                                    var posClass = emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "employee-chip-sales" : "employee-chip-cashier";
+                                                    var posName = emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "Tư vấn" : "Thu ngân";
+                                                    var levelName = emp.Level switch
+                                                    {
+                                                        ShiftScheduling.Models.Enums.EmployeeLevel.Level1 => "I",
+                                                        ShiftScheduling.Models.Enums.EmployeeLevel.Level2 => "II",
+                                                        ShiftScheduling.Models.Enums.EmployeeLevel.Level3 => "III",
+                                                        _ => emp.Level.ToString()
+                                                    };
+                                                    var prefText = isPreferred ? "★ Nguyện vọng ưu tiên" : "Nguyện vọng bình thường";
+                                                    var tooltipText = $"{emp.EmployeeCode} - {emp.FullName}&#10;{posName}&#10;{levelName}&#10;{prefText}";
+
+                                                    <span class="employee-chip @posClass" tabindex="0" title="@Html.Raw(tooltipText)">
+                                                        @if (isPreferred)
+                                                        {
+                                                            <span class="chip-star">★</span>
+                                                        }
+                                                        <span>@emp.EmployeeCode</span>
+                                                    </span>
                                                 }
                                             </div>
                                         }

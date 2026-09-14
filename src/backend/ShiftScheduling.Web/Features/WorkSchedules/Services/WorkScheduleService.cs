@@ -192,7 +192,7 @@ public partial class WorkScheduleService : IWorkScheduleService
 
         var days = BuildGridDays(
             period, fixedShifts, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), activeEmployees);
+            schedule.ShiftAssignments.ToList(), activeEmployees, availabilities);
 
         return new WorkScheduleEditViewModel
         {
@@ -214,9 +214,14 @@ public partial class WorkScheduleService : IWorkScheduleService
         List<ShiftType> fixedShifts,
         List<StaffingRequirement> requirements,
         List<ShiftAssignment> assignments,
-        IReadOnlyList<Employee> activeEmployees)
+        IReadOnlyList<Employee> activeEmployees,
+        IReadOnlyList<Availability>? availabilities = null)
     {
         var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
+        var preferredSet = availabilities?
+            .Where(a => a.PreferenceLevel == AvailabilityPreferenceLevel.Preferred)
+            .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId))
+            .ToHashSet();
         var viCulture = new CultureInfo("vi-VN");
         var days = new List<SchedulingDayGridViewModel>();
 
@@ -247,7 +252,8 @@ public partial class WorkScheduleService : IWorkScheduleService
                         Position = emp?.Position ?? a.Employee?.Position ?? EmployeePosition.Sales,
                         EmploymentType = emp?.EmploymentType ?? a.Employee?.EmploymentType ?? EmploymentType.PartTime,
                         Level = emp?.Level ?? a.Employee?.Level ?? EmployeeLevel.Level1,
-                        Source = a.Source
+                        Source = a.Source,
+                        IsPreferred = preferredSet?.Contains((a.EmployeeId, a.WorkDate, a.ShiftTypeId)) ?? false
                     };
                 }).OrderBy(e => e.Position).ThenBy(e => e.FullName).ToList();
 
