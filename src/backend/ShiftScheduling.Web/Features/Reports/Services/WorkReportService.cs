@@ -68,8 +68,12 @@ public sealed partial class WorkReportService : IWorkReportService
             return null;
         }
 
-        var publishedSchedule = await _workScheduleRepository.GetPublishedByPeriodIdAsync(
-            schedulePeriodId, cancellationToken);
+        var publishedSchedule = await _workScheduleRepository.GetByPeriodIdAsync(
+            schedulePeriodId, true, true, cancellationToken);
+        if (publishedSchedule is not null && publishedSchedule.Status != ScheduleStatus.Published && publishedSchedule.Status != ScheduleStatus.Closed)
+        {
+            publishedSchedule = null;
+        }
 
         var approvedLeaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
@@ -95,6 +99,7 @@ public sealed partial class WorkReportService : IWorkReportService
         var employeeOptions = BuildEmployeeOptions(activeEmployees);
         var assignments = publishedSchedule?.ShiftAssignments.ToList() ?? new List<ShiftAssignment>();
         bool isPublished = publishedSchedule?.Status == ScheduleStatus.Published;
+        bool isClosed = publishedSchedule?.Status == ScheduleStatus.Closed;
 
         var rows = BuildReportRows(
             activeEmployees, assignments, period.SchedulePeriodId, leaveLookup,
@@ -102,7 +107,7 @@ public sealed partial class WorkReportService : IWorkReportService
 
         var details = BuildWorkdayDetails(
             assignments, period.SchedulePeriodId, leaveLookup,
-            employeeIdFilter, positionFilter, employmentTypeFilter, isPublished);
+            employeeIdFilter, positionFilter, employmentTypeFilter, isPublished, isClosed);
 
         var (coverageSummary, fairnessSummary) = CalculateReportSummaries(
             period, publishedSchedule, activeEmployees, assignments, leaveLookup);
@@ -176,7 +181,8 @@ public sealed partial class WorkReportService : IWorkReportService
             periodIds, cancellationToken);
 
         return paged.Items
-            .Where(p => publishedSet.Contains(p.SchedulePeriodId))
+            .Where(p => publishedSet.Contains(p.SchedulePeriodId)
+                || p.WorkSchedules.Any(ws => ws.Status == ScheduleStatus.Published || ws.Status == ScheduleStatus.Closed))
             .Select(p => new ReportPeriodOptionViewModel
             {
                 SchedulePeriodId = p.SchedulePeriodId,

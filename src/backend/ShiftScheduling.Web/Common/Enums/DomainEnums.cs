@@ -47,7 +47,8 @@ public enum ScheduleStatus
 {
     Proposed = 1,
     Draft = 2,
-    Published = 3
+    Published = 3,
+    Closed = 4
 }
 
 public enum AssignmentSource

@@ -29,6 +29,7 @@ internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
             s => s.SchedulePeriodId == schedulePeriodId && s.Status == ScheduleStatus.Published));
     }
 
+
     public Task<WorkSchedule> EnsureDraftExistsAsync(
         int schedulePeriodId,
         int createdByAccountId,

@@ -72,11 +72,12 @@ public partial class WorkScheduleService
         schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             schedulePeriodId, false, true, cancellationToken);
 
-        if (schedule is null || schedule.Status == ScheduleStatus.Published)
+        if (schedule is null ||
+            (schedule.Status != ScheduleStatus.Draft && schedule.Status != ScheduleStatus.Proposed))
         {
             return ServiceResult.Failure(
                 ErrorCodes.InvalidScheduleStatus,
-                "Lịch đã công bố không thể ghi đè.");
+                "Chỉ có thể áp dụng lịch đề xuất khi lịch ở trạng thái nháp hoặc đề xuất.");
         }
 
         var newAssignments = proposedAssignments.Select(p => (

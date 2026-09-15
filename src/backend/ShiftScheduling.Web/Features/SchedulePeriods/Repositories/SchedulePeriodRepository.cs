@@ -50,7 +50,9 @@ public sealed class SchedulePeriodRepository : ISchedulePeriodRepository
             query = query.AsNoTracking();
         }
 
-        query = query.Include(sp => sp.CreatedByAccount);
+        query = query
+            .Include(sp => sp.CreatedByAccount)
+            .Include(sp => sp.WorkSchedules);
 
         if (includeRequirements)
         {

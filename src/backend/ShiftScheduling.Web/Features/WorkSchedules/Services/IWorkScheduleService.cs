@@ -52,6 +52,20 @@ public interface IWorkScheduleService
         int accountId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Chốt kỳ làm việc (chuyển trạng thái sang Closed, khóa không cho phép sửa lịch hoặc giờ công).
+    /// </summary>
+    /// <param name="schedulePeriodId">Mã kỳ lịch cần chốt.</param>
+    /// <param name="rowVersion">Chuỗi Base64 đại diện cho RowVersion của lịch làm việc.</param>
+    /// <param name="accountId">Mã tài khoản quản lý thực hiện.</param>
+    /// <param name="cancellationToken">Token hủy thao tác không đồng bộ.</param>
+    /// <returns>Kết quả thực hiện thao tác chốt kỳ làm việc.</returns>
+    Task<ServiceResult> CloseScheduleAsync(
+        int schedulePeriodId,
+        string? rowVersion,
+        int accountId,
+        CancellationToken cancellationToken = default);
+
     Task<WorkScheduleEditViewModel?> GetEmployeeMyScheduleAsync(
         int accountId,
         int? schedulePeriodId = null,

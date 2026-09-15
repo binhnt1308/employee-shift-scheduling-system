@@ -143,21 +143,14 @@ public partial class WorkScheduleService : IWorkScheduleService
         CancellationToken cancellationToken = default)
     {
         var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
-        if (period is null)
-        {
-            return null;
-        }
+        if (period is null) return null;
 
         var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             schedulePeriodId, true, true, cancellationToken);
-
         var now = _clock.UtcNow;
         var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
-        if (!CanSchedulePeriod(period, schedule, now, currentDate))
-        {
-            return null;
-        }
+        if (!CanSchedulePeriod(period, schedule, now, currentDate)) return null;
 
         if (schedule is null)
         {
@@ -166,11 +159,7 @@ public partial class WorkScheduleService : IWorkScheduleService
             schedule = await _workScheduleRepository.GetByPeriodIdAsync(
                 schedulePeriodId, true, true, cancellationToken);
         }
-
-        if (schedule is null)
-        {
-            return null;
-        }
+        if (schedule is null) return null;
 
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
         var availabilities = await _availabilityRepository.GetByPeriodWithDetailsAsync(
@@ -178,22 +167,38 @@ public partial class WorkScheduleService : IWorkScheduleService
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var fixedShifts = ResolveFixedShifts(period, allShifts);
+
+        var validationResult = _validationService.ValidateSchedule(
+            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
+            schedule.ShiftAssignments.ToList(), allShifts);
+        var days = BuildGridDays(
+            period, fixedShifts, period.StaffingRequirements.ToList(),
+            schedule.ShiftAssignments.ToList(), activeEmployees, availabilities, leaves);
+
+        return CreateEditViewModel(period, schedule, validationResult, days, now, currentDate);
+    }
+
+    private static List<ShiftType> ResolveFixedShifts(SchedulePeriod period, IReadOnlyList<ShiftType> allShifts)
+    {
         var periodShifts = period.StaffingRequirements
             .Select(r => r.ShiftType)
             .Where(st => st != null)
             .DistinctBy(st => st.ShiftTypeId)
             .OrderBy(st => st.DisplayOrder)
             .ToList();
-        var fixedShifts = periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+        return periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+    }
 
-        var validationResult = _validationService.ValidateSchedule(
-            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), allShifts);
-
-        var days = BuildGridDays(
-            period, fixedShifts, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), activeEmployees, availabilities, leaves);
-
+    private static WorkScheduleEditViewModel CreateEditViewModel(
+        SchedulePeriod period,
+        WorkSchedule schedule,
+        ScheduleValidationResultViewModel validationResult,
+        List<SchedulingDayGridViewModel> days,
+        DateTime now,
+        DateOnly currentDate)
+    {
+        var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(period, schedule, now, currentDate);
         return new WorkScheduleEditViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -203,7 +208,12 @@ public partial class WorkScheduleService : IWorkScheduleService
             RegistrationStatus = period.RegistrationStatus,
             WorkScheduleId = schedule.WorkScheduleId,
             Status = schedule.Status,
+            EffectiveStatusName = statusResult.StatusName,
+            DisplayBadgeClass = statusResult.DisplayBadgeClass,
             IsGeneratedByORTools = schedule.IsGeneratedByORTools,
+            CanEditAssignments = schedule.Status == ScheduleStatus.Draft,
+            CanClose = SchedulePeriodStatusHelper.CanCloseSchedule(period, schedule, currentDate),
+            RowVersion = schedule.RowVersion != null ? Convert.ToBase64String(schedule.RowVersion) : string.Empty,
             Days = days,
             ValidationResult = validationResult
         };

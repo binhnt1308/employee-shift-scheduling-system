@@ -5,6 +5,7 @@ using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Features.WorkSchedules.ViewModels;
 using ShiftScheduling.Models.Constants;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.Errors;
 
 namespace ShiftScheduling.Features.WorkSchedules.Controllers;
 
@@ -166,6 +167,29 @@ public sealed class WorkScheduleController : AuthorizedController
         }
 
         TempData["Success"] = "Đã duyệt và công bố chính thức lịch làm việc cho kỳ lịch.";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    /// <summary>
+    /// Chốt kỳ làm việc (khóa lịch và giờ công).
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Close(int id, string? rowVersion, CancellationToken cancellationToken)
+    {
+        var result = await _workScheduleService.CloseScheduleAsync(
+            id, rowVersion, CurrentAccountId, cancellationToken);
+        if (!result.Succeeded)
+        {
+            if (result.ErrorCode == ErrorCodes.ConcurrencyConflict)
+            {
+                return StatusCode(409, result.ErrorMessage);
+            }
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
+        TempData["Success"] = "Đã chốt kỳ làm việc. Lịch và giờ công của kỳ này không thể tiếp tục điều chỉnh.";
         return RedirectToAction(nameof(Edit), new { id });
     }
 

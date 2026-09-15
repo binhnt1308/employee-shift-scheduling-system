@@ -121,10 +121,10 @@ public partial class WorkScheduleService
             schedulePeriodId, accountId, _clock.UtcNow, cancellationToken);
         var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             schedulePeriodId, false, true, cancellationToken);
-        if (schedule is null || schedule.Status == ScheduleStatus.Published)
+        if (schedule is null || schedule.Status != ScheduleStatus.Draft)
         {
             return (false, null, ServiceResult.Failure(
-                ErrorCodes.InvalidScheduleStatus, "Lịch đã công bố không thể chỉnh sửa."));
+                ErrorCodes.InvalidScheduleStatus, "Lịch không ở trạng thái nháp nên không thể chỉnh sửa."));
         }
 
         return (true, schedule, null);
@@ -239,10 +239,10 @@ public partial class WorkScheduleService
     {
         var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             model.SchedulePeriodId, false, true, cancellationToken);
-        if (schedule is null || schedule.Status == ScheduleStatus.Published)
+        if (schedule is null || schedule.Status != ScheduleStatus.Draft)
         {
             return ServiceResult.Failure(
-                ErrorCodes.InvalidScheduleStatus, "Không tìm thấy lịch nháp hoặc lịch đã công bố.");
+                ErrorCodes.InvalidScheduleStatus, "Lịch không ở trạng thái nháp nên không thể bỏ phân công.");
         }
 
         var assignment = schedule.ShiftAssignments.FirstOrDefault(
@@ -288,6 +288,12 @@ public partial class WorkScheduleService
             schedulePeriodId, false, true, cancellationToken);
         if (schedule is null)
             return ServiceResult.Failure(ErrorCodes.SchedulePeriodNotFound, "Không tìm thấy lịch nháp.");
+
+        if (schedule.Status != ScheduleStatus.Draft)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidScheduleStatus, "Chỉ có thể lưu nháp cho lịch làm việc ở trạng thái Bản nháp.");
+        }
 
         schedule.UpdatedAt = _clock.UtcNow;
         _auditLogRepository.Add(AuditLogFactory.Create(

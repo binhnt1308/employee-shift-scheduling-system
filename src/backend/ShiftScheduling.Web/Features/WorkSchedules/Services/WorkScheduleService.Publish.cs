@@ -1,5 +1,6 @@
 using ShiftScheduling.Common.Auditing;
 using ShiftScheduling.Common.Notifications;
+using ShiftScheduling.Features.SchedulePeriods.Services;
 using ShiftScheduling.Features.WorkSchedules.ViewModels;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
@@ -152,6 +153,92 @@ public partial class WorkScheduleService
     }
 
     /// <inheritdoc />
+    public async Task<ServiceResult> CloseScheduleAsync(
+        int schedulePeriodId,
+        string? rowVersion,
+        int accountId,
+        CancellationToken cancellationToken = default)
+    {
+        var (isValidRowVersion, expectedRowVersion) = ParseRowVersion(rowVersion);
+        if (!isValidRowVersion)
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ConcurrencyConflict,
+                "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.");
+        }
+
+        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
+        var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
+            schedulePeriodId, false, true, cancellationToken);
+
+        var eligibilityError = ValidateCloseEligibility(period, schedule, _clock.TodayInVietnam);
+        if (eligibilityError is not null)
+        {
+            return eligibilityError;
+        }
+
+        if (schedule!.RowVersion is not null && expectedRowVersion.Length > 0 && !schedule.RowVersion.SequenceEqual(expectedRowVersion))
+        {
+            return ServiceResult.Failure(
+                ErrorCodes.ConcurrencyConflict,
+                "Dữ liệu lịch đã bị thay đổi bởi người dùng khác. Vui lòng tải lại trang.");
+        }
+
+        var now = _clock.UtcNow;
+        var prevValues = new { schedule!.WorkScheduleId, schedule.Status, schedule.UpdatedAt };
+        schedule.Status = ScheduleStatus.Closed;
+        schedule.UpdatedAt = now;
+
+        _auditLogRepository.Add(AuditLogFactory.Create(
+            accountId,
+            "CLOSE_WORK_SCHEDULE",
+            nameof(WorkSchedule),
+            schedule.WorkScheduleId.ToString(),
+            prevValues,
+            new { schedule.WorkScheduleId, Status = ScheduleStatus.Closed, UpdatedAt = now },
+            now));
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return ServiceResult.Success("Đã chốt kỳ làm việc thành công.");
+    }
+
+    private static (bool IsValid, byte[] RowVersion) ParseRowVersion(string? rowVersion)
+    {
+        try
+        {
+            var bytes = string.IsNullOrWhiteSpace(rowVersion) ? [] : Convert.FromBase64String(rowVersion);
+            return (bytes.Length > 0, bytes);
+        }
+        catch (FormatException)
+        {
+            return (false, []);
+        }
+    }
+
+    private static ServiceResult? ValidateCloseEligibility(
+        SchedulePeriod? period,
+        WorkSchedule? schedule,
+        DateOnly currentDate)
+    {
+        if (period is null)
+            return ServiceResult.Failure(ErrorCodes.SchedulePeriodNotFound, "Không tìm thấy thông tin kỳ lịch.");
+        if (schedule is null)
+            return ServiceResult.Failure(ErrorCodes.WorkScheduleNotFound, "Không tìm thấy lịch làm việc của kỳ.");
+        if (schedule.Status == ScheduleStatus.Closed)
+            return ServiceResult.Failure(ErrorCodes.InvalidScheduleStatus, "Kỳ lịch làm việc đã được chốt từ trước.");
+        if (schedule.Status != ScheduleStatus.Published)
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidScheduleStatus, "Chỉ có thể chốt kỳ làm việc sau khi lịch đã được công bố.");
+
+        // QT-6: Chỉ cho phép chốt kỳ sau khi kỳ làm việc đã kết thúc (dùng quy tắc tập trung)
+        if (!SchedulePeriodStatusHelper.CanCloseSchedule(period, schedule, currentDate))
+            return ServiceResult.Failure(
+                ErrorCodes.InvalidScheduleStatus, "Chỉ có thể chốt kỳ sau khi kỳ làm việc kết thúc.");
+
+        return null;
+    }
+
+    /// <inheritdoc />
     public async Task<WorkScheduleEditViewModel?> GetEmployeeMyScheduleAsync(
         int accountId,
         int? schedulePeriodId = null,
@@ -167,8 +254,12 @@ public partial class WorkScheduleService
 
         if (schedulePeriodId.HasValue && schedulePeriodId.Value > 0)
         {
-            publishedSchedule = await _workScheduleRepository.GetPublishedByPeriodIdAsync(
-                schedulePeriodId.Value, cancellationToken);
+            publishedSchedule = await _workScheduleRepository.GetByPeriodIdAsync(
+                schedulePeriodId.Value, true, true, cancellationToken);
+            if (publishedSchedule is not null && publishedSchedule.Status != ScheduleStatus.Published && publishedSchedule.Status != ScheduleStatus.Closed)
+            {
+                publishedSchedule = null;
+            }
         }
         else
         {
@@ -199,6 +290,11 @@ public partial class WorkScheduleService
         var days = BuildGridDays(
             period, fixedShifts, new List<StaffingRequirement>(), myAssignments, new List<Employee> { employee });
 
+        var now = _clock.UtcNow;
+        var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
+        var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(
+            period, publishedSchedule, now, currentDate);
+
         return new WorkScheduleEditViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -208,6 +304,8 @@ public partial class WorkScheduleService
             RegistrationStatus = period.RegistrationStatus,
             WorkScheduleId = publishedSchedule.WorkScheduleId,
             Status = publishedSchedule.Status,
+            EffectiveStatusName = statusResult.StatusName,
+            DisplayBadgeClass = statusResult.DisplayBadgeClass,
             IsGeneratedByORTools = publishedSchedule.IsGeneratedByORTools,
             Days = days,
             ValidationResult = new ScheduleValidationResultViewModel { IsValid = true }

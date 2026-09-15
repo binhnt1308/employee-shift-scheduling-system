@@ -12,6 +12,7 @@ public static class SchedulePeriodStatusHelper
         public bool NeedsAttention { get; init; }
         public string? AttentionMessage { get; init; }
         public string DisplayBadgeClass { get; init; } = "badge-ended";
+        public bool CanClose { get; init; }
     }
 
     public static EffectiveStatusResult CalculateEffectiveStatus(
@@ -20,10 +21,23 @@ public static class SchedulePeriodStatusHelper
         DateTime currentUtc,
         DateOnly currentDate)
     {
-        // 1. Has Published WorkSchedule
+        // QT-6: Khi lịch làm việc đã chốt, ngày công bị khóa hoàn toàn.
+        if (workSchedule is not null && workSchedule.Status == ScheduleStatus.Closed)
+        {
+            return new EffectiveStatusResult
+            {
+                StatusName = "Đã chốt",
+                IsRegistrationOpen = false,
+                NeedsAttention = false,
+                DisplayBadgeClass = "badge-ended"
+            };
+        }
+
+        // QT-6 và BRD 5.4: Lịch đã công bố chuyển từ "Đã công bố" sang "Đang áp dụng" từ ngày bắt đầu kỳ
+        // và giữ "Đang áp dụng" cho đến khi Quản lý thực hiện chốt kỳ.
         if (workSchedule is not null && workSchedule.Status == ScheduleStatus.Published)
         {
-            if (currentDate <= period.WeekEndDate)
+            if (currentDate < period.WeekStartDate)
             {
                 return new EffectiveStatusResult
                 {
@@ -36,20 +50,20 @@ public static class SchedulePeriodStatusHelper
 
             return new EffectiveStatusResult
             {
-                StatusName = "Đã kết thúc",
+                StatusName = "Đang áp dụng",
                 IsRegistrationOpen = false,
                 NeedsAttention = false,
-                DisplayBadgeClass = "badge-ended"
+                DisplayBadgeClass = "badge-active"
             };
         }
 
-        // 2. Has WorkSchedule BUT NOT Published (e.g. Draft or Proposed)
-        if (workSchedule is not null && workSchedule.Status != ScheduleStatus.Published)
+        // Lịch nháp hiển thị trạng thái Bản nháp theo BRD 5.4.
+        if (workSchedule is not null)
         {
             var needsAttention = currentDate >= period.WeekStartDate;
             return new EffectiveStatusResult
             {
-                StatusName = "Chưa công bố",
+                StatusName = "Bản nháp",
                 IsRegistrationOpen = false,
                 NeedsAttention = needsAttention,
                 AttentionMessage = needsAttention ? "Kỳ lịch đã bắt đầu nhưng lịch làm việc chưa được công bố." : null,
@@ -147,5 +161,19 @@ public static class SchedulePeriodStatusHelper
         return period.RegistrationStatus == RegistrationStatus.Open
             && currentUtc <= period.AvailabilityDeadline
             && currentDate < period.WeekStartDate;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem lịch làm việc của kỳ đã đủ điều kiện để chốt hay chưa (QT-6).
+    /// Điều kiện: Lịch ở trạng thái Published và ngày hiện tại đã qua WeekEndDate.
+    /// </summary>
+    public static bool CanCloseSchedule(
+        SchedulePeriod period,
+        WorkSchedule? workSchedule,
+        DateOnly currentDate)
+    {
+        return workSchedule is not null
+            && workSchedule.Status == ScheduleStatus.Published
+            && currentDate > period.WeekEndDate;
     }
 }

@@ -110,6 +110,7 @@ public sealed class WorkdayDetailItemViewModel
         ? "Quản lý điều chỉnh"
         : (HasApprovedLeave ? "Nghỉ đã duyệt — tự động 0 giờ" : "Theo lịch");
     public bool CanAdjust { get; set; }
+    public bool IsScheduleClosed { get; set; }
     public string FormattedPlannedHours => $"{PlannedHours:0.##} h";
     public string FormattedEffectiveWorkedHours => $"{EffectiveWorkedHours:0.##} h";
 }

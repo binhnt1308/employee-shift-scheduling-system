@@ -34,7 +34,12 @@ public sealed class WorkScheduleEditViewModel
     public RegistrationStatus RegistrationStatus { get; set; }
     public int WorkScheduleId { get; set; }
     public ScheduleStatus Status { get; set; }
+    public string EffectiveStatusName { get; set; } = string.Empty;
+    public string DisplayBadgeClass { get; set; } = string.Empty;
     public bool IsGeneratedByORTools { get; set; }
+    public bool CanEditAssignments { get; set; }
+    public bool CanClose { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
     public List<SchedulingDayGridViewModel> Days { get; set; } = new();
     public ScheduleValidationResultViewModel ValidationResult { get; set; } = new();
 }

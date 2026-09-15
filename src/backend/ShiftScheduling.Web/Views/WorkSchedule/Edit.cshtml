@@ -10,14 +10,7 @@
         <p class="text-muted small mb-0">
             Tuần: @Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy") | 
             Trạng thái: 
-            @if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
-            {
-                <span class="badge bg-success">ĐÃ CÔNG BỐ</span>
-            }
-            else
-            {
-                <span class="badge bg-warning text-dark">BẢN NHÁP</span>
-            }
+            <span class="badge badge-custom @Model.DisplayBadgeClass">@Model.EffectiveStatusName</span>
             @if (Model.IsGeneratedByORTools)
             {
                 <span class="badge bg-info text-dark ms-1"><i class="fa-solid fa-robot me-1"></i>Từ OR-Tools</span>
@@ -26,16 +19,25 @@
     </div>
     <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Quay lại</a>
-        @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+        @if (Model.CanClose)
         {
-            <form method="post" asp-action="SaveDraft" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#closeScheduleModal">
+                <i class="fa-solid fa-lock me-1"></i>Chốt kỳ làm việc
+            </button>
+        }
+        else if (Model.CanEditAssignments)
+        {
+            <form method="post" asp-action="SaveDraft" asp-route-id="@Model.SchedulePeriodId" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu nháp</button>
             </form>
-            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
-            <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools
+            </button>
+            <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "") onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
+                <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "")
+                        onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
                     <i class="fa-solid fa-paper-plane me-1"></i>Công bố lịch
                 </button>
             </form>
@@ -58,7 +60,19 @@
     </div>
 }
 
-@if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+@if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Closed)
+{
+    <div class="alert alert-secondary border-0 shadow-sm d-flex align-items-center mb-4">
+        <i class="fa-solid fa-lock fs-4 me-3 text-secondary"></i>
+        <div>
+            <div class="fw-semibold">Lịch làm việc của kỳ này đã chốt.</div>
+            <div class="small text-muted">
+                Tất cả phân công và giờ công của kỳ làm việc này đã bị khóa và không thể tiếp tục điều chỉnh.
+            </div>
+        </div>
+    </div>
+}
+else if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
 {
     <div class="alert alert-info border-0 shadow-sm d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
@@ -228,7 +242,7 @@
                                                         <span class="chip-star">★</span>
                                                     }
                                                     <span>@emp.EmployeeCode</span>
-                                                    @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                                    @if (Model.CanEditAssignments)
                                                     {
                                                         <button type="button" class="btn btn-link text-danger p-0 ms-1 border-0" style="font-size: 0.7rem; line-height: 1;" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId, this)" title="Xóa phân công @emp.EmployeeCode">
                                                             <i class="fa-solid fa-xmark"></i>
@@ -256,7 +270,7 @@
                                             }
                                         </div>
 
-                                        @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                        @if (Model.CanEditAssignments)
                                         {
                                             <button type="button" class="btn btn-xs btn-outline-primary w-100 py-1 mt-1" onclick="openAssignModal(@Model.SchedulePeriodId, '@shift.WorkDate.ToString("yyyy-MM-dd")', @shift.ShiftTypeId, '@day.DayOfWeekName - @shift.ShiftName')">
                                                 <i class="fa-solid fa-plus me-1"></i>Thêm
@@ -338,6 +352,32 @@
         </div>
     </div>
 </div>
+
+@if (Model.CanClose)
+{
+    <div class="modal fade" id="closeScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="Close" asp-route-id="@Model.SchedulePeriodId">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Chốt kỳ làm việc</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Sau khi chốt kỳ, lịch và giờ công của kỳ này không thể tiếp tục điều chỉnh.
+                        Bạn có chắc chắn muốn chốt kỳ?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-danger">Xác nhận chốt kỳ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     @await Html.PartialAsync("_EditScripts", Model)

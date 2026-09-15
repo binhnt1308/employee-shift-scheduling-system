@@ -183,6 +183,36 @@ public sealed class WorkReportCoverageLeaveTests
         Assert.Equal(expectedIsFullyCovered, result.CoverageSummary.IsFullyCovered);
     }
 
+    [Fact(DisplayName =
+        "TC-REPORT-018 - Kỳ lịch đã chốt: chi tiết ngày công đánh dấu IsScheduleClosed")]
+    public async Task GetManagerReportOverviewAsync_WhenScheduleClosed_SetsIsScheduleClosedTrueAndCanAdjustFalse()
+    {
+        var date = new DateOnly(2026, 8, 17);
+        var period = CreateSingleShiftPeriod(1, date, salesReq: 1, cashierReq: 0);
+        var salesEmp = CreateEmployee(1, "S1", "Sales 1", EmployeePosition.Sales);
+        _employeeRepo.Add(salesEmp);
+
+        var schedule = new WorkSchedule
+        {
+            WorkScheduleId = 1,
+            SchedulePeriodId = 1,
+            ScheduleName = "Lịch 1",
+            Status = ScheduleStatus.Closed,
+            ShiftAssignments = new List<ShiftAssignment>()
+        };
+        schedule.ShiftAssignments.Add(CreateAssignment(1, salesEmp, date, 1));
+        period.WorkSchedules.Add(schedule);
+        _periodRepo.Add(period);
+        _workScheduleRepo.Schedules.Add(schedule);
+
+        var result = await _service.GetManagerReportOverviewAsync(1);
+
+        Assert.NotNull(result);
+        var detail = Assert.Single(result.Details);
+        Assert.True(detail.IsScheduleClosed);
+        Assert.False(detail.CanAdjust);
+    }
+
     private void AddLeave(int id, int employeeId, DateOnly date, int? shiftTypeId, LeaveRequestStatus status)
     {
         _leaveRequestRepo.Requests.Add(new LeaveRequest

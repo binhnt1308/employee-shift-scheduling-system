@@ -59,6 +59,7 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
                 && w.Status == ScheduleStatus.Published, cancellationToken);
     }
 
+
     public async Task<WorkSchedule> EnsureDraftExistsAsync(
         int schedulePeriodId,
         int createdByAccountId,

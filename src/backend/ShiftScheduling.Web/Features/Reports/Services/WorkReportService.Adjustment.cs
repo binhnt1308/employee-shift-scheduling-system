@@ -30,6 +30,11 @@ public sealed partial class WorkReportService
             return ServiceResult.Failure("ScheduleNotFound", "Không tìm thấy lịch làm việc của kỳ.");
         }
 
+        if (schedule.Status == ScheduleStatus.Closed)
+        {
+            return ServiceResult.Failure("ScheduleClosed", "Kỳ lịch làm việc đã chốt, không thể điều chỉnh giờ công.");
+        }
+
         if (schedule.Status != ScheduleStatus.Published)
         {
             return ServiceResult.Failure("ScheduleNotPublished", "Chỉ có thể điều chỉnh ngày công trên lịch làm việc đã công bố.");
