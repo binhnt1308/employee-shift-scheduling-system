@@ -25,7 +25,8 @@ public sealed partial class LeaveRequestService
                 "Ngày xin nghỉ phải thuộc kỳ lịch đã chọn.");
         }
 
-        // B & D: Kiểm tra Employee có ít nhất 1 assignment trong WorkDate của Published schedule thuộc SchedulePeriod này
+        // B & D: Kiểm tra Employee có ít nhất 1 assignment trong WorkDate
+        // của Published schedule thuộc SchedulePeriod này
         var hasDateAssignment = await _leaveRequestRepository.HasPublishedAssignmentAsync(
             employee.EmployeeId,
             model.SchedulePeriodId,
@@ -121,8 +122,7 @@ public sealed partial class LeaveRequestService
     }
 
     private async Task<IReadOnlyList<LeaveRequestListItemViewModel>> MapListItemsAsync(
-        IReadOnlyList<LeaveRequest> requests,
-        CancellationToken cancellationToken)
+        IReadOnlyList<LeaveRequest> requests, CancellationToken cancellationToken)
     {
         var result = new List<LeaveRequestListItemViewModel>(requests.Count);
         foreach (var request in requests)
@@ -130,27 +130,19 @@ public sealed partial class LeaveRequestService
             var affected = await HasPublishedAssignmentAsync(request, cancellationToken);
             result.Add(new LeaveRequestListItemViewModel
             {
-                LeaveRequestId = request.LeaveRequestId,
-                EmployeeCode = request.Employee.EmployeeCode,
-                EmployeeName = request.Employee.FullName,
-                PeriodName = request.SchedulePeriod.PeriodName,
-                LeaveDate = request.LeaveDate,
-                ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
-                Reason = request.Reason,
-                Status = request.Status,
+                LeaveRequestId = request.LeaveRequestId, EmployeeCode = request.Employee.EmployeeCode,
+                EmployeeName = request.Employee.FullName, PeriodName = request.SchedulePeriod.PeriodName,
+                LeaveDate = request.LeaveDate, ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
+                Reason = request.Reason, Status = request.Status,
                 SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
-                HasPublishedAssignment = affected,
-                RowVersion = Convert.ToBase64String(request.RowVersion)
+                HasPublishedAssignment = affected, RowVersion = Convert.ToBase64String(request.RowVersion)
             });
         }
-
         return result;
     }
 
     private async Task<LeaveRequestDetailsViewModel> MapDetailsAsync(
-        LeaveRequest request,
-        bool isManager,
-        CancellationToken cancellationToken)
+        LeaveRequest request, bool isManager, CancellationToken cancellationToken)
     {
         return new LeaveRequestDetailsViewModel
         {
@@ -158,23 +150,18 @@ public sealed partial class LeaveRequestService
             EmployeeCode = request.Employee.EmployeeCode,
             EmployeeName = request.Employee.FullName,
             PeriodName = request.SchedulePeriod.PeriodName,
+            SchedulePeriodId = request.SchedulePeriodId,
             LeaveDate = request.LeaveDate,
             ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
             Reason = request.Reason,
             Status = request.Status,
             SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
-            ReviewedAt = request.ReviewedAt.HasValue
-                ? _clock.ToVietnamTime(request.ReviewedAt.Value)
-                : null,
+            ReviewedAt = request.ReviewedAt.HasValue ? _clock.ToVietnamTime(request.ReviewedAt.Value) : null,
             ManagerNote = request.ManagerNote,
             HasPublishedAssignment = await HasPublishedAssignmentAsync(request, cancellationToken),
-            HasDraftAssignment = isManager
-                && await _leaveRequestRepository.HasDraftAssignmentAsync(
-                    request.EmployeeId,
-                    request.SchedulePeriodId,
-                    request.LeaveDate,
-                    request.ShiftTypeId,
-                    cancellationToken),
+            HasDraftAssignment = isManager && await _leaveRequestRepository.HasDraftAssignmentAsync(
+                request.EmployeeId, request.SchedulePeriodId, request.LeaveDate,
+                request.ShiftTypeId, cancellationToken),
             CanReview = isManager && request.Status == LeaveRequestStatus.Pending,
             CanCancel = !isManager && request.Status == LeaveRequestStatus.Pending,
             IsManager = isManager,
@@ -182,17 +169,9 @@ public sealed partial class LeaveRequestService
         };
     }
 
-    private Task<bool> HasPublishedAssignmentAsync(
-        LeaveRequest request,
-        CancellationToken cancellationToken)
-    {
-        return _leaveRequestRepository.HasPublishedAssignmentAsync(
-            request.EmployeeId,
-            request.SchedulePeriodId,
-            request.LeaveDate,
-            request.ShiftTypeId,
-            cancellationToken);
-    }
+    private Task<bool> HasPublishedAssignmentAsync(LeaveRequest request, CancellationToken cancellationToken) =>
+        _leaveRequestRepository.HasPublishedAssignmentAsync(
+            request.EmployeeId, request.SchedulePeriodId, request.LeaveDate, request.ShiftTypeId, cancellationToken);
 
     private async Task<IReadOnlyList<ShiftType>> GetFixedShiftTypesAsync(CancellationToken cancellationToken)
     {
@@ -204,29 +183,15 @@ public sealed partial class LeaveRequestService
     }
 
     private Task<Employee?> GetCurrentEmployeeAsync(
-        int actorAccountId,
-        bool asNoTracking,
-        CancellationToken cancellationToken)
-    {
-        return _leaveRequestRepository.GetEmployeeByAccountIdAsync(
-            actorAccountId,
-            asNoTracking,
-            cancellationToken);
-    }
+        int actorAccountId, bool asNoTracking, CancellationToken cancellationToken) =>
+        _leaveRequestRepository.GetEmployeeByAccountIdAsync(actorAccountId, asNoTracking, cancellationToken);
 
-    private LeaveRequest BuildLeaveRequest(int employeeId, LeaveRequestCreateViewModel model)
+    private LeaveRequest BuildLeaveRequest(int employeeId, LeaveRequestCreateViewModel model) => new()
     {
-        return new LeaveRequest
-        {
-            EmployeeId = employeeId,
-            SchedulePeriodId = model.SchedulePeriodId,
-            LeaveDate = model.LeaveDate,
-            ShiftTypeId = model.ShiftTypeId,
-            Reason = model.Reason.Trim(),
-            Status = LeaveRequestStatus.Pending,
-            SubmittedAt = _clock.UtcNow
-        };
-    }
+        EmployeeId = employeeId, SchedulePeriodId = model.SchedulePeriodId, LeaveDate = model.LeaveDate,
+        ShiftTypeId = model.ShiftTypeId, Reason = model.Reason.Trim(), Status = LeaveRequestStatus.Pending,
+        SubmittedAt = _clock.UtcNow
+    };
 
     private async Task TryNotifyManagersOnSubmitAsync(
         Employee employee,
@@ -306,7 +271,7 @@ public sealed partial class LeaveRequestService
         {
             _logger.LogWarning(
                 exception,
-                "Leave request was submitted but manager notification could not be processed. LeaveRequestId: {LeaveRequestId}",
+                "Leave request submitted but manager notification failed. LeaveRequestId: {LeaveRequestId}",
                 request.LeaveRequestId);
         }
     }
@@ -343,18 +308,15 @@ public sealed partial class LeaveRequestService
                 request.LeaveRequestId);
         }
 
-        await TrySendLeaveEmailAsync(request, cancellationToken);
+        await TrySendLeaveEmailAsync(request.Employee?.Email?.Trim(), request, cancellationToken);
     }
 
-    private async Task TrySendLeaveEmailAsync(LeaveRequest request, CancellationToken cancellationToken)
+    private async Task TrySendLeaveEmailAsync(
+        string? email,
+        LeaveRequest request,
+        CancellationToken cancellationToken)
     {
-        if (_emailSender is null)
-        {
-            return;
-        }
-
-        var email = request.Employee?.Email?.Trim();
-        if (string.IsNullOrWhiteSpace(email))
+        if (_emailSender is null || string.IsNullOrWhiteSpace(email))
         {
             return;
         }
@@ -367,12 +329,14 @@ public sealed partial class LeaveRequestService
         string body;
         if (isApproved)
         {
-            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã được Quản lý phê duyệt. Vui lòng đăng nhập hệ thống để xem chi tiết.";
+            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã được Quản lý phê duyệt. " +
+                "Vui lòng đăng nhập hệ thống để xem chi tiết.";
         }
         else
         {
-            var note = string.IsNullOrWhiteSpace(request.ManagerNote) ? "" : $" Ghi chú của quản lý: {request.ManagerNote}.";
-            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã bị Quản lý từ chối.{note} Vui lòng đăng nhập hệ thống để xem chi tiết.";
+            var note = string.IsNullOrWhiteSpace(request.ManagerNote) ? "" : $" Ghi chú: {request.ManagerNote}.";
+            body = $"Đơn xin nghỉ ngày {dateFormatted}{shiftInfo} của bạn đã bị Quản lý từ chối.{note} " +
+                "Vui lòng đăng nhập hệ thống để xem chi tiết.";
         }
 
         try
@@ -409,41 +373,18 @@ public sealed partial class LeaveRequestService
             _clock.UtcNow));
     }
 
-    private static object BuildAuditValues(LeaveRequest request)
+    private static object BuildAuditValues(LeaveRequest request) => new
     {
-        return new
-        {
-            request.LeaveRequestId,
-            request.EmployeeId,
-            request.SchedulePeriodId,
-            request.LeaveDate,
-            request.ShiftTypeId,
-            request.Status,
-            request.ApprovedByAccountId,
-            request.ReviewedAt
-        };
-    }
+        request.LeaveRequestId, request.EmployeeId, request.SchedulePeriodId, request.LeaveDate,
+        request.ShiftTypeId, request.Status, request.ApprovedByAccountId, request.ReviewedAt
+    };
 
-    private static LeavePeriodOptionViewModel MapPeriodOption(SchedulePeriod period)
-    {
-        return new LeavePeriodOptionViewModel(
-            period.SchedulePeriodId,
-            period.PeriodName,
-            period.WeekStartDate,
-            period.WeekEndDate);
-    }
+    private static LeavePeriodOptionViewModel MapPeriodOption(SchedulePeriod period) =>
+        new(period.SchedulePeriodId, period.PeriodName, period.WeekStartDate, period.WeekEndDate);
 
-    private static LeaveShiftOptionViewModel MapShiftOption(ShiftType shift)
-    {
-        return new LeaveShiftOptionViewModel(
-            shift.ShiftTypeId,
-            shift.ShiftName,
-            shift.StartTime,
-            shift.EndTime);
-    }
+    private static LeaveShiftOptionViewModel MapShiftOption(ShiftType shift) =>
+        new(shift.ShiftTypeId, shift.ShiftName, shift.StartTime, shift.EndTime);
 
-    private static string? NormalizeOptionalText(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

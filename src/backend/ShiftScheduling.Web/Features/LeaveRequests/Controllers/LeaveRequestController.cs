@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ShiftScheduling.Common.Security;
 using ShiftScheduling.Features.LeaveRequests.Services;
 using ShiftScheduling.Features.LeaveRequests.ViewModels;
+using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Constants;
 using ShiftScheduling.Models.Enums;
 
@@ -15,10 +16,14 @@ namespace ShiftScheduling.Features.LeaveRequests.Controllers;
 public sealed class LeaveRequestController : AuthorizedController
 {
     private readonly ILeaveRequestService _leaveRequestService;
+    private readonly IWorkScheduleService? _workScheduleService;
 
-    public LeaveRequestController(ILeaveRequestService leaveRequestService)
+    public LeaveRequestController(
+        ILeaveRequestService leaveRequestService,
+        IWorkScheduleService? workScheduleService = null)
     {
         _leaveRequestService = leaveRequestService;
+        _workScheduleService = workScheduleService;
     }
 
     /// <summary>
@@ -121,7 +126,20 @@ public sealed class LeaveRequestController : AuthorizedController
     public async Task<IActionResult> Review(int id, CancellationToken cancellationToken)
     {
         var model = await _leaveRequestService.PrepareReviewAsync(id, cancellationToken);
-        return model is null ? NotFound() : View(model);
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        if (_workScheduleService is not null
+            && model.Details.HasPublishedAssignment
+            && model.Details.Status == LeaveRequestStatus.Pending)
+        {
+            model.ReplacementPreview = await _workScheduleService.GetLeaveReplacementPreviewAsync(
+                id, cancellationToken);
+        }
+
+        return View(model);
     }
 
     /// <summary>
@@ -139,6 +157,18 @@ public sealed class LeaveRequestController : AuthorizedController
         if (id != model.LeaveRequestId)
         {
             return BadRequest();
+        }
+
+        if (approve)
+        {
+            var details = await _leaveRequestService.GetDetailsAsync(id, CurrentAccountId, true, cancellationToken);
+            if (details?.HasPublishedAssignment == true)
+            {
+                TempData["Error"] =
+                    "Ca làm việc thuộc lịch đã công bố cần có người thay thế trước khi duyệt. " +
+                    "Vui lòng chọn 'Bố trí người thay'.";
+                return RedirectToAction(nameof(Review), new { id });
+            }
         }
 
         if (!ModelState.IsValid)

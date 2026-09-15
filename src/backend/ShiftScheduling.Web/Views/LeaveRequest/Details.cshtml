@@ -48,24 +48,49 @@
             <dd class="col-sm-9">@(Model.ManagerNote ?? "—")</dd>
         </dl>
 
-        @if (Model.IsManager && Model.HasPublishedAssignment
-            && Model.Status != LeaveRequestStatus.Rejected && Model.Status != LeaveRequestStatus.Cancelled)
+        @if (Model.NeedsReplacement)
         {
             <div class="alert alert-custom alert-custom-warning mt-4 mb-0">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <div>
-                    @if (Model.Status == LeaveRequestStatus.Approved)
-                    {
-                        <span>
-                            Đơn đã duyệt trùng với lịch đã công bố. Cần điều chỉnh lịch hoặc bố trí người thay thế.
-                        </span>
-                    }
-                    else
-                    {
-                        <span>Nếu duyệt đơn này, lịch chính thức hiện tại sẽ có ca cần được điều chỉnh.</span>
-                    }
+                    <div class="fw-semibold">Đã duyệt — Chưa bố trí người thay</div>
+                    <span>
+                        Nhân viên vẫn đang được ghi nhận trong ca làm việc đã công bố.
+                        Hãy bố trí người thay để cập nhật lịch.
+                    </span>
                 </div>
             </div>
+            <div class="mt-3">
+                <a asp-controller="WorkSchedule"
+                   asp-action="LeaveReplacement"
+                   asp-route-leaveRequestId="@Model.LeaveRequestId"
+                   class="btn btn-primary-custom">
+                    <i class="fa-solid fa-user-clock me-1"></i>
+                    Tìm người thay
+                </a>
+            </div>
+        }
+        else if (Model.ReplacementHandled)
+        {
+            <div class="alert alert-custom alert-custom-success mt-4 mb-0">
+                <i class="fa-solid fa-circle-check"></i>
+                <div>
+                    <div class="fw-semibold">Đã duyệt — Đã xử lý phân công</div>
+                    <span>Ca làm việc bị ảnh hưởng bởi đơn nghỉ đã được cập nhật trên lịch đã công bố.</span>
+                </div>
+            </div>
+            @if (Model.SchedulePeriodId > 0)
+            {
+                <div class="mt-3">
+                    <a asp-controller="WorkSchedule"
+                       asp-action="Edit"
+                       asp-route-id="@Model.SchedulePeriodId"
+                       class="btn btn-secondary-custom">
+                        <i class="fa-solid fa-calendar-check me-1"></i>
+                        Xem lịch đã cập nhật
+                    </a>
+                </div>
+            }
         }
         else if (!Model.IsManager && Model.Status == LeaveRequestStatus.Approved)
         {
@@ -76,17 +101,13 @@
                 </div>
             </div>
         }
-
-        @if (Model.IsManager && Model.Status == LeaveRequestStatus.Approved && Model.HasPublishedAssignment)
+        else if (Model.IsManager && Model.HasPublishedAssignment && Model.Status == LeaveRequestStatus.Pending)
         {
-            <div class="mt-4">
-                <a asp-controller="WorkSchedule"
-                   asp-action="LeaveReplacement"
-                   asp-route-leaveRequestId="@Model.LeaveRequestId"
-                   class="btn btn-primary-custom">
-                    <i class="fa-solid fa-user-clock"></i>
-                    Tìm người thay
-                </a>
+            <div class="alert alert-custom alert-custom-warning mt-4 mb-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div>
+                    <span>Nếu duyệt đơn này, lịch chính thức hiện tại sẽ có ca cần được điều chỉnh.</span>
+                </div>
             </div>
         }
 

@@ -181,12 +181,38 @@ public sealed class WorkScheduleController : AuthorizedController
             return NotFound();
         }
 
+        if (model.AffectedAssignments.Count == 0)
+        {
+            TempData.Remove("Error");
+        }
+
         return View(model);
+    }
+
+    /// <summary>
+    /// Hiển thị màn hình gợi ý và bố trí người thay thế trước khi duyệt đơn xin nghỉ (Pending).
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> LeaveReplacementPreview(int leaveRequestId, CancellationToken cancellationToken)
+    {
+        var model = await _workScheduleService.GetLeaveReplacementPreviewAsync(leaveRequestId, cancellationToken);
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        if (model.AffectedAssignments.Count == 0)
+        {
+            TempData.Remove("Error");
+        }
+
+        return View("LeaveReplacement", model);
     }
 
     /// <summary>
     /// Quản lý xác nhận xếp người thay thế cho ca thiếu nhân sự trên lịch đã công bố.
     /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReplaceApprovedLeaveAssignment(
@@ -205,12 +231,68 @@ public sealed class WorkScheduleController : AuthorizedController
         if (!result.Succeeded)
         {
             TempData["Error"] = result.ErrorMessage;
-        }
-        else
-        {
-            TempData["Success"] = "Đã xếp nhân viên thay thế thành công cho ca làm việc.";
+            return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
         }
 
-        return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
+        TempData["Success"] = "Đã bố trí người thay thành công. Lịch làm việc đã công bố đã được cập nhật.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận bố trí người thay thế và duyệt đơn xin nghỉ trong 1 thao tác nguyên tử.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveLeaveWithReplacement(
+        ApproveLeaveWithReplacementRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu yêu cầu thay thế không hợp lệ.";
+            return RedirectToAction(nameof(LeaveReplacementPreview), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ApproveLeaveWithReplacementAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(LeaveReplacementPreview), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        TempData["Success"] = result.SuccessMessage ?? "Đã duyệt đơn nghỉ và bố trí người thay thành công.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận duyệt nghỉ khẩn cấp khi không có nhân viên thay thế phù hợp.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveEmergencyLeave(
+        ApproveEmergencyLeaveRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu duyệt nghỉ khẩn cấp không hợp lệ.";
+            return RedirectToAction("Review", "LeaveRequest", new { id = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ApproveEmergencyLeaveAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction("Review", "LeaveRequest", new { id = model.LeaveRequestId });
+        }
+
+        TempData["Success"] = result.SuccessMessage ?? "Đã duyệt nghỉ khẩn cấp thành công.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
     }
 }

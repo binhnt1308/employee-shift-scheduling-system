@@ -80,4 +80,29 @@ public interface IWorkScheduleService
         LeaveReplacementRequestViewModel model,
         int managerAccountId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lấy thông tin xem trước các ca làm việc bị ảnh hưởng và danh sách ứng viên phù hợp
+    /// cho đơn xin nghỉ đang ở trạng thái Chờ duyệt (Pending) trên lịch đã công bố.
+    /// </summary>
+    Task<LeaveReplacementViewModel?> GetLeaveReplacementPreviewAsync(
+        int leaveRequestId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Xác thực toàn bộ ứng viên, cập nhật các ca làm việc và duyệt đơn xin nghỉ
+    /// trong một giao dịch nguyên tử duy nhất.
+    /// </summary>
+    Task<ServiceResult> ApproveLeaveWithReplacementAsync(
+        ApproveLeaveWithReplacementRequestViewModel model,
+        int managerAccountId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Phê duyệt đơn nghỉ khẩn cấp khi không tìm được nhân viên thay thế phù hợp.
+    /// </summary>
+    Task<ServiceResult> ApproveEmergencyLeaveAsync(
+        ApproveEmergencyLeaveRequestViewModel model,
+        int managerAccountId,
+        CancellationToken cancellationToken = default);
 }

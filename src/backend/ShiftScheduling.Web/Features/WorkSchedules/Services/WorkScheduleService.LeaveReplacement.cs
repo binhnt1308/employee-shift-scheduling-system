@@ -19,6 +19,12 @@ public partial class WorkScheduleService
         var leaveRequest = await _leaveRequestRepository.GetByIdAsync(leaveRequestId, true, cancellationToken);
         if (leaveRequest is null || leaveRequest.Status != LeaveRequestStatus.Approved) return null;
 
+        return await BuildLeaveReplacementCoreAsync(leaveRequest, cancellationToken);
+    }
+
+    private async Task<LeaveReplacementViewModel?> BuildLeaveReplacementCoreAsync(
+        LeaveRequest leaveRequest, CancellationToken cancellationToken)
+    {
         var period = await _periodRepository.GetByIdAsync(
             leaveRequest.SchedulePeriodId, true, true, cancellationToken);
         var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
@@ -60,7 +66,11 @@ public partial class WorkScheduleService
             });
         }
 
-        return CreateLeaveReplacementViewModel(leaveRequest, period, assignmentViewModels);
+        var result = CreateLeaveReplacementViewModel(leaveRequest, period, assignmentViewModels);
+        result.LeaveStatus = leaveRequest.Status;
+        result.RowVersion = Convert.ToBase64String(leaveRequest.RowVersion);
+        result.ManagerNote = leaveRequest.ManagerNote;
+        return result;
     }
 
     private static LeaveReplacementViewModel CreateLeaveReplacementViewModel(

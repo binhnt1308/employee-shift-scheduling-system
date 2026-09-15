@@ -58,6 +58,24 @@
     </div>
 }
 
+@if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+{
+    <div class="alert alert-info border-0 shadow-sm d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-circle-info fs-4 me-3 text-info"></i>
+            <div>
+                <div class="fw-semibold">Lịch này đã được công bố nên không thể chỉnh phân công trực tiếp.</div>
+                <div class="small text-muted">
+                    Nếu nhân viên có đơn nghỉ đã được duyệt, hãy xử lý người thay tại chức năng Đơn xin nghỉ.
+                </div>
+            </div>
+        </div>
+        <a asp-controller="LeaveRequest" asp-action="Index" class="btn btn-sm btn-outline-primary ms-3 text-nowrap">
+            <i class="fa-solid fa-calendar-minus me-1"></i>Đến Đơn xin nghỉ
+        </a>
+    </div>
+}
+
 <!-- BANNER KIỂM TRA RÀNG BUỘC -->
 <div class="row mb-4">
     <div class="col-md-7">
@@ -217,6 +235,24 @@
                                                         </button>
                                                     }
                                                 </span>
+                                                @if (emp.HasApprovedLeave && emp.ApprovedLeaveRequestId.HasValue)
+                                                {
+                                                    <span class="badge bg-warning text-dark"
+                                                          style="font-size: 0.65rem;"
+                                                          title="Đã duyệt nghỉ">
+                                                        <i class="fa-solid fa-calendar-xmark me-1"></i>
+                                                        Nghỉ đã duyệt
+                                                    </span>
+                                                    <a asp-controller="LeaveRequest"
+                                                       asp-action="Details"
+                                                       asp-route-id="@emp.ApprovedLeaveRequestId.Value"
+                                                       class="btn btn-outline-warning text-dark"
+                                                       style="font-size: 0.65rem; padding: 0 4px;"
+                                                       title="Xử lý người thay">
+                                                        <i class="fa-solid fa-user-clock me-1"></i>
+                                                        Xử lý người thay
+                                                    </a>
+                                                }
                                             }
                                         </div>
 

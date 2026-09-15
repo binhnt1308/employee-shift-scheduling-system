@@ -70,6 +70,9 @@ public sealed class LeaveRequestDetailsViewModel
     public bool CanReview { get; init; }
     public bool CanCancel { get; init; }
     public bool IsManager { get; init; }
+    public int SchedulePeriodId { get; init; }
+    public bool NeedsReplacement => IsManager && Status == LeaveRequestStatus.Approved && HasPublishedAssignment;
+    public bool ReplacementHandled => IsManager && Status == LeaveRequestStatus.Approved && !HasPublishedAssignment;
     public string RowVersion { get; init; } = string.Empty;
 }
 
@@ -83,6 +86,8 @@ public sealed class LeaveRequestReviewViewModel
     public string? ManagerNote { get; set; }
 
     public LeaveRequestDetailsViewModel Details { get; set; } = new();
+
+    public ShiftScheduling.Features.WorkSchedules.ViewModels.LeaveReplacementViewModel? ReplacementPreview { get; set; }
 }
 
 public sealed record LeavePeriodOptionViewModel(

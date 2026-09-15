@@ -2,6 +2,13 @@
 
 @{
     ViewData["Title"] = "Xử lý đơn xin nghỉ";
+    var canArrangeReplacement =
+        Model.ReplacementPreview != null
+        && Model.ReplacementPreview.AffectedAssignments.Count > 0
+        && Model.ReplacementPreview.AffectedAssignments.All(
+            assignment =>
+                !assignment.IsEnded
+                && assignment.Candidates.Count > 0);
 }
 
 <div class="page-header">
@@ -39,10 +46,101 @@
             <div class="alert alert-custom alert-custom-warning mb-4">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <div>
-                    Nhân viên đang có ca trong lịch chính thức vào thời gian xin nghỉ.
-                    Nếu duyệt, ca này phải được Quản lý xử lý điều chỉnh theo UC09.
+                    <div>Nhân viên đang có ca làm việc trong lịch đã công bố.</div>
+                    <div>Trước khi duyệt đơn, Quản lý cần bảo đảm ca làm việc này có người đảm nhận.</div>
                 </div>
             </div>
+
+            @if (Model.ReplacementPreview != null)
+            {
+                <div class="card-custom mb-4">
+                    <div class="card-header-custom">
+                        <i class="fa-solid fa-users me-1"></i> NHÂN VIÊN CÓ THỂ THAY CA
+                    </div>
+                    <div class="p-4">
+                        @foreach (var assignment in Model.ReplacementPreview.AffectedAssignments)
+                        {
+                            <div class="mb-3">
+                                <div class="fw-semibold mb-2">
+                                    <i class="fa-solid fa-calendar-day me-1 text-primary"></i>
+                                    @assignment.ShiftName
+                                    (@assignment.StartTime.ToString("HH:mm") - @assignment.EndTime.ToString("HH:mm"))
+                                    - Ngày @assignment.WorkDate.ToString("dd/MM/yyyy")
+                                </div>
+
+                                @if (assignment.IsEnded)
+                                {
+                                    <div class="alert alert-custom alert-custom-warning mb-2">
+                                        <i class="fa-solid fa-clock"></i>
+                                        <div>Ca làm việc đã kết thúc và không thể bố trí người thay.</div>
+                                    </div>
+                                }
+                                else if (assignment.Candidates.Count == 0)
+                                {
+                                    <div class="alert alert-custom alert-custom-warning mb-2">
+                                        <i class="fa-solid fa-user-xmark"></i>
+                                        <div>
+                                            Hiện chưa có nhân viên phù hợp để thay ca.
+                                            Nếu nhân viên bắt buộc phải nghỉ, Quản lý có thể duyệt nghỉ khẩn cấp
+                                            và trực tiếp hỗ trợ ca này.
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-custom table-hover align-middle mb-2">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã nhân viên</th>
+                                                    <th>Họ tên</th>
+                                                    <th>Loại hợp đồng</th>
+                                                    <th>Cấp bậc</th>
+                                                    <th>Nguyện vọng</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var candidate in assignment.Candidates)
+                                                {
+                                                    <tr>
+                                                        <td class="fw-semibold">@candidate.EmployeeCode</td>
+                                                        <td>@candidate.FullName</td>
+                                                        <td>
+                                                            @(candidate.EmploymentType == EmploymentType.FullTime
+                                                                ? "Toàn thời gian" : "Bán thời gian")
+                                                        </td>
+                                                        <td>@candidate.Level</td>
+                                                        <td>
+                                                            @if (candidate.PreferenceLevel
+                                                                == AvailabilityPreferenceLevel.Preferred)
+                                                            {
+                                                                <span class="badge badge-custom badge-active">
+                                                                    ⭐ Ưu tiên
+                                                                </span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge badge-custom badge-secondary">
+                                                                    Bình thường
+                                                                </span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div class="text-muted small mt-2">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            Danh sách trên là gợi ý dựa trên lịch rảnh và các quy định xếp ca.
+                            Quản lý cần trao đổi trực tiếp với nhân viên trước khi bố trí.
+                        </div>
+                    </div>
+                </div>
+            }
         }
 
         @if (Model.Details.HasDraftAssignment && Model.Details.Status == LeaveRequestStatus.Pending)
@@ -79,14 +177,118 @@
                     <span asp-validation-for="ManagerNote" class="text-danger small"></span>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="submit" name="approve" value="false" class="btn btn-secondary-custom">
+                    <button type="button"
+                            class="btn btn-secondary-custom"
+                            data-bs-toggle="modal"
+                            data-bs-target="#rejectLeaveModal">
                         <i class="fa-solid fa-xmark"></i>
                         Từ chối
                     </button>
-                    <button type="submit" name="approve" value="true" class="btn btn-primary-custom">
-                        <i class="fa-solid fa-check"></i>
-                        Duyệt đơn
-                    </button>
+                    @if (Model.Details.HasPublishedAssignment)
+                    {
+                        if (canArrangeReplacement)
+                        {
+                            <a asp-controller="WorkSchedule"
+                               asp-action="LeaveReplacementPreview"
+                               asp-route-leaveRequestId="@Model.LeaveRequestId"
+                               class="btn btn-primary-custom">
+                                <i class="fa-solid fa-user-gear"></i>
+                                Bố trí người thay
+                            </a>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="btn btn-warning text-dark"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#emergencyLeaveModal">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                Duyệt nghỉ khẩn cấp
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <button type="submit" name="approve" value="true" class="btn btn-primary-custom">
+                            <i class="fa-solid fa-check"></i>
+                            Duyệt đơn
+                        </button>
+                    }
+                </div>
+
+                <div class="modal fade"
+                     id="rejectLeaveModal"
+                     tabindex="-1"
+                     aria-labelledby="rejectLeaveModalLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="rejectLeaveModalLabel">
+                                    Xác nhận từ chối đơn nghỉ
+                                </h5>
+                                <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Đóng"></button>
+                            </div>
+                            <div class="modal-body">
+                                Bạn có chắc chắn muốn từ chối đơn xin nghỉ của
+                                <strong>@Model.Details.EmployeeName (@Model.Details.EmployeeCode)</strong> không?
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-secondary-custom"
+                                        data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" name="approve" value="false" class="btn btn-danger">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    Xác nhận từ chối
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade"
+                     id="emergencyLeaveModal"
+                     tabindex="-1"
+                     aria-labelledby="emergencyLeaveModalLabel"
+                     aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="emergencyLeaveModalLabel">
+                                    Duyệt nghỉ khẩn cấp
+                                </h5>
+                                <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="modal"
+                                        aria-label="Đóng"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">
+                                    Hiện chưa có nhân viên phù hợp để thay ca.
+                                    Nếu tiếp tục, đơn nghỉ sẽ được duyệt và Quản lý sẽ trực tiếp hỗ trợ ca này.
+                                    Giờ làm của Quản lý không được ghi nhận trong hệ thống.
+                                </p>
+                                <div class="fw-semibold text-primary">
+                                    @Model.Details.EmployeeName (@Model.Details.EmployeeCode)
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button"
+                                        class="btn btn-secondary-custom"
+                                        data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit"
+                                        asp-controller="WorkSchedule"
+                                        asp-action="ApproveEmergencyLeave"
+                                        class="btn btn-warning text-dark">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                    Xác nhận duyệt nghỉ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         }

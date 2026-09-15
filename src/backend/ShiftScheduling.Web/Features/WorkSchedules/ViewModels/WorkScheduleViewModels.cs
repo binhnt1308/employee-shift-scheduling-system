@@ -76,6 +76,8 @@ public sealed class AssignedEmployeeItemViewModel
     public EmployeeLevel Level { get; set; }
     public AssignmentSource Source { get; set; }
     public bool IsPreferred { get; set; }
+    public bool HasApprovedLeave { get; set; }
+    public int? ApprovedLeaveRequestId { get; set; }
 }
 
 public sealed class EligibleEmployeeOptionViewModel
@@ -169,6 +171,10 @@ public sealed class LeaveReplacementViewModel
     public int? ShiftTypeId { get; set; }
     public string? ShiftTypeName { get; set; }
     public string LeaveReason { get; set; } = string.Empty;
+    public LeaveRequestStatus LeaveStatus { get; set; }
+    public bool IsPendingLeave => LeaveStatus == LeaveRequestStatus.Pending;
+    public string RowVersion { get; set; } = string.Empty;
+    public string? ManagerNote { get; set; }
     public List<LeaveReplacementAssignmentViewModel> AffectedAssignments { get; set; } = new();
 }
 
@@ -207,4 +213,52 @@ public sealed class LeaveReplacementRequestViewModel
 
     [Range(1, int.MaxValue, ErrorMessage = "Mã nhân viên thay thế không hợp lệ.")]
     public int CandidateEmployeeId { get; set; }
+}
+
+public sealed class ApproveLeaveWithReplacementRequestViewModel
+{
+    [Range(1, int.MaxValue, ErrorMessage = "Mã đơn nghỉ không hợp lệ.")]
+    public int LeaveRequestId { get; set; }
+
+    public string RowVersion { get; set; } = string.Empty;
+
+    [MaxLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
+    public string? ManagerNote { get; set; }
+
+    public List<ShiftReplacementItemViewModel> Replacements { get; set; } = new();
+}
+
+public sealed class ShiftReplacementItemViewModel
+{
+    [Range(1, int.MaxValue, ErrorMessage = "Mã ca phân công không hợp lệ.")]
+    public int ShiftAssignmentId { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Mã nhân viên thay thế không hợp lệ.")]
+    public int CandidateEmployeeId { get; set; }
+}
+
+public sealed class ApproveLeaveReplacementResult
+{
+    public string EmployeeName { get; set; } = string.Empty;
+    public string EmployeeCode { get; set; } = string.Empty;
+    public List<ReplacedShiftSummary> ReplacedShifts { get; set; } = new();
+}
+
+public sealed class ReplacedShiftSummary
+{
+    public DateOnly WorkDate { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public string ReplacementEmployeeName { get; set; } = string.Empty;
+    public string ReplacementEmployeeCode { get; set; } = string.Empty;
+}
+
+public sealed class ApproveEmergencyLeaveRequestViewModel
+{
+    [Range(1, int.MaxValue, ErrorMessage = "Mã đơn nghỉ không hợp lệ.")]
+    public int LeaveRequestId { get; set; }
+
+    public string RowVersion { get; set; } = string.Empty;
+
+    [MaxLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
+    public string? ManagerNote { get; set; }
 }
