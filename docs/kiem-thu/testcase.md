@@ -5,8 +5,9 @@
 Tài liệu này tổng hợp toàn bộ các test case kiểm thử hệ thống xếp lịch ca làm việc và quản lý nhân sự (Employee Shift Scheduling System). Bộ test case được cập nhật cho Tuần 8 dựa trên đặc tả Use Case, các quy tắc nghiệp vụ hiện hành, góp ý của GVHD và các yêu cầu TC-04, TC-06, TC-11, TC-12, NC-08 (chỉ số tỷ lệ phủ ca), NC-01 / BR-05 (giới hạn trần tổng giờ làm việc trong tuần theo loại hợp đồng).
 
 **Mốc source hiện tại**
-- Branch: `tuan-08`
-- Automated test: **234/234 PASS, 0 Failed, 0 Skipped**
+- Branch: `overall`
+- Automated test: **522/522 PASS, 0 Failed, 0 Skipped**
+- Tổng test case tài liệu hiện tại: **194 test case (189 Pass, 5 Blocked, 0 Fail)**
 - Lượt chạy test case thứ nhất: **190 test case (185 Pass, 5 Blocked, 0 Fail)**
 - Lượt HTTP/UI gần nhất còn lưu trong tài liệu: `15/08/2026` (commit `779e73d`) và `28/08/2026` (commit `992e885` / `c8505df`)
 
@@ -69,6 +70,10 @@ Mỗi testcase giữ đúng 9 trường theo TC-03:
 | **TC-LEAVE-002** | UC09 – Ngày ngoài kỳ | Chặn LeaveDate ngoài period. | Period 17–23/08/2026. | POST Create với LeaveDate=`24/08/2026`. | 1. Gửi. 2. Ghi HTTP/lỗi. 3. Kiểm DB. | **HTTP 200**; hiện `Ngày xin nghỉ phải thuộc kỳ lịch đã chọn.`; không tạo request. | HTTP 200; render lại form; hiển thị 'Ngày xin nghỉ phải thuộc kỳ lịch đã chọn.'; DB không tạo record. | Pass — 15/08/2026 — commit 779e73d |
 | **TC-LEAVE-003** | UC09 – Duplicate request | Không có nhiều request hiệu lực cùng ngày/ca. | Đã có Pending/Approved đúng scope. | POST cùng period/date/shift. | 1. Gửi. 2. Ghi HTTP/lỗi. 3. Đếm DB. | **HTTP 200**; hiện `Đã có đơn xin nghỉ còn hiệu lực cho ngày hoặc ca này.`; không tăng số request hiệu lực. | HTTP 200; render lại form; hiển thị 'Đã có đơn xin nghỉ còn hiệu lực cho ngày hoặc ca này.'; DB không tạo duplicate. | Pass — 15/08/2026 — commit 779e73d |
 | **TC-LEAVE-004** | UC09 / DB-15 – Stale RowVersion | Optimistic concurrency không ghi đè review mới hơn. | Hai Manager mở cùng LeaveRequest; A lưu trước; B giữ token cũ. | POST `/LeaveRequest/Review/{id}` với stale RowVersion. | 1. A review. 2. B submit token cũ. 3. Ghi HTTP/error. 4. Kiểm DB. | **HTTP 409 Conflict**; error code=`CONCURRENCY_CONFLICT`; dữ liệu A không bị B ghi đè. | EXPECTED_RESULT_REVIEW_REQUIRED; V1 valid Base64: YES (AAAAAAAANvA=); A submitted V1: YES; V2!=V1: YES (AAAAAAAANvE=); B submitted original V1: YES; Raw HTTP: 302; Location=/LeaveRequest; TempData Error='Phiên bản dữ liệu không hợp lệ.'; Final DB: Status=2, ManagerNote='Approved by A' (Session B không ghi đè); MVC redirect caused by LeaveRequestService.ReviewAsync. | Blocked — 15/08/2026 — commit 779e73d |
+| **TC-LEAVE-006** | UC09 – Gợi ý candidate thay ca | Gợi ý ứng viên hợp lệ cho ca thiếu nhân sự do nghỉ phép, xếp Preferred trước Normal, deterministic order. | Đơn nghỉ Approved; ca thuộc Published schedule; ứng viên cùng Position, đã đăng ký rảnh. | GET `/WorkSchedule/LeaveReplacement?leaveRequestId={id}`. | 1. Manager mở LeaveReplacement cho đơn nghỉ. 2. Kiểm tra danh sách AffectedAssignments. 3. Đối chiếu danh sách Candidates và mức độ ưu tiên. | Hiển thị ca bị ảnh hưởng; Candidates chỉ chứa nhân viên thỏa mãn BR05–07, BR09–13; xếp Preferred trước Normal, tie-break theo EmployeeCode. | Automated xUnit gọi GetLeaveReplacementAsync; trả về ca bị ảnh hưởng; candidate hợp lệ được sắp Preferred trước Normal và EmployeeCode deterministic trong cùng Preference. | Pass — automated xUnit — 15/09/2026 |
+| **TC-LEAVE-007** | UC09 – Chặn candidate đã không còn hợp lệ | POST revalidate trạng thái mới nhất và chặn ứng viên phát sinh đơn nghỉ mới hoặc không còn rảnh. | Đơn nghỉ Approved; ca Published; ứng viên được gợi ý nhưng đã có đơn nghỉ mới được duyệt trước khi Manager xác nhận. | POST `/WorkSchedule/ReplaceApprovedLeaveAssignment` với CandidateEmployeeId có đơn nghỉ mới trùng ca. | 1. Chuẩn bị đơn nghỉ mới cho candidate. 2. Manager gửi yêu cầu xếp thay thế. 3. Kiểm tra kết quả phản hồi. | **Từ chối thay thế**; trả về mã lỗi `EMPLOYEE_ON_LEAVE` hoặc `EMPLOYEE_NOT_AVAILABLE`; không thay đổi phân công ca. | POST Replace: Succeeded=false; ErrorCode=EMPLOYEE_ON_LEAVE; ca làm việc không bị thay đổi (EmployeeId giữ nguyên). | Pass — automated xUnit — 15/09/2026 |
+| **TC-LEAVE-008** | UC09 – Xác nhận xếp người thay thành công | Manager xác nhận thay thế hợp lệ, cập nhật in-place ShiftAssignment trên lịch Published mà không lưu lại toàn bộ lịch. | Đơn nghỉ Approved; ca Published; ứng viên hợp lệ đầy đủ. | POST `/WorkSchedule/ReplaceApprovedLeaveAssignment` với LeaveRequestId, ShiftAssignmentId và CandidateEmployeeId hợp lệ. | 1. Manager gửi yêu cầu thay thế hợp lệ. 2. Kiểm tra ShiftAssignment được cập nhật. 3. Kiểm tra trạng thái lịch Published. | **Thành công**; ShiftAssignmentId giữ nguyên, EmployeeId đổi sang người thay, Source=Manual, lịch giữ nguyên Published; không gọi SaveAssignmentsAsync. | POST Replace: Succeeded=true; ShiftAssignmentId=100 giữ nguyên; EmployeeId=2; Source=Manual; ScheduleStatus=Published; SaveAssignmentsCount=0. | Pass — automated xUnit — 15/09/2026 |
+| **TC-LEAVE-009** | UC09 – Đơn nghỉ cả ngày nhiều ca | Đơn nghỉ cả ngày có nhiều ca làm việc được xử lý độc lập từng ca, không tự động gán Quản lý. | Đơn nghỉ cả ngày (ShiftTypeId=null) Approved; nhân viên có nhiều ca trong ngày trên lịch Published. | GET: `/WorkSchedule/LeaveReplacement?leaveRequestId={id}`; POST: `/WorkSchedule/ReplaceApprovedLeaveAssignment` cho từng ca cụ thể. | 1. GET LeaveReplacement thấy đủ các ca. 2. POST thay thế cho ca thứ nhất. 3. Kiểm tra ca thứ hai và danh sách phân công. | **GET trả về đủ các ca** bị ảnh hưởng; thay thế ca thứ nhất không ảnh hưởng ca thứ hai; không tự động gán tài khoản Quản lý vào ca. | Automated evidence: GetLeaveReplacement_FullDayLeave_ReturnsAllAffectedShifts xác nhận GET trả về 2 ca bị ảnh hưởng; TC_LEAVE_009_FullDayLeave_MultipleShifts_IndependentReplacement_NoAutoAssign xác nhận thay ca sáng cập nhật EmployeeId=2, ca chiều giữ nguyên EmployeeId=1, không gán Quản lý. | Pass — automated xUnit — 15/09/2026 |
 | **TC-TRANSFER-001** | UC10 / BR17 – Chuyển ca hợp lệ | Chuyển một chiều chỉ sau receiver accept + Manager approve. | Published schedule; sender sở hữu ca; receiver hợp lệ. | POST Create → POST Respond accept → POST Review approve. | 1. Sender tạo. 2. Receiver accept. 3. Manager approve. 4. Ghi HTTP từng POST. 5. Kiểm DB. | **Mỗi POST HTTP 302** về ShiftTransfer/Index; cuối flow ApprovalStatus=Approved; cùng ShiftAssignment đổi EmployeeId sang receiver; Source=ShiftTransfer. | Create: 302; Respond: 302; Review: 302; ApprovalStatus=Approved; ShiftAssignment đổi sang EmployeeId=5, Source=ShiftTransfer. | Pass — 15/08/2026 — commit 779e73d |
 | **TC-TRANSFER-002** | UC10 – Receiver từ chối | Receiver reject thì lịch chính thức không đổi. | Request WaitingReceiver. | POST Respond `accept=false`. | 1. Receiver từ chối. 2. Ghi HTTP/TempData. 3. Kiểm DB. | **HTTP 302**; TempData=`Đã từ chối nhận ca.`; request Rejected; assignment vẫn thuộc sender. | HTTP 302; Location=/ShiftTransfer; TempData='Đã từ chối nhận ca.'; ReceiverStatus=Rejected; ca làm giữ nguyên. | Pass — 15/08/2026 — commit 779e73d |
 | **TC-TRANSFER-003** | UC10 / BR17 – Manager duyệt sớm | Không approve khi receiver chưa accept. | ReceiverStatus=Pending; ApprovalStatus=Pending. | POST Review approve=true. | 1. Manager bấm duyệt. 2. Ghi HTTP/TempData. 3. Kiểm DB. | **HTTP 302**; TempData=`Người nhận chưa đồng ý nhận ca.`; ApprovalStatus vẫn Pending; assignment không đổi. | HTTP 302; Location=/ShiftTransfer; TempData Error='Người nhận chưa đồng ý nhận ca.'; ApprovalStatus=Pending. | Pass — 15/08/2026 — commit 779e73d |
@@ -240,13 +245,13 @@ Mỗi testcase giữ đúng 9 trường theo TC-03:
 
 | Nội dung | Kết quả |
 |---|---:|
-| Test case chính UC / BR / regression | 60 |
+| Test case chính UC / BR / regression | 64 |
 | Test case âm TC-11 | 84 |
 | Test case phân quyền TC-12 | 16 |
 | Test case tỷ lệ phủ ca NC-08 | 10 |
 | Test case trần tổng giờ làm trong tuần NC-01 / BR-05 | 20 |
-| **Tổng số test case tài liệu** | **190** |
-| Pass | 185 |
+| **Tổng số test case tài liệu** | **194** |
+| Pass | 189 |
 | Fail | 0 |
 | Blocked | 5 |
 | Chưa chạy | 0 |
@@ -255,7 +260,7 @@ Mỗi testcase giữ đúng 9 trường theo TC-03:
 
 Bộ test case đã được hoàn thiện đầy đủ cho Tuần 8, bao phủ toàn diện các chức năng nghiệp vụ, phân quyền vai trò (TC-12), kiểm thử form âm (TC-11), chỉ số tỷ lệ phủ ca (NC-08), và giới hạn trần tổng giờ làm việc trong tuần theo loại hợp đồng (NC-01 / BR-05).
 
-Toàn bộ 185 test case hợp lệ đã được thực thi và xác nhận Pass (bao gồm 8 test case được kiểm chứng thực tế qua giao diện Manual Smoke trên commit 779e73d / 992e885 và 177 test case tự động xUnit trên commit c8505df). 5 trường hợp liên quan đến concurrency token review tiếp tục được duy trì ở trạng thái Blocked (EXPECTED_RESULT_REVIEW_REQUIRED) theo đúng yêu cầu kiểm soát chất lượng. Không có test case nào bị Fail hoặc ở trạng thái chưa chạy.
+Tài liệu hiện có 194 test case, trong đó 189 Pass, 5 Blocked (EXPECTED_RESULT_REVIEW_REQUIRED liên quan concurrency token review theo đúng yêu cầu kiểm soát chất lượng), 0 Fail. Các test case mới của Issue #15 (TC-LEAVE-006..TC-LEAVE-009) được xác nhận bằng automated xUnit ngày 15/09/2026; manual smoke của Issue #15 chưa thực hiện; các kết quả Manual Smoke cũ ngày 15/08/2026 (commit 779e73d) và 28/08/2026 (commit 992e885 / c8505df) tiếp tục được lưu giữ nguyên trạng làm dữ liệu lịch sử.
 
 ## 5. Kiểm thử tích hợp các luồng nghiệp vụ chính
 

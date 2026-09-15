@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.WorkSchedules.ViewModels;
@@ -153,4 +154,57 @@ public sealed class ProposedAssignmentItemViewModel
     public EmploymentType EmploymentType { get; set; }
 
     public string PositionLabel => Position.ToDisplayName();
+}
+
+public sealed class LeaveReplacementViewModel
+{
+    public int LeaveRequestId { get; set; }
+    public int SchedulePeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public int EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string EmployeeFullName { get; set; } = string.Empty;
+    public EmployeePosition EmployeePosition { get; set; }
+    public DateOnly LeaveDate { get; set; }
+    public int? ShiftTypeId { get; set; }
+    public string? ShiftTypeName { get; set; }
+    public string LeaveReason { get; set; } = string.Empty;
+    public List<LeaveReplacementAssignmentViewModel> AffectedAssignments { get; set; } = new();
+}
+
+public sealed class LeaveReplacementAssignmentViewModel
+{
+    public int ShiftAssignmentId { get; set; }
+    public int WorkScheduleId { get; set; }
+    public DateOnly WorkDate { get; set; }
+    public int ShiftTypeId { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+    public EmployeePosition RequiredPosition { get; set; }
+    public bool IsEnded { get; set; }
+    public List<LeaveReplacementCandidateViewModel> Candidates { get; set; } = new();
+}
+
+public sealed class LeaveReplacementCandidateViewModel
+{
+    public int EmployeeId { get; set; }
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public EmployeePosition Position { get; set; }
+    public EmploymentType EmploymentType { get; set; }
+    public EmployeeLevel Level { get; set; }
+    public AvailabilityPreferenceLevel PreferenceLevel { get; set; }
+}
+
+public sealed class LeaveReplacementRequestViewModel
+{
+    [Range(1, int.MaxValue, ErrorMessage = "Mã đơn nghỉ không hợp lệ.")]
+    public int LeaveRequestId { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Mã ca phân công không hợp lệ.")]
+    public int ShiftAssignmentId { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Mã nhân viên thay thế không hợp lệ.")]
+    public int CandidateEmployeeId { get; set; }
 }

@@ -32,7 +32,7 @@ public sealed partial class SchedulingValidationService
     /// <summary>
     /// Kiểm tra định mức vị trí và kinh nghiệm cho một ca làm việc cụ thể.
     /// </summary>
-    private static void ValidateSingleShiftStaffing(
+    internal static void ValidateSingleShiftStaffing(
         StaffingRequirement req,
         List<ShiftAssignment> validAssignments,
         Dictionary<int, Employee> empMap,

@@ -10,7 +10,7 @@
 | **FR06** | **UC06 – Sinh lịch đề xuất tự động bằng OR-Tools** | `TC-ORTOOLS-001`, `TC-ORTOOLS-002`, `TC-ORTOOLS-003` | `TC06-01`, `TC06-02`, `TC06-03`, `TC06-INT-01`, `TC06-BR21-01` | **Pass** — xUnit 22/08/2026 |
 | **FR07** | **UC07 – Duyệt và công bố lịch** | `TC-PUBLISH-003`, `TC-PUBLISH-004`, `TC-PUBLISH-005` | `TC07-INT-01`, `TC07-INT-02`, BR20/BR21 validation tests | **Pass** — xUnit 22/08/2026; HTTP/UI cũ 15/08/2026 |
 | **FR08** | **UC08 – Xem lịch đã công bố** | `TC-MYSCHEDULE-001`, `TC-MYSCHEDULE-002`, `TC-MYSCHEDULE-003` | MySchedule / authorization regression tests trong suite hiện tại | **Pass (HTTP/UI cũ)** — 15/08/2026; **cần giữ 3 TC này trong testcase.md chính** |
-| **FR09** | **UC09 – Quản lý đơn xin nghỉ** | `TC-LEAVE-001`, `TC-LEAVE-002`, `TC-LEAVE-005` | `TC09-01..10`, `DB-15 RowVersion OriginalValue` | **Pass** — xUnit 22/08/2026; HTTP/UI cũ 15/08/2026 |
+| **FR09** | **UC09 – Quản lý đơn xin nghỉ** | `TC-LEAVE-001`, `TC-LEAVE-002`, `TC-LEAVE-005`, `TC-LEAVE-006`, `TC-LEAVE-007`, `TC-LEAVE-008`, `TC-LEAVE-009` | `TC09-01..10`, `DB-15 RowVersion OriginalValue`, `WorkScheduleLeaveReplacementTests` | **Pass** — xUnit 15/09/2026; HTTP/UI cũ 15/08/2026 |
 | **FR10** | **UC10 – Quản lý yêu cầu đổi ca** | `TC-TRANSFER-001`, `TC-TRANSFER-003`, `TC-TRANSFER-004` | `TC10-01..10`, `TC10-R01..R11` | **Pass** — xUnit 22/08/2026; HTTP/UI cũ 15/08/2026 |
 | **FR11** | **UC11 – Tổng hợp số ca và giờ làm** | `TC-REPORT-001`, `TC-REPORT-002`, `TC-REPORT-004` | `TC11-01..03`, `TC-REPORT-CONSISTENCY-01..03` | **Pass** — xUnit 22/08/2026; HTTP/UI cũ 15/08/2026 |
 

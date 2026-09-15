@@ -1,0 +1,182 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.LeaveReplacementViewModel
+
+@{
+    ViewData["Title"] = "Xếp người thay thế ca thiếu nhân sự";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Xếp người thay thế ca thiếu nhân sự</h1>
+        <p class="page-subtitle">Gợi ý nhân viên phù hợp cho ca bị thiếu nhân sự do đơn nghỉ được duyệt (UC09).</p>
+    </div>
+    <div>
+        <a asp-controller="LeaveRequest"
+           asp-action="Details"
+           asp-route-id="@Model.LeaveRequestId"
+           class="btn btn-secondary-custom">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại chi tiết đơn
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-custom alert-custom-success mb-4">
+        <i class="fa-solid fa-circle-check"></i>
+        <div>@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-custom alert-custom-warning mb-4">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>@TempData["Error"]</div>
+    </div>
+}
+
+<div class="card-custom mb-4">
+    <div class="card-header-custom">
+        <i class="fa-solid fa-info-circle me-1"></i> Thông tin đơn nghỉ phép
+    </div>
+    <div class="p-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="text-muted small">Nhân viên nghỉ</div>
+                <div class="fw-semibold">@Model.EmployeeFullName (@Model.EmployeeCode)</div>
+                <span class="badge badge-custom badge-secondary mt-1">
+                    @Model.EmployeePosition.ToDisplayName()
+                </span>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Kỳ lịch & Ngày nghỉ</div>
+                <div class="fw-semibold">@Model.PeriodName</div>
+                <div class="text-muted small">
+                    @Model.LeaveDate.ToString("dd/MM/yyyy")
+                    @(Model.ShiftTypeName != null ? $"({Model.ShiftTypeName})" : "(Cả ngày)")
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Lý do nghỉ</div>
+                <div class="fw-semibold">@Model.LeaveReason</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-custom alert-custom-info mb-4">
+    <i class="fa-solid fa-circle-info"></i>
+    <div>
+        <strong>Lưu ý:</strong> Quản lý cần trao đổi với nhân viên trước khi xác nhận xếp thay.
+        Hệ thống chỉ gợi ý nhân viên rảnh và đáp ứng các quy định xếp ca.
+    </div>
+</div>
+
+@if (Model.AffectedAssignments.Count == 0)
+{
+    <div class="card-custom p-4 text-center text-muted">
+        <i class="fa-solid fa-circle-check fa-2x mb-2 text-success"></i>
+        <p class="mb-0">
+            Không có ca làm việc nào cần xếp người thay thế (các ca đã được xử lý hoặc không có ca trùng lịch).
+        </p>
+    </div>
+}
+else
+{
+    @foreach (var assignment in Model.AffectedAssignments)
+    {
+        <div class="card-custom mb-4">
+            <div class="card-header-custom d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fa-solid fa-calendar-day me-1"></i>
+                    <strong>@assignment.ShiftName</strong>
+                    (@assignment.StartTime.ToString("HH:mm") - @assignment.EndTime.ToString("HH:mm"))
+                    - Ngày @assignment.WorkDate.ToString("dd/MM/yyyy")
+                </div>
+                <div>
+                    <span class="badge badge-custom badge-primary">
+                        Vị trí cần: @assignment.RequiredPosition.ToDisplayName()
+                    </span>
+                </div>
+            </div>
+            <div class="p-4">
+                @if (assignment.IsEnded)
+                {
+                    <div class="alert alert-custom alert-custom-warning mb-0">
+                        <i class="fa-solid fa-clock"></i>
+                        <div>Ca làm việc đã kết thúc, không thể xếp người thay.</div>
+                    </div>
+                }
+                else if (assignment.Candidates.Count == 0)
+                {
+                    <div class="alert alert-custom alert-custom-warning mb-0">
+                        <i class="fa-solid fa-user-xmark"></i>
+                        <div>Không tìm thấy nhân viên phù hợp để thay thế cho ca này.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Mã NV</th>
+                                    <th>Họ và tên</th>
+                                    <th>Loại HĐ</th>
+                                    <th>Cấp bậc</th>
+                                    <th>Nguyện vọng</th>
+                                    <th class="text-end">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var candidate in assignment.Candidates)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@candidate.EmployeeCode</td>
+                                        <td>@candidate.FullName</td>
+                                        <td>
+                                            @(candidate.EmploymentType == EmploymentType.FullTime
+                                                ? "Toàn thời gian" : "Bán thời gian")
+                                        </td>
+                                        <td>@candidate.Level</td>
+                                        <td>
+                                            @if (candidate.PreferenceLevel == AvailabilityPreferenceLevel.Preferred)
+                                            {
+                                                <span class="badge badge-custom badge-active">⭐ Ưu tiên</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-custom badge-secondary">Bình thường</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <form asp-action="ReplaceApprovedLeaveAssignment"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Xác nhận nhân viên ' +
+                                                      '@candidate.FullName đã đồng ý nhận ca?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden"
+                                                       name="LeaveRequestId"
+                                                       value="@Model.LeaveRequestId" />
+                                                <input type="hidden"
+                                                       name="ShiftAssignmentId"
+                                                       value="@assignment.ShiftAssignmentId" />
+                                                <input type="hidden"
+                                                       name="CandidateEmployeeId"
+                                                       value="@candidate.EmployeeId" />
+                                                <button type="submit" class="btn btn-sm btn-primary-custom">
+                                                    <i class="fa-solid fa-check"></i> Xếp người này
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}

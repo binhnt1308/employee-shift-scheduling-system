@@ -168,4 +168,49 @@ public sealed class WorkScheduleController : AuthorizedController
         TempData["Success"] = "Đã duyệt và công bố chính thức lịch làm việc cho kỳ lịch.";
         return RedirectToAction(nameof(Edit), new { id });
     }
+
+    /// <summary>
+    /// Hiển thị màn hình gợi ý và xếp người thay thế cho ca thiếu nhân sự khi đơn nghỉ được duyệt.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> LeaveReplacement(int leaveRequestId, CancellationToken cancellationToken)
+    {
+        var model = await _workScheduleService.GetLeaveReplacementAsync(leaveRequestId, cancellationToken);
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        return View(model);
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận xếp người thay thế cho ca thiếu nhân sự trên lịch đã công bố.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReplaceApprovedLeaveAssignment(
+        LeaveReplacementRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu yêu cầu thay thế không hợp lệ.";
+            return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ReplaceApprovedLeaveAssignmentAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+        }
+        else
+        {
+            TempData["Success"] = "Đã xếp nhân viên thay thế thành công cho ca làm việc.";
+        }
+
+        return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
+    }
 }
