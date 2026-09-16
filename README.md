@@ -2,12 +2,14 @@
 
 ## 1. Giới thiệu
 
-**Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên
+**Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên  
 **Tên tiếng Anh:** Employee Shift Scheduling System
 
-Hệ thống web hỗ trợ quản lý nhân viên và lập lịch ca làm việc cho cửa hàng bán lẻ quy mô nhỏ.
+Employee Shift Scheduling System là ứng dụng web hỗ trợ quản lý nhân viên và lập lịch làm việc theo tuần cho một cửa hàng bán lẻ quy mô nhỏ.
 
-Các chức năng chính gồm quản lý tài khoản và nhân viên, quản lý kỳ xếp lịch, đăng ký lịch rảnh, phân công ca thủ công, sinh lịch bằng Google OR-Tools CP-SAT, công bố lịch, xin nghỉ, đổi ca, điều chỉnh giờ làm thực tế, thông báo và báo cáo.
+Hệ thống hỗ trợ toàn bộ quy trình từ tạo kỳ lịch, đăng ký lịch rảnh, phân công nhân viên, sinh lịch đề xuất bằng Google OR-Tools CP-SAT, công bố lịch, xử lý đơn nghỉ và chuyển ca, đến tổng hợp giờ làm và chốt kỳ.
+
+Google OR-Tools chỉ tạo **phương án lịch đề xuất**. Quản lý vẫn là người kiểm tra, lựa chọn, điều chỉnh và công bố lịch chính thức.
 
 ---
 
@@ -18,75 +20,89 @@ Các chức năng chính gồm quản lý tài khoản và nhân viên, quản l
 - **Ngôn ngữ:** C#
 - **Frontend:** Razor View, Bootstrap 5, HTML5, CSS3, JavaScript
 - **ORM:** Entity Framework Core 8
-- **Database:** SQL Server
+- **Database:** Microsoft SQL Server
 - **Authentication:** Cookie Authentication
 - **Password hashing:** PBKDF2
 - **Scheduling engine:** Google OR-Tools CP-SAT
 - **Testing:** xUnit
 - **CI:** GitHub Actions
+- **Containerization:** Docker, Docker Compose
 - **Version control:** Git, GitHub
 
 ---
 
-## 3. Chức năng hiện tại
+## 3. Chức năng chính
 
 | Chức năng | Trạng thái |
 | --- | --- |
 | Đăng nhập / đăng xuất | ✅ Hoàn thành |
 | Quản lý tài khoản và phân quyền | ✅ Hoàn thành |
 | Quản lý nhân viên | ✅ Hoàn thành |
-| Quản lý kỳ xếp lịch | ✅ Hoàn thành |
+| Quản lý kỳ lịch | ✅ Hoàn thành |
+| Cấu hình ba ca làm việc theo phiên bản | ✅ Hoàn thành |
 | Cấu hình định mức nhân sự | ✅ Hoàn thành |
 | Đăng ký lịch rảnh | ✅ Hoàn thành |
-| Lưu mẫu lịch rảnh theo tuần | ✅ Hoàn thành |
+| Mẫu lịch rảnh theo tuần | ✅ Hoàn thành |
 | Mức ưu tiên Normal / Preferred | ✅ Hoàn thành |
 | Phân công ca thủ công | ✅ Hoàn thành |
-| Sinh lịch bằng Google OR-Tools | ✅ Hoàn thành |
+| Sinh lịch đề xuất bằng Google OR-Tools | ✅ Hoàn thành |
 | Kiểm tra ràng buộc trước khi công bố | ✅ Hoàn thành |
 | Lưu lịch Draft | ✅ Hoàn thành |
 | Công bố lịch | ✅ Hoàn thành |
+| Theo dõi trạng thái lịch đang áp dụng | ✅ Hoàn thành |
+| Chốt kỳ sau khi kỳ kết thúc | ✅ Hoàn thành |
+| Khóa chỉnh sửa lịch đã Closed | ✅ Hoàn thành |
 | Nhân viên xem lịch cá nhân | ✅ Hoàn thành |
 | Quản lý đơn xin nghỉ | ✅ Hoàn thành |
-| Quản lý yêu cầu đổi ca | ✅ Hoàn thành |
-| Điều chỉnh giờ làm thực tế sau khi ca kết thúc | ✅ Hoàn thành |
+| Bố trí người thay cho đơn nghỉ | ✅ Hoàn thành |
+| Duyệt nghỉ khẩn cấp | ✅ Hoàn thành |
+| Quản lý yêu cầu chuyển ca | ✅ Hoàn thành |
+| Điều chỉnh giờ làm thực tế | ✅ Hoàn thành |
 | Báo cáo số ca, số ngày và giờ làm | ✅ Hoàn thành |
+| Theo dõi độ phủ nhân sự | ✅ Hoàn thành |
+| Báo cáo fairness FT / PT | ✅ Hoàn thành |
 | Xuất báo cáo CSV | ✅ Hoàn thành |
 | Thông báo trong hệ thống | ✅ Hoàn thành |
 | Email notification | ✅ Có hỗ trợ, cần cấu hình SMTP để gửi email thật |
 
 ---
 
-## 4. Vai trò
+## 4. Vai trò người dùng
 
 Hệ thống sử dụng ba vai trò:
 
-- Admin
-- Manager
-- Employee
+- **Admin**
+- **Manager**
+- **Employee**
 
 | Chức năng | Admin | Manager | Employee |
 | --- | :---: | :---: | :---: |
 | Quản lý tài khoản | ✅ | ❌ | ❌ |
 | Quản lý nhân viên | ✅ | ✅ | ❌ |
 | Quản lý kỳ lịch | ❌ | ✅ | ❌ |
-| Cấu hình định mức nhân sự | ❌ | ✅ | ❌ |
+| Cấu hình ca và định mức nhân sự | ❌ | ✅ | ❌ |
 | Đăng ký lịch rảnh | ❌ | ❌ | ✅ |
 | Xem tổng hợp lịch rảnh | ❌ | ✅ | ❌ |
 | Phân công ca | ❌ | ✅ | ❌ |
 | Sinh lịch bằng OR-Tools | ❌ | ✅ | ❌ |
 | Công bố lịch | ❌ | ✅ | ❌ |
+| Chốt kỳ | ❌ | ✅ | ❌ |
 | Xem lịch cá nhân | ❌ | ❌ | ✅ |
-| Gửi đơn xin nghỉ | ❌ | ❌ | ✅ |
-| Duyệt / từ chối đơn xin nghỉ | ❌ | ✅ | ❌ |
-| Gửi / phản hồi yêu cầu đổi ca | ❌ | ❌ | ✅ |
-| Duyệt yêu cầu đổi ca | ❌ | ✅ | ❌ |
+| Gửi / hủy đơn xin nghỉ | ❌ | ❌ | ✅ |
+| Xử lý đơn xin nghỉ | ❌ | ✅ | ❌ |
+| Bố trí người thay | ❌ | ✅ | ❌ |
+| Gửi / phản hồi yêu cầu chuyển ca | ❌ | ❌ | ✅ |
+| Duyệt yêu cầu chuyển ca | ❌ | ✅ | ❌ |
 | Điều chỉnh giờ làm thực tế | ❌ | ✅ | ❌ |
 | Báo cáo tổng hợp | ❌ | ✅ | ❌ |
 | Báo cáo cá nhân | ❌ | ❌ | ✅ |
+| Xuất CSV | ❌ | ✅ | ❌ |
 
 ---
 
 ## 5. Quy trình lập lịch
+
+Quy trình chính của hệ thống:
 
 ```text
 Manager tạo kỳ lịch
@@ -99,120 +115,288 @@ Employee đăng ký lịch rảnh
         ↓
 Hết thời hạn đăng ký
         ↓
-Phân công thủ công
-        hoặc
-Google OR-Tools CP-SAT
-        ↓
-Sinh lịch đề xuất
-        ↓
-Manager lựa chọn / chỉnh sửa
-        ↓
+Manager lập lịch
+   ↙             ↘
+Thủ công       OR-Tools
+                  ↓
+           Lịch đề xuất
+                  ↓
+       Manager chọn sử dụng
+           ↘       ↙
+              Draft
+                ↓
+      Kiểm tra ràng buộc
+                ↓
+             Publish
+                ↓
+      Employee xem lịch
+                ↓
+  Xử lý nghỉ / chuyển ca
+                ↓
+ Báo cáo / giờ làm thực tế
+                ↓
+          Kết thúc kỳ
+                ↓
+              Close
+```
+
+OR-Tools không tự động công bố lịch.
+
+Manager phải chủ động chọn sử dụng Proposal, sau đó có thể tiếp tục chỉnh sửa Draft trước khi Publish.
+
+---
+
+## 6. Vòng đời lịch làm việc
+
+Vòng đời nghiệp vụ được biểu diễn như sau:
+
+```text
 Draft
-        ↓
-Kiểm tra ràng buộc
-        ↓
-Publish
-        ↓
-Employee xem lịch
-        ↓
-Báo cáo / điều chỉnh giờ thực tế
+  ↓
+Published
+  ↓
+Active
+  ↓
+Closed
 ```
 
-Google OR-Tools chỉ sinh **lịch đề xuất**. Manager phải chủ động sử dụng đề xuất và công bố lịch.
+### Draft
+
+Lịch đang được Manager chuẩn bị.
+
+Manager có thể:
+
+- phân công thủ công;
+- xóa hoặc thay nhân viên;
+- sử dụng lịch đề xuất từ OR-Tools;
+- kiểm tra các ràng buộc;
+- lưu lịch chưa hoàn chỉnh.
+
+Draft chưa được Employee nhìn thấy.
+
+### Published
+
+Lịch đã được kiểm tra và công bố chính thức.
+
+Employee có thể xem lịch và thực hiện các nghiệp vụ như:
+
+- xin nghỉ;
+- chuyển ca;
+- xem lịch cá nhân.
+
+### Active
+
+`Active` là trạng thái nghiệp vụ **được suy ra** khi lịch đang ở `Published` và ngày hiện tại đã bước vào khoảng thời gian của kỳ.
+
+`Active` không phải một trạng thái riêng cần lưu trong database.
+
+### Closed
+
+Sau khi kỳ kết thúc, Manager có thể chốt kỳ.
+
+Lịch `Closed`:
+
+- không cho phân công hoặc xóa nhân viên;
+- không cho áp dụng Proposal OR-Tools;
+- không cho Save Draft;
+- không cho chuyển ca;
+- không cho điều chỉnh hoặc reset giờ làm;
+- vẫn cho xem lịch sử;
+- vẫn cho xem Manager Report;
+- vẫn cho xem My Report;
+- vẫn cho xuất CSV.
+
+Việc đóng đăng ký lịch rảnh của `SchedulePeriod` và trạng thái `Closed` của `WorkSchedule` là hai khái niệm khác nhau.
 
 ---
 
-# Chạy project
+# 7. Chạy project
 
-## Yêu cầu môi trường
+## 7.1. Cách khuyến nghị: Docker Compose
 
-- Windows 10/11
-- .NET 8 SDK
-- SQL Server Express LocalDB
-- PowerShell
+Docker Compose là cách chạy được khuyến nghị khi bàn giao vì có thể dựng đồng thời:
 
-Sau khi đã tải source code về máy, mở PowerShell tại thư mục gốc của project và chạy lần lượt:
+- ASP.NET Core Web;
+- SQL Server;
+- database persistent bằng Docker volume.
 
-### Bước 1. Restore package
+Máy chạy không cần SQL Server LocalDB.
 
-```powershell
-dotnet restore src/backend/ShiftScheduling.sln
-```
+### Yêu cầu
 
-### Bước 2. Khởi động SQL Server LocalDB
+- Git
+- Docker Desktop hoặc Docker Engine
+- Docker Compose
 
-```powershell
-sqllocaldb start MSSQLLocalDB
-```
+### Chạy từ source mới clone
 
-### Bước 3. Cấu hình database demo
+Mở PowerShell:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDemo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"; $env:DemoData__Enabled="true"
+git clone https://github.com/binhnt1308/employee-shift-scheduling-system.git
+cd employee-shift-scheduling-system
+Copy-Item .env.example .env
+docker compose up --build -d
+Start-Process "http://localhost:8080"
 ```
 
-### Bước 4. Chạy ứng dụng
-
-```powershell
-dotnet run --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj --configuration Release
-```
-
-Sau khi ứng dụng khởi động, mở URL được hiển thị trong terminal.
-
-Ứng dụng sẽ tự động:
+Ứng dụng chạy tại:
 
 ```text
-Kết nối database
-→ áp dụng EF Core migration còn thiếu
-→ tạo dữ liệu demo nếu database mới
-→ khởi động website
+http://localhost:8080
 ```
 
-Không cần tạo database hoặc seed dữ liệu thủ công.
+Luồng khởi động:
+
+```text
+SQL Server container
+        ↓
+SQL Server sẵn sàng
+        ↓
+ASP.NET Core Web khởi động
+        ↓
+EF Core áp dụng migration còn thiếu
+        ↓
+DemoDataSeeder kiểm tra dữ liệu
+        ↓
+Seed dữ liệu demo nếu database mới
+        ↓
+Website sẵn sàng
+```
+
+Kiểm tra container:
+
+```powershell
+docker compose ps
+```
+
+Xem log Web:
+
+```powershell
+docker compose logs --tail 150 web
+```
+
+Xem log SQL Server:
+
+```powershell
+docker compose logs --tail 100 db
+```
+
+Dừng hệ thống:
+
+```powershell
+docker compose down
+```
+
+Lệnh trên **không xóa database** vì dữ liệu SQL Server được lưu bằng named volume.
+
+Không sử dụng:
+
+```powershell
+docker compose down -v
+```
+
+nếu muốn giữ database hiện tại.
+
+Tùy chọn `-v` sẽ xóa Docker volume và toàn bộ database trong volume đó.
 
 ---
 
-## Tài khoản demo
+## 7.2. Cấu hình Docker
 
-### Manager
+Docker Compose sử dụng file `.env` cho các cấu hình local.
 
-```text
-Username: quanly
-Password: quanly123
+Tạo file:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-### Employee
+Các biến chính:
 
 ```text
-Username: nv02
-Password: Password123!
-Employee: NV02 - Chiêm Trung Hậu
+MSSQL_SA_PASSWORD
+ASPNETCORE_ENVIRONMENT
+DEMO_DATA_ENABLED
 ```
 
-### Admin
+`.env.example` được commit để mô tả cấu hình cần thiết.
+
+`.env` thuộc từng máy và **không được commit**.
+
+Ứng dụng nhận connection string thông qua:
 
 ```text
-Username: admin
-Password: admin123
+ConnectionStrings__DefaultConnection
 ```
 
-> Tài khoản legacy `nhanvien` không còn được sử dụng trên fresh database.
+Docker Compose cấu hình Web kết nối SQL Server bằng TCP qua service `db`.
+
+Database demo chuẩn:
+
+```text
+ShiftSchedulingDb_Demo
+```
+
+Database này được tách biệt với:
+
+```text
+ShiftSchedulingDb
+```
+
+và database dành riêng cho integration test:
+
+```text
+ShiftSchedulingDb_IntegrationTest
+```
 
 ---
 
-## Dữ liệu demo
+## 7.3. Persistence
 
-Khi:
+SQL Server sử dụng Docker named volume.
 
-```text
-DemoData__Enabled=true
+Do đó các thao tác:
+
+```powershell
+docker compose restart
 ```
 
-và database chưa có dữ liệu nghiệp vụ, hệ thống tự tạo dữ liệu phục vụ demo.
+hoặc:
 
-### Nhân viên
+```powershell
+docker compose down
+docker compose up -d
+```
 
-Fresh database có 8 nhân viên:
+không làm mất database nếu không sử dụng `-v`.
+
+Việc restart hoặc redeploy ứng dụng cũng **không tự động reset dữ liệu demo**.
+
+---
+
+# 8. Dữ liệu demo
+
+DemoDataSeeder tạo dữ liệu tương đối theo ngày hiện tại tại thời điểm database được seed.
+
+Dữ liệu không tự động trượt sang tuần mới sau mỗi lần restart.
+
+Fresh demo database gồm:
+
+- 8 Employee;
+- 2 Position;
+- 5 FullTime;
+- 3 PartTime;
+- 3 ShiftType;
+- StaffingRequirement;
+- Availability;
+- WorkSchedule;
+- ShiftAssignment;
+- dữ liệu phục vụ report và các nghiệp vụ chính.
+
+## 8.1. Nhân viên
+
+Fresh database có:
 
 ```text
 NV01
@@ -230,19 +414,14 @@ Cơ cấu:
 ```text
 4 Sales
 4 Cashier
+
 5 FullTime
 3 PartTime
 ```
 
-Nhân viên được dùng cho luồng demo chính:
+---
 
-```text
-NV02 - Chiêm Trung Hậu
-```
-
-### Ca làm việc
-
-Hệ thống sử dụng 3 ca cố định:
+## 8.2. Ba ca làm việc
 
 ```text
 MORNING     08:00 - 12:00
@@ -250,92 +429,339 @@ AFTERNOON   12:00 - 16:00
 EVENING     16:00 - 20:00
 ```
 
-### Kịch bản demo
+---
 
-Seeder tạo ba kỳ demo, tương ứng với ba giai đoạn chính của quy trình lập lịch.
+## 8.3. Dataset 4 kỳ
 
-#### Kỳ đang đăng ký
+Seeder tạo **4 kỳ tương đối với tuần hiện tại theo giờ Việt Nam**.
 
-Dữ liệu gồm:
-
-- Kỳ lịch đang mở đăng ký.
-- 7 ngày × 3 ca = 21 tổ hợp ngày-ca.
-- Staffing Requirement.
-- Availability.
-- Mức ưu tiên `Normal`.
-- Mức ưu tiên `Preferred`.
-
-Có thể sử dụng để demo:
+### Kỳ 1 — Tuần trước
 
 ```text
-Nhân viên đăng nhập
-→ đăng ký lịch rảnh
-→ chọn mức ưu tiên Normal hoặc Preferred
-→ lưu lịch rảnh
+Registration: Closed
+Schedule: Closed
 ```
-
-#### Kỳ sẵn sàng xếp lịch
-
-Kỳ này đã hết thời hạn đăng ký và chưa có lịch làm việc ban đầu.
 
 Dữ liệu gồm:
 
-- 7 ngày × 3 ca = 21 tổ hợp ngày-ca.
-- Staffing Requirement.
-- Availability của nhân viên.
-- Chưa có WorkSchedule khi vừa seed dữ liệu.
+- 42 ShiftAssignment;
+- lịch sử làm việc hoàn chỉnh;
+- dữ liệu Manager Report;
+- dữ liệu My Report;
+- dữ liệu CSV;
+- dữ liệu điều chỉnh giờ thực tế.
 
-Có thể sử dụng để demo:
-
-```text
-Manager xem dữ liệu đăng ký
-→ phân công thủ công
-hoặc
-→ sinh lịch tự động bằng OR-Tools
-→ xem lịch đề xuất
-→ áp dụng vào Draft
-→ điều chỉnh và công bố lịch
-```
-
-#### Kỳ đã công bố
-
-Dữ liệu gồm:
-
-- WorkSchedule trạng thái Published.
-- 42 ShiftAssignment.
-- Lịch làm việc cá nhân.
-- Dữ liệu báo cáo.
-- Dữ liệu điều chỉnh giờ làm thực tế.
-
-Ví dụ dữ liệu điều chỉnh giờ làm:
+Ví dụ:
 
 ```text
 Employee: NV02 - Chiêm Trung Hậu
-Shift: EVENING
 Scheduled hours: 4.00
 Actual worked hours: 3.50
-Reason: về sớm 30 phút theo điều chỉnh của quản lý
 ```
 
-Có thể sử dụng để demo lịch cá nhân, báo cáo và chức năng điều chỉnh giờ làm thực tế.
+Kỳ này dùng để demo:
 
-Seeder được thiết kế để:
+- lịch sử;
+- báo cáo;
+- giờ công thực tế;
+- trạng thái Closed;
+- dữ liệu không còn được chỉnh sửa.
 
-- Tạo bộ dữ liệu demo khi chạy trên database mới chưa có dữ liệu nghiệp vụ.
-- Không tạo lại hoặc ghi đè dữ liệu khi bộ demo đã tồn tại.
-- Không tự thêm dữ liệu demo vào database nghiệp vụ đã có dữ liệu.
-- Vẫn cho phép ứng dụng khởi động bình thường sau khi người dùng thay đổi lịch rảnh, phân công hoặc dữ liệu nghiệp vụ của bộ demo.
-- Dừng và báo lỗi nếu phát hiện tổ hợp marker của bộ dữ liệu demo không đầy đủ hoặc không hợp lệ.
+### Kỳ 2 — Tuần hiện tại
+
+```text
+Registration: Closed
+Schedule persisted status: Published
+UI effective status: Active / Đang áp dụng
+```
+
+Dữ liệu gồm:
+
+- 42 ShiftAssignment;
+- lịch cá nhân;
+- đơn nghỉ;
+- chuyển ca;
+- report;
+- các nghiệp vụ của lịch đang áp dụng.
+
+`Active` được suy ra từ `Published` và thời gian hiện tại.
+
+### Kỳ 3 — Tuần kế tiếp
+
+```text
+Registration status: Open
+Availability deadline: đã hết hạn
+Schedule: Draft
+Assignments: 0
+```
+
+Dữ liệu gồm:
+
+- 21 StaffingRequirement;
+- Availability của 8 nhân viên;
+- lịch Draft trống ban đầu.
+
+Manager có thể dùng kỳ này để demo:
+
+```text
+Xem lịch rảnh
+→ phân công thủ công
+
+hoặc
+
+→ chạy OR-Tools
+→ xem Proposal
+→ áp dụng Proposal
+→ tiếp tục chỉnh Draft
+→ Publish
+```
+
+### Kỳ 4 — Tuần sau nữa
+
+```text
+Registration: Open
+Availability deadline: trong tương lai
+WorkSchedule: chưa tạo
+```
+
+Dữ liệu gồm:
+
+- 21 StaffingRequirement;
+- dữ liệu Availability / mẫu đăng ký phù hợp;
+- chưa có WorkSchedule.
+
+Kỳ này dùng để demo:
+
+```text
+Employee đăng nhập
+→ đăng ký lịch rảnh
+→ chọn Normal / Preferred
+→ lưu lịch rảnh
+```
 
 ---
 
-## Migration
+# 9. Làm mới dữ liệu demo an toàn
 
-Schema database được quản lý bằng **Entity Framework Core Migrations**.
+Dataset demo được tính theo ngày tại **thời điểm seed**.
 
-Ứng dụng tự động áp dụng migration còn thiếu khi khởi động.
+Ứng dụng không tự reset dữ liệu khi:
 
-Trong trường hợp cần chạy migration thủ công:
+- restart Web;
+- restart Docker;
+- `docker compose down`;
+- deploy lại source.
+
+Khi cần tạo lại 4 kỳ theo thời điểm hiện tại, sử dụng `reset-demo`.
+
+## 9.1. Reset bằng Docker
+
+Dừng Web:
+
+```powershell
+docker compose stop web
+```
+
+Chạy reset:
+
+```powershell
+docker compose run --rm `
+  -e DemoData__AllowReset=true `
+  web `
+  --reset-demo=ShiftSchedulingDb_Demo
+```
+
+Khởi động Web lại:
+
+```powershell
+docker compose up -d web
+```
+
+Sau đó truy cập:
+
+```text
+http://localhost:8080
+```
+
+---
+
+## 9.2. Các chốt an toàn của reset-demo
+
+Database chỉ được xóa khi **tất cả** điều kiện sau đúng:
+
+1. Có tham số:
+
+```text
+--reset-demo=<DATABASE_NAME>
+```
+
+2. `DemoData:Enabled = true`.
+
+3. `DemoData:AllowReset = true`.
+
+4. Database thực tế trong connection string có tên hợp lệ.
+
+5. Tên trong `--reset-demo` phải khớp database thực tế.
+
+6. Database phải có hậu tố:
+
+```text
+_Demo
+```
+
+Ví dụ hợp lệ:
+
+```text
+ShiftSchedulingDb_Demo
+```
+
+Các database như sau không được reset:
+
+```text
+ShiftSchedulingDb
+ShiftSchedulingDb_IntegrationTest
+master
+```
+
+---
+
+## 9.3. Reset thực hiện những gì?
+
+```text
+Kiểm tra các chốt an toàn
+        ↓
+EnsureDeletedAsync()
+        ↓
+MigrateAsync()
+        ↓
+DemoDataSeeder.SeedAsync()
+        ↓
+Tạo lại dataset 4 kỳ theo ngày hiện tại
+        ↓
+Tiến trình reset kết thúc
+```
+
+Lệnh reset không khởi động Web server.
+
+Sau reset phải chạy ứng dụng bình thường lại.
+
+> `reset-demo` là thao tác phá hủy dữ liệu. Chỉ sử dụng với database demo riêng.
+
+`DemoData__AllowReset=true` không được cấu hình mặc định trong repository hoặc môi trường production.
+
+---
+
+# 10. Tài khoản demo
+
+Fresh demo database sử dụng các tài khoản:
+
+| Username | Vai trò |
+| --- | --- |
+| `admin` | Admin |
+| `quanly` | Manager |
+| `nv01` | Employee |
+| `nv02` | Employee |
+| `nv03` | Employee |
+| `nv04` | Employee |
+| `nv05` | Employee |
+| `nv06` | Employee |
+| `nv07` | Employee |
+| `nv08` | Employee |
+
+Mật khẩu demo:
+
+```text
+Password123!
+```
+
+Ví dụ Employee dùng cho nhiều luồng demo:
+
+```text
+Username: nv02
+Password: Password123!
+Employee: NV02 - Chiêm Trung Hậu
+```
+
+Tài khoản legacy:
+
+```text
+nhanvien
+```
+
+không còn được sử dụng trên fresh demo database.
+
+---
+
+# 11. Chạy trực tiếp trên Windows
+
+Docker là cách khuyến nghị khi bàn giao.
+
+Trong môi trường phát triển Windows, ứng dụng vẫn có thể chạy trực tiếp bằng LocalDB.
+
+## Yêu cầu
+
+- Windows 10/11
+- .NET 8 SDK
+- SQL Server Express LocalDB
+- PowerShell
+
+Restore:
+
+```powershell
+dotnet restore src/backend/ShiftScheduling.sln
+```
+
+Khởi động LocalDB:
+
+```powershell
+sqllocaldb start MSSQLLocalDB
+```
+
+Cấu hình database demo:
+
+```powershell
+$env:ConnectionStrings__DefaultConnection = `
+"Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb_Demo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+
+$env:DemoData__Enabled = "true"
+```
+
+Chạy:
+
+```powershell
+dotnet run `
+  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj `
+  --configuration Release
+```
+
+Ứng dụng sẽ:
+
+```text
+Kết nối SQL Server
+→ Migrate database
+→ Seed demo nếu cần
+→ khởi động Web
+```
+
+LocalDB chỉ là lựa chọn cho môi trường phát triển Windows.
+
+Docker, CI và môi trường triển khai không phụ thuộc LocalDB.
+
+---
+
+# 12. Migration
+
+Schema được quản lý bằng **Entity Framework Core Migrations**.
+
+Khi ứng dụng khởi động:
+
+```text
+Database.MigrateAsync()
+```
+
+được sử dụng để áp dụng các migration còn thiếu.
+
+Có thể chạy thủ công:
 
 ```powershell
 dotnet ef database update `
@@ -343,157 +769,115 @@ dotnet ef database update `
   --startup-project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
 ```
 
-Nếu máy chưa có công cụ `dotnet ef`, cài bằng:
+Nếu chưa có `dotnet-ef`:
 
 ```powershell
 dotnet tool install --global dotnet-ef --version "8.*"
 ```
 
-Sau đó chạy lại lệnh migration phía trên.
-
-> Không chỉnh sửa schema database trực tiếp bằng SSMS thay cho EF Core Migration.
+Không chỉnh schema production trực tiếp bằng SSMS thay cho migration.
 
 ---
 
-## Cấu hình
+# 13. Cấu hình theo môi trường
 
-### Connection string
+Source code không cần thay đổi giữa:
 
-Biến môi trường:
+```text
+Windows local
+Docker
+CI
+Deployment
+```
+
+Khác biệt giữa các môi trường được cung cấp bằng:
+
+- Environment Variables;
+- User Secrets;
+- configuration/secrets của nền tảng deploy.
+
+Không commit:
+
+- `.env`;
+- production connection string;
+- SMTP password;
+- App Password;
+- API key;
+- credential thật.
+
+---
+
+## 13.1. Connection string
+
+Biến:
 
 ```text
 ConnectionStrings__DefaultConnection
 ```
 
-Ví dụ:
+Ví dụ LocalDB:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDemo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+$env:ConnectionStrings__DefaultConnection = `
+"Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb_Demo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 ```
 
-### Demo data
+Docker Compose tự cung cấp connection string sử dụng:
 
-Biến môi trường:
+```text
+Server=db,1433
+Database=ShiftSchedulingDb_Demo
+```
+
+---
+
+## 13.2. Demo data
+
+Biến:
 
 ```text
 DemoData__Enabled
 ```
 
-Bật:
+Ví dụ:
 
 ```powershell
-$env:DemoData__Enabled="true"
+$env:DemoData__Enabled = "true"
 ```
 
-Tắt:
+---
 
-```powershell
-$env:DemoData__Enabled="false"
-```
+## 13.3. SMTP
 
-### Email / SMTP
+Email là kênh bổ sung.
 
-Thông tin SMTP thật không được commit vào repository.
+Nghiệp vụ chính được lưu trước khi gửi email.
 
-Cấu hình SMTP bằng Environment Variables hoặc User Secrets dựa trên file mẫu:
+Nếu SMTP lỗi:
+
+- kết quả Publish không bị rollback;
+- kết quả xử lý nghỉ không bị rollback;
+- kết quả chuyển ca không bị rollback.
+
+Cấu hình tham khảo:
 
 ```text
 src/backend/ShiftScheduling.Web/appsettings.Example.json
 ```
 
-Không commit:
-
-- SMTP password.
-- App Password.
-- API key.
-- Connection string production.
-- Credential thật.
-
-SMTP không bắt buộc để chạy các chức năng demo chính.
+Không commit SMTP password hoặc App Password thật.
 
 ---
 
-## User Secrets
-
-Nếu muốn lưu cấu hình local thay vì khai báo lại Environment Variable mỗi lần mở PowerShell, có thể sử dụng User Secrets.
-
-### Connection string
-
-```powershell
-dotnet user-secrets set `
-  "ConnectionStrings:DefaultConnection" `
-  "Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDemo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True" `
-  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
-```
-
-### Demo data
-
-```powershell
-dotnet user-secrets set `
-  "DemoData:Enabled" `
-  "true" `
-  --project src/backend/ShiftScheduling.Web/ShiftScheduling.Web.csproj
-```
-
-User Secrets nằm ngoài repository và không được commit vào Git.
-
----
-
-## Lỗi kết nối database thường gặp
-
-### Không tìm thấy `MSSQLLocalDB`
-
-Kiểm tra LocalDB:
-
-```powershell
-sqllocaldb info MSSQLLocalDB
-```
-
-Nếu instance tồn tại nhưng chưa chạy:
-
-```powershell
-sqllocaldb start MSSQLLocalDB
-```
-
-Nếu không có instance `MSSQLLocalDB`, cần cài SQL Server Express LocalDB trước khi chạy project.
-
-### Không kết nối được database
-
-Kiểm tra lại biến:
-
-```text
-ConnectionStrings__DefaultConnection
-```
-
-Có thể thiết lập lại:
-
-```powershell
-$env:ConnectionStrings__DefaultConnection="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDemo;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-```
-
-### Seeder báo `Partial demo dataset detected`
-
-Database đang chứa một phần dataset demo nhưng không còn đầy đủ.
-
-Không nên sửa từng record bằng tay.
-
-Có thể sử dụng một database demo mới:
-
-```powershell
-$env:ConnectionStrings__DefaultConnection="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDemo2;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-```
-
-Sau đó chạy lại ứng dụng.
-
----
-
-## 6. Kiến trúc backend
+# 14. Kiến trúc backend
 
 Backend được tổ chức chủ yếu theo Feature.
 
-Luồng xử lý chính:
+Luồng xử lý:
 
 ```text
+Razor View
+    ↓
 Controller
     ↓
 Service
@@ -519,6 +903,7 @@ Features/
 ├── Dashboard/
 ├── Employees/
 ├── LeaveRequests/
+├── Notifications/
 ├── Reports/
 ├── SchedulePeriods/
 ├── ShiftTransfers/
@@ -526,109 +911,198 @@ Features/
 └── WorkSchedules/
 ```
 
+OR-Tools được tách thành các service chuyên trách trong feature WorkSchedules.
+
 ---
 
-## 7. Một số quy tắc nghiệp vụ chính
+# 15. Một số quy tắc nghiệp vụ chính
 
 - Một kỳ lịch kéo dài 7 ngày.
-- Hệ thống sử dụng 3 ca cố định.
-- Mỗi kỳ có 21 tổ hợp ngày-ca.
-- Không cho phép tạo trùng kỳ cùng tuần.
-- Employee chỉ đăng ký lịch rảnh khi kỳ đang mở và còn hạn đăng ký.
-- Chỉ phân công nhân viên đang hoạt động.
+- Hệ thống sử dụng ba mã ca Morning, Afternoon và Evening.
+- Một kỳ có 21 tổ hợp ngày–ca.
+- Chỉ nhân viên đang hoạt động được tham gia lịch mới.
 - Nhân viên phải đăng ký rảnh trước khi được phân công.
-- Nhân viên có đơn nghỉ được duyệt không được phân vào ca nghỉ tương ứng.
+- Approved Leave chặn phân công tương ứng.
 - Phân công phải đúng vị trí công việc.
+- Mỗi ca phải đáp ứng định mức theo Position.
+- Mỗi ca phải có ít nhất một nhân viên Level 2 trở lên.
 - PartTime tối đa 1 ca/ngày.
+- PartTime có hard cap 28 giờ/tuần.
 - FullTime tối đa 6 ngày/tuần.
-- Mỗi ca phải đáp ứng định mức nhân sự.
-- Mỗi ca phải đáp ứng yêu cầu kinh nghiệm.
-- Draft có thể lưu khi chưa hoàn chỉnh.
-- Không Publish khi còn lỗi cứng.
-- OR-Tools chỉ tạo proposal.
-- Trước khi Publish, hệ thống kiểm tra lại dữ liệu mới nhất.
-- `Preferred` được ưu tiên hơn `Normal` trong mục tiêu mềm.
-- Hệ thống hạn chế ca tối ở hai ngày liên tiếp khi có thể.
-- Đổi ca là chuyển ca một chiều.
-- Manager chỉ được điều chỉnh giờ làm thực tế sau khi ca kết thúc.
-- Giờ làm thực tế điều chỉnh phải nằm trong giới hạn hợp lệ của ca.
-- Điều chỉnh khác giá trị hệ thống phải có lý do.
+- FullTime có hard cap 48 giờ/tuần.
+- Khoảng nghỉ giữa ngày làm việc phải đạt tối thiểu 12 giờ.
+- Mỗi nhân viên phải có ít nhất 24 giờ nghỉ liên tục trong kỳ.
+- Draft có thể chưa hoàn chỉnh.
+- Không Publish khi còn lỗi bắt buộc.
+- OR-Tools chỉ tạo Proposal.
+- Trước Publish, hệ thống tải dữ liệu mới nhất và validation lại.
+- `Preferred` được ưu tiên hơn `Normal`.
+- Fairness của OR-Tools ưu tiên giảm chênh lệch tổng phút làm việc giữa nhân viên cùng nhóm FT/PT.
+- Hệ thống ưu tiên mềm việc FT được xếp các ca liền nhau khi phù hợp.
+- Hệ thống hạn chế ca Evening ở hai ngày liên tiếp khi có thể.
+- Chuyển ca là chuyển một ca một chiều, không phải hoán đổi hai ca.
+- Manager chỉ được chỉnh giờ thực tế sau khi ca kết thúc.
+- Approved Leave mặc định tính 0 giờ.
+- Giá trị điều chỉnh khác số giờ hệ thống phải có lý do.
+- Sau khi lịch Closed, dữ liệu chỉ đọc và xuất báo cáo.
 
 ---
 
-## 8. Chạy kiểm thử
+# 16. Kiểm thử
 
 Project sử dụng xUnit.
 
-### Bộ test chạy trong CI
+## 16.1. Chạy toàn bộ test local
+
+Integration test yêu cầu SQL Server riêng:
+
+```powershell
+$env:SHIFT_SCHEDULING_TEST_CONNECTION = `
+"Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb_IntegrationTest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+```
+
+Chạy:
 
 ```powershell
 dotnet test src/backend/ShiftScheduling.sln `
-  --configuration Release `
-  --filter "FullyQualifiedName!~ControllerDatabaseIntegrationTests"
+  --configuration Release
 ```
 
-Kết quả kiểm tra gần nhất trên branch `tuan-10`:
+Kết quả kiểm tra local gần nhất:
 
 ```text
-Build:
-0 warnings
-0 errors
-
-DemoDataSeeder:
-29 passed
+Controller database integration:
+5 passed
 0 failed
 
 Non-integration:
-456 passed
+584 passed
 0 failed
 
-CI-equivalent:
-463 passed
+Full suite:
+589 passed
 0 failed
+
+Build Release:
+0 warnings
+0 errors
 ```
 
-GitHub Actions trên branch `tuan-10` hiện đang xanh.
+Các con số trên là kết quả tại thời điểm README được cập nhật và có thể tăng khi bổ sung test mới.
 
 ---
 
-## 9. Integration test với SQL Server
+# 17. Integration test với SQL Server
 
-Các Controller–Service–Repository–Database integration test sử dụng database test riêng.
+Database integration test sử dụng database riêng:
 
-Không sử dụng database demo để chạy integration test.
+```text
+ShiftSchedulingDb_IntegrationTest
+```
 
-Integration test yêu cầu biến môi trường:
+Biến bắt buộc:
 
 ```text
 SHIFT_SCHEDULING_TEST_CONNECTION
 ```
 
-Ví dụ:
+Fixture không có fallback sang database ứng dụng.
 
-```powershell
-$env:SHIFT_SCHEDULING_TEST_CONNECTION="Server=(localdb)\MSSQLLocalDB;Database=ShiftSchedulingDb_IntegrationTest;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+Fixture chỉ chấp nhận đúng database:
+
+```text
+ShiftSchedulingDb_IntegrationTest
 ```
 
-Sau đó chạy:
+Các database như:
 
-```powershell
-dotnet test src/backend/ShiftScheduling.sln --configuration Release
+```text
+ShiftSchedulingDb
+ShiftSchedulingDb_Demo
+master
 ```
 
-Nếu chưa thiết lập `SHIFT_SCHEDULING_TEST_CONNECTION`, nhóm integration test sẽ từ chối chạy để tránh thao tác nhầm database demo hoặc database đang sử dụng.
+bị từ chối để tránh thao tác phá hủy nhầm dữ liệu.
+
+Integration fixture hỗ trợ:
+
+- Windows LocalDB;
+- SQL Server qua TCP;
+- SQL Server container trong CI.
+
+Các test database hiện kiểm tra các luồng:
+
+```text
+IT-01  Tạo SchedulePeriod và StaffingRequirement
+IT-02  Đăng ký Availability
+IT-03  Leave Request và RowVersion
+IT-04  Manual Shift Assignment
+IT-05  NC-07 Workday Adjustment và Report
+```
+
+Integration tests tự tạo baseline test data và không phụ thuộc DemoDataSeeder.
 
 ---
 
-## 10. Tài liệu kiểm thử
+# 18. Continuous Integration
 
-Tài liệu kiểm thử được lưu tại:
+Repository sử dụng GitHub Actions.
+
+Workflow chạy trên:
+
+```text
+ubuntu-latest
+```
+
+CI khởi động SQL Server 2022 service và cung cấp:
+
+```text
+SHIFT_SCHEDULING_TEST_CONNECTION
+```
+
+cho bộ test.
+
+Luồng CI:
+
+```text
+Checkout
+   ↓
+Setup .NET
+   ↓
+Restore
+   ↓
+Format / verify
+   ↓
+Build Release
+   ↓
+SQL Server sẵn sàng
+   ↓
+Chạy toàn bộ test
+   ↓
+Bao gồm 5 Controller Database Integration Tests
+```
+
+Database integration tests **không còn bị loại khỏi CI**.
+
+CI sử dụng database:
+
+```text
+ShiftSchedulingDb_IntegrationTest
+```
+
+và không sử dụng database demo.
+
+---
+
+# 19. Tài liệu kiểm thử
+
+Tài liệu kiểm thử nằm tại:
 
 ```text
 docs/kiem-thu/
 ```
 
-Các file chính:
+Các tài liệu chính gồm:
 
 ```text
 testcase.md
@@ -636,100 +1110,102 @@ matrantruyvet.md
 BR_Test Coverage.md
 ```
 
-Nội dung gồm:
+Nội dung bao gồm:
 
-- Test case cho các chức năng chính.
-- Test case cho Business Rule.
-- Ma trận truy vết yêu cầu → test case.
-- Coverage theo Business Rule.
-- Kết quả kiểm thử.
-
-Các kỹ thuật kiểm thử được sử dụng:
-
-- Phân hoạch tương đương.
-- Phân tích giá trị biên.
-- Bảng quyết định.
-- Chuyển trạng thái.
-- Kiểm thử hồi quy.
+- test case cho các chức năng chính;
+- test case cho Business Rules;
+- ma trận truy vết yêu cầu → test;
+- coverage theo Business Rule;
+- kết quả kiểm thử;
+- regression test cho các defect đã phát hiện.
 
 ---
 
-## 11. CI
+# 20. Khắc phục sự cố thường gặp
 
-Repository sử dụng GitHub Actions.
+## Docker Web không chạy
 
-Workflow chạy khi push hoặc mở Pull Request.
+Kiểm tra:
 
-Luồng CI:
-
-```text
-Restore
-→ Format check
-→ Build
-→ Test
+```powershell
+docker compose ps
 ```
 
-Các Controller Database Integration Test cần SQL Server riêng được tách khỏi suite chạy trên runner `ubuntu-latest`.
+Xem log:
 
-Branch chỉ nên merge khi CI xanh.
-
----
-
-## 12. Trạng thái hiện tại
-
-Branch phát triển hiện tại:
-
-```text
-tuan-10
-```
-
-Các phần chính hiện đã có:
-
-```text
-Weekly Availability Pattern
-Normal / Preferred
-Manager Availability
-Manual Scheduling
-OR-Tools Proposal
-Publish Validation
-Personal Schedule
-Leave Request
-Shift Transfer
-NC-07 Workday Adjustment
-Internal Notification
-Email Workflow
-Manager Report
-Personal Report
-CSV Export
-Fresh Database Demo Seed
-```
-
-Fresh database đã được kiểm tra theo luồng:
-
-```text
-Migration
-→ Demo Seed
-→ Manager Availability
-→ OR-Tools
-→ Published Schedule
-→ Report
-→ NC-07
-→ Employee Schedule
+```powershell
+docker compose logs --tail 150 web
 ```
 
 ---
 
-## 13. Repository
+## SQL Server container chưa healthy
 
-**GitHub:**
+```powershell
+docker compose logs --tail 150 db
+```
+
+Kiểm tra giá trị:
+
+```text
+MSSQL_SA_PASSWORD
+```
+
+trong `.env`.
+
+---
+
+## Không kết nối được LocalDB
+
+```powershell
+sqllocaldb info MSSQLLocalDB
+```
+
+Nếu đã tồn tại:
+
+```powershell
+sqllocaldb start MSSQLLocalDB
+```
+
+---
+
+## Seeder báo `Partial demo dataset detected`
+
+Không sửa từng dòng dữ liệu bằng tay.
+
+Với database demo Docker:
+
+```powershell
+docker compose stop web
+```
+
+```powershell
+docker compose run --rm `
+  -e DemoData__AllowReset=true `
+  web `
+  --reset-demo=ShiftSchedulingDb_Demo
+```
+
+```powershell
+docker compose up -d web
+```
+
+Đây là cách reset chính thức cho database demo.
+
+---
+
+# 21. Repository
+
+GitHub:
+
+```text
 https://github.com/binhnt1308/employee-shift-scheduling-system
-
-**Branch phát triển hiện tại:** `tuan-10`
+```
 
 ---
 
-## 14. Thông tin sinh viên
+# 22. Thông tin sinh viên
 
-**Sinh viên thực hiện:** Nguyễn Thanh Bình
-**MSSV:** 2354050017
+**Sinh viên thực hiện:** Nguyễn Thanh Bình  
+**MSSV:** 2354050017  
 **Giảng viên hướng dẫn:** Th.S Võ Việt Khoa
