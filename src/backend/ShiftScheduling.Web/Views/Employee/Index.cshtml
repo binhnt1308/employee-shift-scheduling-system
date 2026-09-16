@@ -59,7 +59,7 @@
                     <th>Vị trí</th>
                     <th>Hình thức</th>
                     <th>Level</th>
-                    <th>Định mức tuần</th>
+                    <th>Giờ làm/tuần</th>
                     <th>Trạng thái</th>
                     <th class="text-end pe-4">Thao tác</th>
                 </tr>
@@ -146,9 +146,14 @@
                             </td>
 
                             <td>
-                                <span class="fw-semibold text-dark">
-                                    @employee.ExpectedWeeklyHours giờ
-                                </span>
+                                <div>
+                                    <span class="small text-muted">Mục tiêu tuần:</span>
+                                    <span class="fw-semibold text-dark">@employee.ExpectedWeeklyHours giờ</span>
+                                </div>
+                                <div class="small">
+                                    <span class="text-muted">Trần giờ/tuần:</span>
+                                    <span class="fw-semibold text-dark">@((int)employee.MaxWeeklyHours) giờ</span>
+                                </div>
                             </td>
 
                             <td>

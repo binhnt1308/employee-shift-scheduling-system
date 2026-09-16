@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.ViewModels;
@@ -65,6 +66,10 @@ public sealed class EmployeeListItemViewModel
     public bool IsActive { get; init; }
 
     public int ExpectedWeeklyHours => EmploymentType == EmploymentType.FullTime ? 48 : 20;
+
+    public decimal MaxWeeklyHours => EmploymentType == EmploymentType.FullTime
+        ? SchedulingRuleConstants.FullTimeMaxWeeklyWorkHours
+        : SchedulingRuleConstants.PartTimeMaxWeeklyWorkHours;
 }
 
 public sealed class EmployeeIndexViewModel
