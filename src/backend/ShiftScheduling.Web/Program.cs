@@ -189,10 +189,30 @@ app.MapControllerRoute(
 
 using (var scope = app.Services.CreateScope())
 {
+    var connectionBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+    var serverName = string.IsNullOrWhiteSpace(connectionBuilder.DataSource)
+        ? "(unknown)"
+        : connectionBuilder.DataSource;
+    var dbCatalog = string.IsNullOrWhiteSpace(connectionBuilder.InitialCatalog)
+        ? "(unknown)"
+        : connectionBuilder.InitialCatalog;
+    var demoDataEnabled = app.Configuration.GetValue<bool?>("DemoData:Enabled")
+        ?? app.Environment.IsDevelopment();
+
+    app.Logger.LogInformation(
+        "Application startup configuration:\n" +
+        "  Environment: {Environment}\n" +
+        "  Database Server: {Server}\n" +
+        "  Database Name: {Database}\n" +
+        "  Demo Data: {DemoData}",
+        app.Environment.EnvironmentName,
+        serverName,
+        dbCatalog,
+        demoDataEnabled ? "Enabled" : "Disabled");
+
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
 
-    var demoDataEnabled = app.Configuration.GetValue<bool?>("DemoData:Enabled") ?? app.Environment.IsDevelopment();
     if (demoDataEnabled)
     {
         var passwordHashService = scope.ServiceProvider.GetRequiredService<IPasswordHashService>();
