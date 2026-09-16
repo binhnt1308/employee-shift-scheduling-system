@@ -6,18 +6,15 @@ namespace ShiftScheduling.Features.WorkSchedules.Services;
 
 public sealed partial class OrToolsSchedulingService
 {
-    /// <summary>
-    /// Trọng số cơ sở cho mỗi lần nhân viên phải làm ca tối (EVENING) liên tiếp giữa 2 ngày kế cận (ngày D và D+1).
-    /// Đây là tầng ưu tiên thứ 3 trong hàm mục tiêu BR-10.
-    /// </summary>
     private const long ConsecutiveEveningShiftBaseWeight = 1L;
 
     /// <summary>
-    /// Thêm hàm mục tiêu tối ưu hóa mềm (BR-10):
-    /// 1. Cân đối tổng số phút làm việc thực tế giữa các nhân viên cùng loại hợp đồng (FT vs FT, PT vs PT).
+    /// Thêm hàm mục tiêu tối ưu hóa mềm (BR-10) phân cấp theo thứ tự ưu tiên tuyệt đối:
+    /// 1. Cân đối tổng thời lượng làm việc giữa các nhân viên cùng loại hợp đồng.
     /// 2. Tôn trọng mức nguyện vọng đăng ký rảnh (Preferred có chi phí tốt hơn Normal).
-    /// 3. Phạt ca tối liên tiếp (EVENING ngày D + EVENING ngày D+1) mà không làm phát sinh vô nghiệm.
-    /// Các trọng số được tính toán phân cấp (hierarchical) theo kích thước bài toán để đảm bảo thứ tự ưu tiên tuyệt đối.
+    /// 3. Ưu tiên ghép ca liên tiếp cùng ngày cho nhân viên toàn thời gian (FT).
+    /// 4. Hạn chế xếp ca tối liên tiếp (EVENING ngày D + EVENING ngày D+1) giữa hai ngày kế cận.
+    /// Ràng buộc bắt buộc (hard constraints) luôn có ưu tiên tối thượng và không thể vi phạm.
     /// </summary>
     private static void AddWorkloadObjective(
         CpModel model,
@@ -26,27 +23,61 @@ public sealed partial class OrToolsSchedulingService
         List<ShiftType> fixedShifts,
         SchedulePeriod period,
         IReadOnlyList<Availability> availabilities,
+        int morningIdx,
+        int afternoonIdx,
         int eveningIdx)
     {
-        int empCount = activeEmployees.Count;
-        int shiftCount = fixedShifts.Count;
         var objTerms = new List<LinearExpr>();
+        var weights = ComputeObjectiveWeights(activeEmployees.Count, fixedShifts.Count);
 
-        // Tính toán các trọng số phân cấp (Lexicographic / Hierarchical weights) dựa trên giới hạn trên đóng góp tối đa:
-        // Tầng 3: Phạt ca tối liên tiếp
-        long consecutiveEveningWeight = ConsecutiveEveningShiftBaseWeight;
-        long maxConsecutiveEveningContribution = (long)empCount * 6L * consecutiveEveningWeight;
+        AddWorkloadFairnessObjective(
+            model, x, activeEmployees, fixedShifts, weights.WorkloadWeight, objTerms);
+        AddAvailabilityPreferenceObjective(
+            model, x, activeEmployees, fixedShifts, period, availabilities, weights.PreferenceWeight, objTerms);
+        AddFullTimeConsecutivePairObjective(
+            model, x, activeEmployees, morningIdx, afternoonIdx, eveningIdx, weights.FtUnpairedWeight, objTerms);
+        AddConsecutiveEveningObjective(
+            model, x, activeEmployees, fixedShifts.Count, eveningIdx, weights.EveningWeight, objTerms);
 
-        // Tầng 2: Ưu tiên nguyện vọng Preferred so với Normal (hoặc không xác định).
-        // Phải lớn hơn toàn bộ đóng góp tối đa của ca tối liên tiếp cộng lại:
-        long normalPreferenceWeight = maxConsecutiveEveningContribution + 1L;
-        long maxPreferenceContribution = (long)empCount * 7L * (long)shiftCount * normalPreferenceWeight;
+        if (objTerms.Count > 0)
+        {
+            model.Minimize(LinearExpr.Sum(objTerms));
+        }
+    }
 
-        // Tầng 1: Cân bằng tổng phút làm việc giữa các nhân viên cùng loại hợp đồng (FT-FT, PT-PT).
-        // Một đơn vị cải thiện (1 phút) phải lớn hơn toàn bộ đóng góp tối đa của cả preference và ca tối cộng lại:
-        long workloadMinuteDiscrepancyWeight = maxPreferenceContribution + maxConsecutiveEveningContribution + 1L;
+    /// <summary>
+    /// Tính trọng số theo phân cấp để tổng ảnh hưởng của mọi mục tiêu ưu tiên thấp
+    /// không thể lấn át một đơn vị của mục tiêu ưu tiên cao hơn.
+    /// </summary>
+    private static (long WorkloadWeight, long PreferenceWeight, long FtUnpairedWeight, long EveningWeight)
+        ComputeObjectiveWeights(int empCount, int shiftCount)
+    {
+        long eveningWeight = ConsecutiveEveningShiftBaseWeight;
+        long maxEveningContribution = (long)empCount * 6L * eveningWeight;
 
-        // 1. Tính tổng số phút làm việc thực tế của từng nhân viên dựa trên DurationHours của ShiftType
+        long ftUnpairedWeight = maxEveningContribution + 1L;
+        long maxFtUnpairedContribution = (long)empCount * 7L * 2L * ftUnpairedWeight;
+
+        long preferenceWeight = maxFtUnpairedContribution + maxEveningContribution + 1L;
+        long maxPreferenceContribution = (long)empCount * 7L * (long)shiftCount * preferenceWeight;
+
+        long workloadWeight = maxPreferenceContribution + maxFtUnpairedContribution + maxEveningContribution + 1L;
+
+        return (workloadWeight, preferenceWeight, ftUnpairedWeight, eveningWeight);
+    }
+
+    /// <summary>
+    /// Cân bằng tổng thời lượng làm việc giữa các nhân viên cùng nhóm FT hoặc PT.
+    /// Tiêu chí này đo fairness theo thời lượng, không phải theo số ngày làm việc.
+    /// </summary>
+    private static void AddWorkloadFairnessObjective(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        List<ShiftType> fixedShifts,
+        long workloadWeight,
+        List<LinearExpr> objTerms)
+    {
         var shiftDurationMinutes = new long[fixedShifts.Count];
         for (int s = 0; s < fixedShifts.Count; s++)
         {
@@ -54,8 +85,11 @@ public sealed partial class OrToolsSchedulingService
             shiftDurationMinutes[s] = decimal.ToInt64(totalMinutes);
         }
 
-        const long maxWeeklyMinutes = 7L * 24L * 60L; // 10,080 phút
+        const long maxWeeklyMinutes = 7L * 24L * 60L;
+        int empCount = activeEmployees.Count;
         var empTotalMinutesVars = new IntVar[empCount];
+        var ftIndices = new List<int>();
+        var ptIndices = new List<int>();
 
         for (int e = 0; e < empCount; e++)
         {
@@ -72,74 +106,15 @@ public sealed partial class OrToolsSchedulingService
             var totalMinVar = model.NewIntVar(0, maxWeeklyMinutes, $"total_mins_{emp.EmployeeId}");
             model.Add(totalMinVar == LinearExpr.Sum(minutesTerms));
             empTotalMinutesVars[e] = totalMinVar;
+
+            if (emp.EmploymentType == EmploymentType.FullTime) ftIndices.Add(e);
+            else if (emp.EmploymentType == EmploymentType.PartTime) ptIndices.Add(e);
         }
 
-        // Cân đối giờ công theo cặp nhân viên cùng loại hợp đồng: FT so với FT, PT so với PT
-        var ftIndices = new List<int>();
-        var ptIndices = new List<int>();
-        for (int e = 0; e < empCount; e++)
-        {
-            if (activeEmployees[e].EmploymentType == EmploymentType.FullTime)
-            {
-                ftIndices.Add(e);
-            }
-            else if (activeEmployees[e].EmploymentType == EmploymentType.PartTime)
-            {
-                ptIndices.Add(e);
-            }
-        }
-
-        AddPairwiseWorkloadBalanceTerms(model, ftIndices, empTotalMinutesVars, activeEmployees, "ft", workloadMinuteDiscrepancyWeight, objTerms);
-        AddPairwiseWorkloadBalanceTerms(model, ptIndices, empTotalMinutesVars, activeEmployees, "pt", workloadMinuteDiscrepancyWeight, objTerms);
-
-        // 2. Tôn trọng mức nguyện vọng đăng ký rảnh (PreferenceLevel)
-        // Ca Preferred có chi phí 0; Ca Normal (hoặc giá trị không xác định) chịu chi phí normalPreferenceWeight
-        var prefMap = new Dictionary<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel>();
-        foreach (var a in availabilities)
-        {
-            prefMap[(a.EmployeeId, a.WorkDate, a.ShiftTypeId)] = a.PreferenceLevel;
-        }
-
-        for (int e = 0; e < empCount; e++)
-        {
-            var emp = activeEmployees[e];
-            for (int d = 0; d < 7; d++)
-            {
-                var workDate = period.WeekStartDate.AddDays(d);
-                for (int s = 0; s < fixedShifts.Count; s++)
-                {
-                    var shift = fixedShifts[s];
-                    prefMap.TryGetValue((emp.EmployeeId, workDate, shift.ShiftTypeId), out var prefLevel);
-
-                    // Nếu là Preferred -> chi phí tốt hơn (0). Nếu là Normal hoặc giá trị không hợp lệ -> phạt chi phí normalPreferenceWeight
-                    bool isPreferred = prefLevel == AvailabilityPreferenceLevel.Preferred;
-                    if (!isPreferred)
-                    {
-                        objTerms.Add(x[e, d, s] * normalPreferenceWeight);
-                    }
-                }
-            }
-        }
-
-        // 3. Hạn chế xếp ca tối liên tiếp (EVENING ngày D và EVENING ngày D+1)
-        if (eveningIdx >= 0 && eveningIdx < fixedShifts.Count)
-        {
-            for (int e = 0; e < empCount; e++)
-            {
-                var emp = activeEmployees[e];
-                for (int d = 0; d < 6; d++)
-                {
-                    var consecEvening = model.NewBoolVar($"consec_eve_{emp.EmployeeId}_{d}");
-                    model.Add(consecEvening >= x[e, d, eveningIdx] + x[e, d + 1, eveningIdx] - 1);
-                    objTerms.Add(consecEvening * consecutiveEveningWeight);
-                }
-            }
-        }
-
-        if (objTerms.Count > 0)
-        {
-            model.Minimize(LinearExpr.Sum(objTerms));
-        }
+        AddPairwiseWorkloadBalanceTerms(
+            model, ftIndices, empTotalMinutesVars, activeEmployees, "ft", workloadWeight, objTerms);
+        AddPairwiseWorkloadBalanceTerms(
+            model, ptIndices, empTotalMinutesVars, activeEmployees, "pt", workloadWeight, objTerms);
     }
 
     private static void AddPairwiseWorkloadBalanceTerms(
@@ -169,10 +144,133 @@ public sealed partial class OrToolsSchedulingService
                 var absDiff = model.NewIntVar(
                     0,
                     maxWeeklyMinutes,
-                    $"abs_workload_diff_{groupPrefix}_{activeEmployees[e1].EmployeeId}_{activeEmployees[e2].EmployeeId}");
+                    $"abs_diff_{groupPrefix}_{activeEmployees[e1].EmployeeId}_{activeEmployees[e2].EmployeeId}");
                 model.AddAbsEquality(absDiff, diff);
 
                 objTerms.Add(absDiff * workloadWeight);
+            }
+        }
+    }
+
+    private static void AddAvailabilityPreferenceObjective(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        List<ShiftType> fixedShifts,
+        SchedulePeriod period,
+        IReadOnlyList<Availability> availabilities,
+        long preferenceWeight,
+        List<LinearExpr> objTerms)
+    {
+        var prefMap = new Dictionary<(int, DateOnly, int), AvailabilityPreferenceLevel>();
+        foreach (var a in availabilities)
+        {
+            prefMap[(a.EmployeeId, a.WorkDate, a.ShiftTypeId)] = a.PreferenceLevel;
+        }
+
+        int empCount = activeEmployees.Count;
+        for (int e = 0; e < empCount; e++)
+        {
+            var emp = activeEmployees[e];
+            for (int d = 0; d < 7; d++)
+            {
+                var workDate = period.WeekStartDate.AddDays(d);
+                for (int s = 0; s < fixedShifts.Count; s++)
+                {
+                    var shift = fixedShifts[s];
+                    prefMap.TryGetValue((emp.EmployeeId, workDate, shift.ShiftTypeId), out var prefLevel);
+
+                    if (prefLevel != AvailabilityPreferenceLevel.Preferred)
+                    {
+                        objTerms.Add(x[e, d, s] * preferenceWeight);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ưu tiên mềm việc ghép hai ca liền nhau trong cùng ngày cho nhân viên FT
+    /// khi phương án vẫn thỏa các ràng buộc cứng và mục tiêu ưu tiên cao hơn.
+    /// Việc ghép ca không phải là điều kiện bắt buộc để lịch được xem là hợp lệ.
+    /// </summary>
+    private static void AddFullTimeConsecutivePairObjective(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        int morningIdx,
+        int afternoonIdx,
+        int eveningIdx,
+        long ftUnpairedWeight,
+        List<LinearExpr> objTerms)
+    {
+        if (morningIdx < 0 || afternoonIdx < 0 || eveningIdx < 0)
+        {
+            return;
+        }
+
+        int empCount = activeEmployees.Count;
+        for (int e = 0; e < empCount; e++)
+        {
+            var emp = activeEmployees[e];
+            if (emp.EmploymentType != EmploymentType.FullTime)
+            {
+                continue;
+            }
+
+            for (int d = 0; d < 7; d++)
+            {
+                var morningAfternoonPair = model.NewBoolVar($"ft_pair_ma_{emp.EmployeeId}_{d}");
+                model.Add(morningAfternoonPair <= x[e, d, morningIdx]);
+                model.Add(morningAfternoonPair <= x[e, d, afternoonIdx]);
+                model.Add(morningAfternoonPair >= x[e, d, morningIdx] + x[e, d, afternoonIdx] - 1);
+
+                var afternoonEveningPair = model.NewBoolVar($"ft_pair_ae_{emp.EmployeeId}_{d}");
+                model.Add(afternoonEveningPair <= x[e, d, afternoonIdx]);
+                model.Add(afternoonEveningPair <= x[e, d, eveningIdx]);
+                model.Add(afternoonEveningPair >= x[e, d, afternoonIdx] + x[e, d, eveningIdx] - 1);
+
+                // Chỉ phạt số ca FT còn lẻ để phương án ghép hai ca liền nhau có chi phí 0,
+                // solver ưu tiên gom ca mà không biến việc ghép ca thành ràng buộc bắt buộc.
+                var dailyAssigned =
+                    x[e, d, morningIdx]
+                    + x[e, d, afternoonIdx]
+                    + x[e, d, eveningIdx];
+                var unpairedShifts = model.NewIntVar(0, 3, $"ft_unpaired_{emp.EmployeeId}_{d}");
+                model.Add(unpairedShifts == dailyAssigned - 2 * (morningAfternoonPair + afternoonEveningPair));
+
+                objTerms.Add(unpairedShifts * ftUnpairedWeight);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Giảm việc xếp cùng một nhân viên vào ca tối ở hai ngày liên tiếp khi các
+    /// phương án ưu tiên cao hơn có chất lượng tương đương.
+    /// </summary>
+    private static void AddConsecutiveEveningObjective(
+        CpModel model,
+        BoolVar[,,] x,
+        IReadOnlyList<Employee> activeEmployees,
+        int shiftCount,
+        int eveningIdx,
+        long eveningWeight,
+        List<LinearExpr> objTerms)
+    {
+        if (eveningIdx < 0 || eveningIdx >= shiftCount)
+        {
+            return;
+        }
+
+        int empCount = activeEmployees.Count;
+        for (int e = 0; e < empCount; e++)
+        {
+            var emp = activeEmployees[e];
+            for (int d = 0; d < 6; d++)
+            {
+                var consecEvening = model.NewBoolVar($"consec_eve_{emp.EmployeeId}_{d}");
+                model.Add(consecEvening >= x[e, d, eveningIdx] + x[e, d + 1, eveningIdx] - 1);
+                objTerms.Add(consecEvening * eveningWeight);
             }
         }
     }
