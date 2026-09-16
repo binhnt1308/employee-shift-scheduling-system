@@ -25,7 +25,12 @@ using ShiftScheduling.Infrastructure.Persistence;
 using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Errors;
 
-var builder = WebApplication.CreateBuilder(args);
+var resetRequested = DemoDataResetCommand.TryExtractResetArgument(args, out var requestedDbName);
+var appArgs = resetRequested
+    ? DemoDataResetCommand.FilterCommandLineArgs(args)
+    : args;
+
+var builder = WebApplication.CreateBuilder(appArgs);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -198,6 +203,41 @@ using (var scope = app.Services.CreateScope())
         : connectionBuilder.InitialCatalog;
     var demoDataEnabled = app.Configuration.GetValue<bool?>("DemoData:Enabled")
         ?? app.Environment.IsDevelopment();
+    var allowResetEnabled = app.Configuration.GetValue<bool>("DemoData:AllowReset");
+
+    if (resetRequested)
+    {
+        var validation = DemoDataResetCommand.ValidateResetPreconditions(
+            resetRequested,
+            requestedDbName,
+            dbCatalog,
+            demoDataEnabled,
+            allowResetEnabled);
+
+        if (!validation.IsValid)
+        {
+            app.Logger.LogError(
+                "Demo database reset rejected: {ErrorMessage}",
+                validation.ErrorMessage);
+            throw new InvalidOperationException(
+                $"Demo database reset rejected: {validation.ErrorMessage}");
+        }
+
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var passwordHashService = scope.ServiceProvider.GetRequiredService<IPasswordHashService>();
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+
+        await DemoDataResetCommand.ExecuteResetAsync(
+            dbContext,
+            passwordHashService,
+            clock,
+            app.Logger,
+            app.Environment.EnvironmentName,
+            serverName,
+            validation.TargetDatabaseName!);
+
+        return;
+    }
 
     app.Logger.LogInformation(
         "Application startup configuration:\n" +
@@ -210,14 +250,14 @@ using (var scope = app.Services.CreateScope())
         dbCatalog,
         demoDataEnabled ? "Enabled" : "Disabled");
 
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await dbContext.Database.MigrateAsync();
+    var normalDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await normalDbContext.Database.MigrateAsync();
 
     if (demoDataEnabled)
     {
         var passwordHashService = scope.ServiceProvider.GetRequiredService<IPasswordHashService>();
         var clock = scope.ServiceProvider.GetRequiredService<IClock>();
-        await DemoDataSeeder.SeedAsync(dbContext, passwordHashService, clock);
+        await DemoDataSeeder.SeedAsync(normalDbContext, passwordHashService, clock);
     }
 }
 
