@@ -6,6 +6,21 @@ namespace ShiftScheduling.Infrastructure.Persistence.Seed;
 
 public static partial class DemoDataSeeder
 {
+    /// <summary>
+    /// Đồng bộ mật khẩu cho các tài khoản demo đã tồn tại trước khi seed dữ liệu demo.
+    /// </summary>
+    public static void SynchronizeExistingDemoAccountPasswords(
+        IEnumerable<UserAccount> existingAccounts,
+        IPasswordHashService passwordHashService)
+    {
+        var demoUsernames = DemoAccountUsernames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var account in existingAccounts.Where(a => demoUsernames.Contains(a.Username)))
+        {
+            account.PasswordHash = passwordHashService.HashPassword(DefaultDemoPassword);
+        }
+    }
+
     private static List<Employee> BuildAccountsAndEmployees(
         DemoDataSet dataSet,
         DateTime nowUtc,

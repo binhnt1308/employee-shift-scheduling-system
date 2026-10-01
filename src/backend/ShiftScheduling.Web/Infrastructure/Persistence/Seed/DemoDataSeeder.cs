@@ -124,6 +124,8 @@ public static partial class DemoDataSeeder
 
             // Tra cứu tài khoản hiện có để tránh trùng tên đăng nhập đã được tạo sẵn
             var existingAccounts = await dbContext.UserAccounts.ToListAsync(cancellationToken);
+            SynchronizeExistingDemoAccountPasswords(existingAccounts, passwordHashService);
+
             var existingUsernames = existingAccounts
                 .Select(u => u.Username)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
