@@ -42,6 +42,18 @@ public sealed class WorkScheduleEditViewModel
     public string RowVersion { get; set; } = string.Empty;
     public List<SchedulingDayGridViewModel> Days { get; set; } = new();
     public ScheduleValidationResultViewModel ValidationResult { get; set; } = new();
+    public List<MySchedulePeriodOptionViewModel> PeriodOptions { get; set; } = new();
+}
+
+public sealed class MySchedulePeriodOptionViewModel
+{
+    public int SchedulePeriodId { get; set; }
+    public string PeriodName { get; set; } = string.Empty;
+    public DateOnly WeekStartDate { get; set; }
+    public DateOnly WeekEndDate { get; set; }
+    public ScheduleStatus Status { get; set; }
+    public string EffectiveStatusName { get; set; } = string.Empty;
+    public string DisplayText { get; set; } = string.Empty;
 }
 
 public sealed class SchedulingDayGridViewModel

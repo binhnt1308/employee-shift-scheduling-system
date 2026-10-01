@@ -250,51 +250,44 @@ public partial class WorkScheduleService
             return null;
         }
 
-        WorkSchedule? publishedSchedule = null;
-
-        if (schedulePeriodId.HasValue && schedulePeriodId.Value > 0)
-        {
-            publishedSchedule = await _workScheduleRepository.GetByPeriodIdAsync(
-                schedulePeriodId.Value, true, true, cancellationToken);
-            if (publishedSchedule is not null && publishedSchedule.Status != ScheduleStatus.Published && publishedSchedule.Status != ScheduleStatus.Closed)
-            {
-                publishedSchedule = null;
-            }
-        }
-        else
-        {
-            publishedSchedule = await _workScheduleRepository.GetDefaultPublishedScheduleAsync(
-                _clock.TodayInVietnam, cancellationToken);
-        }
-
+        var publishedSchedule = await ResolveEmployeeScheduleAsync(schedulePeriodId, cancellationToken);
         if (publishedSchedule is null)
         {
             return null;
         }
 
         var period = publishedSchedule.SchedulePeriod;
-        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
-        var periodShifts = period.StaffingRequirements
-            .Select(r => r.ShiftType)
-            .Where(st => st != null)
-            .DistinctBy(st => st.ShiftTypeId)
-            .OrderBy(st => st.DisplayOrder)
-            .ToList();
-        var fixedShifts = periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+        var fixedShifts = await ResolveFixedShiftsAsync(period, cancellationToken);
 
         // Chi loc nhung ca cua chinh nhan vien dang dang nhap (UC08)
         var myAssignments = publishedSchedule.ShiftAssignments
             .Where(a => a.EmployeeId == employee.EmployeeId)
             .ToList();
 
+        // Dong bo voi man Manager: nap don nghi da duyet cua ky lich de hien thi dung trang thai nghi
+        var approvedLeaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
+            period.SchedulePeriodId, cancellationToken);
+
         var days = BuildGridDays(
-            period, fixedShifts, new List<StaffingRequirement>(), myAssignments, new List<Employee> { employee });
+            period, fixedShifts, new List<StaffingRequirement>(), myAssignments, new List<Employee> { employee }, null, approvedLeaves);
 
         var now = _clock.UtcNow;
         var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
         var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(
             period, publishedSchedule, now, currentDate);
 
+        var periodOptions = await BuildPeriodOptionsAsync(now, currentDate, cancellationToken);
+
+        return BuildMyScheduleViewModel(period, publishedSchedule, statusResult, days, periodOptions);
+    }
+
+    private static WorkScheduleEditViewModel BuildMyScheduleViewModel(
+        SchedulePeriod period,
+        WorkSchedule schedule,
+        SchedulePeriodStatusHelper.EffectiveStatusResult statusResult,
+        List<SchedulingDayGridViewModel> days,
+        List<MySchedulePeriodOptionViewModel> periodOptions)
+    {
         return new WorkScheduleEditViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -302,13 +295,80 @@ public partial class WorkScheduleService
             WeekStartDate = period.WeekStartDate,
             WeekEndDate = period.WeekEndDate,
             RegistrationStatus = period.RegistrationStatus,
-            WorkScheduleId = publishedSchedule.WorkScheduleId,
-            Status = publishedSchedule.Status,
+            WorkScheduleId = schedule.WorkScheduleId,
+            Status = schedule.Status,
             EffectiveStatusName = statusResult.StatusName,
             DisplayBadgeClass = statusResult.DisplayBadgeClass,
-            IsGeneratedByORTools = publishedSchedule.IsGeneratedByORTools,
+            IsGeneratedByORTools = schedule.IsGeneratedByORTools,
             Days = days,
-            ValidationResult = new ScheduleValidationResultViewModel { IsValid = true }
+            ValidationResult = new ScheduleValidationResultViewModel { IsValid = true },
+            PeriodOptions = periodOptions
         };
+    }
+
+    private async Task<WorkSchedule?> ResolveEmployeeScheduleAsync(
+        int? schedulePeriodId,
+        CancellationToken cancellationToken)
+    {
+        if (schedulePeriodId.HasValue && schedulePeriodId.Value > 0)
+        {
+            var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
+                schedulePeriodId.Value, true, true, cancellationToken);
+            if (schedule is not null && schedule.Status != ScheduleStatus.Published && schedule.Status != ScheduleStatus.Closed)
+            {
+                return null;
+            }
+
+            return schedule;
+        }
+
+        return await _workScheduleRepository.GetDefaultPublishedScheduleAsync(
+            _clock.TodayInVietnam, cancellationToken);
+    }
+
+    private async Task<List<ShiftType>> ResolveFixedShiftsAsync(
+        SchedulePeriod period,
+        CancellationToken cancellationToken)
+    {
+        var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var periodShifts = period.StaffingRequirements
+            .Select(r => r.ShiftType)
+            .Where(st => st != null)
+            .DistinctBy(st => st.ShiftTypeId)
+            .OrderBy(st => st.DisplayOrder)
+            .ToList();
+
+        return periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+    }
+
+    private async Task<List<MySchedulePeriodOptionViewModel>> BuildPeriodOptionsAsync(
+        DateTime now,
+        DateOnly currentDate,
+        CancellationToken cancellationToken)
+    {
+        var allPeriods = await _periodRepository.GetAllWithSchedulesAsync(cancellationToken);
+        var periodOptions = new List<MySchedulePeriodOptionViewModel>();
+        foreach (var p in allPeriods)
+        {
+            var sched = p.WorkSchedules.FirstOrDefault(ws => ws.Status == ScheduleStatus.Published || ws.Status == ScheduleStatus.Closed);
+            if (sched is null)
+            {
+                continue;
+            }
+
+            var statusRes = SchedulePeriodStatusHelper.CalculateEffectiveStatus(p, sched, now, currentDate);
+            periodOptions.Add(new MySchedulePeriodOptionViewModel
+            {
+                SchedulePeriodId = p.SchedulePeriodId,
+                PeriodName = p.PeriodName,
+                WeekStartDate = p.WeekStartDate,
+                WeekEndDate = p.WeekEndDate,
+                Status = sched.Status,
+                EffectiveStatusName = statusRes.StatusName,
+                DisplayText = $"{p.WeekStartDate:dd/MM/yyyy} - {p.WeekEndDate:dd/MM/yyyy} ({statusRes.StatusName})"
+            });
+        }
+
+        return periodOptions;
     }
 }

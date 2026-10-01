@@ -23,9 +23,46 @@
 }
 else
 {
+    @if (Model.PeriodOptions.Any())
+    {
+        <div class="card card-custom border-0 shadow-sm mb-4">
+            <div class="card-body p-3">
+                <form method="get" asp-action="Index" class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-0 text-dark d-flex align-items-center gap-1">
+                            <i class="fa-regular fa-calendar-days text-primary"></i>
+                            <span>Kỳ lịch:</span>
+                        </label>
+                    </div>
+                    <div class="col-sm-6 col-md-5 col-lg-4">
+                        <select name="id" class="form-select form-select-sm" onchange="this.form.submit()">
+                            @foreach (var opt in Model.PeriodOptions)
+                            {
+                                <option value="@opt.SchedulePeriodId" selected="@(opt.SchedulePeriodId == Model.SchedulePeriodId ? "selected" : null)">
+                                    @opt.DisplayText
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-auto ms-sm-auto text-muted small">
+                        <span class="badge badge-custom @Model.DisplayBadgeClass px-3 py-2">
+                            <i class="fa-regular fa-clock me-1"></i>
+                            @Model.EffectiveStatusName
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
     <div class="card card-custom border-0 shadow-sm mb-4">
-        <div class="card-header bg-light py-3 fw-bold">
-            <i class="fa-solid fa-calendar-week me-2"></i>@Model.PeriodName (@Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy"))
+        <div class="card-header bg-light py-3 fw-bold d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fa-solid fa-calendar-week me-2"></i>@Model.PeriodName (@Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy"))
+            </div>
+            <span class="badge badge-custom @Model.DisplayBadgeClass">
+                @Model.EffectiveStatusName
+            </span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -59,9 +96,19 @@ else
                                     <td class="align-middle p-3 text-center" style="min-width: 150px;">
                                         @if (shift != null && shift.AssignedEmployees.Any())
                                         {
-                                            <div class="p-2 rounded bg-success bg-opacity-10 border border-success text-success fw-bold">
-                                                <i class="fa-solid fa-circle-check me-1"></i>Được phân công
-                                            </div>
+                                            var myAssignment = shift.AssignedEmployees.First();
+                                            @if (myAssignment.HasApprovedLeave)
+                                            {
+                                                <div class="p-2 rounded bg-warning bg-opacity-25 border border-warning text-dark fw-bold" title="Ca làm việc đã được duyệt nghỉ">
+                                                    <i class="fa-solid fa-calendar-xmark me-1 text-warning"></i>Nghỉ đã duyệt
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="p-2 rounded bg-success bg-opacity-10 border border-success text-success fw-bold">
+                                                    <i class="fa-solid fa-circle-check me-1"></i>Được phân công
+                                                </div>
+                                            }
                                         }
                                         else
                                         {
