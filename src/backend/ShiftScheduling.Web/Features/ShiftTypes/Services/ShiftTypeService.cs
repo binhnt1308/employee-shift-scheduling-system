@@ -15,7 +15,7 @@ namespace ShiftScheduling.Features.ShiftTypes.Services;
 /// <summary>
 /// Service quản lý cấu hình các ca làm việc theo phiên bản (versioned shift configuration).
 /// </summary>
-public sealed class ShiftTypeService : IShiftTypeService
+public sealed partial class ShiftTypeService : IShiftTypeService
 {
     private readonly IShiftTypeRepository _shiftTypeRepository;
     private readonly IAuditLogRepository _auditLogRepository;
@@ -386,27 +386,4 @@ public sealed class ShiftTypeService : IShiftTypeService
         return Task.FromResult(ServiceResult.Failure(ErrorCodes.ShiftTimeInvalid, "Không được thay đổi riêng lẻ ca cố định. Vui lòng sử dụng chức năng Cấu hình giờ 3 ca."));
     }
 
-    private static ShiftTypeListItemViewModel MapListItem(ShiftType shiftType) => new()
-    {
-        ShiftTypeId = shiftType.ShiftTypeId,
-        ShiftCode = shiftType.ShiftCode,
-        ShiftName = shiftType.ShiftName,
-        StartTime = shiftType.StartTime,
-        EndTime = shiftType.EndTime,
-        DurationHours = shiftType.DurationHours,
-        DisplayOrder = shiftType.DisplayOrder,
-        ConfigurationVersion = shiftType.ConfigurationVersion,
-        IsActive = shiftType.IsActive
-    };
-
-    private static ShiftTypeEditViewModel MapEdit(ShiftType shiftType) => new()
-    {
-        ShiftTypeId = shiftType.ShiftTypeId,
-        ShiftCode = shiftType.ShiftCode,
-        ShiftName = shiftType.ShiftName,
-        StartTime = shiftType.StartTime,
-        EndTime = shiftType.EndTime,
-        DisplayOrder = shiftType.DisplayOrder,
-        IsActive = shiftType.IsActive
-    };
 }
