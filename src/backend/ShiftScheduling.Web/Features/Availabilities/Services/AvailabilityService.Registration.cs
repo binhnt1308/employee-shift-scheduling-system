@@ -21,17 +21,26 @@ public sealed partial class AvailabilityService
         }
 
         var periodsResult = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
+        var periodIds = periodsResult.Items
+            .Select(period => period.SchedulePeriodId)
+            .ToArray();
+
+        var registeredCounts = await _availabilityRepository
+            .GetCountsByEmployeeAndPeriodIdsAsync(
+                employee.EmployeeId,
+                periodIds,
+                cancellationToken);
+
         var now = _clock.UtcNow;
         var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
         var result = new List<AvailabilityPeriodItemViewModel>();
         foreach (var period in periodsResult.Items)
         {
-            var avails = await _availabilityRepository.GetByEmployeeAndPeriodAsync(
-                employee.EmployeeId, period.SchedulePeriodId, cancellationToken);
-
             var isOpen = period.RegistrationStatus == RegistrationStatus.Open;
             var isExpired = now > period.AvailabilityDeadline || currentDate >= period.WeekStartDate;
+
+            registeredCounts.TryGetValue(period.SchedulePeriodId, out var registeredCount);
 
             result.Add(new AvailabilityPeriodItemViewModel
             {
@@ -43,7 +52,7 @@ public sealed partial class AvailabilityService
                 RegistrationStatus = period.RegistrationStatus,
                 IsOpen = isOpen && !isExpired,
                 IsExpired = isExpired,
-                RegisteredCount = avails.Count
+                RegisteredCount = registeredCount
             });
         }
 

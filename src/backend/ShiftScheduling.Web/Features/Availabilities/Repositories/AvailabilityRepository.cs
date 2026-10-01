@@ -25,6 +25,37 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, int>> GetCountsByEmployeeAndPeriodIdsAsync(
+        int employeeId,
+        IReadOnlyCollection<int> schedulePeriodIds,
+        CancellationToken cancellationToken = default)
+    {
+        var periodIds = schedulePeriodIds
+            .Distinct()
+            .ToArray();
+
+        if (periodIds.Length == 0)
+        {
+            return new Dictionary<int, int>();
+        }
+
+        return await _dbContext.Availabilities
+            .AsNoTracking()
+            .Where(availability =>
+                availability.EmployeeId == employeeId
+                && periodIds.Contains(availability.SchedulePeriodId))
+            .GroupBy(availability => availability.SchedulePeriodId)
+            .Select(group => new
+            {
+                SchedulePeriodId = group.Key,
+                Count = group.Count()
+            })
+            .ToDictionaryAsync(
+                item => item.SchedulePeriodId,
+                item => item.Count,
+                cancellationToken);
+    }
+
     public async Task<List<Availability>> GetByPeriodWithDetailsAsync(
         int schedulePeriodId,
         int? employeeIdFilter = null,
@@ -71,52 +102,73 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
         CancellationToken cancellationToken = default)
     {
         var existing = await _dbContext.Availabilities
-            .Where(a => a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId)
+            .Where(availability =>
+                availability.EmployeeId == employeeId
+                && availability.SchedulePeriodId == schedulePeriodId)
             .ToListAsync(cancellationToken);
 
         var selectedSet = selectedShifts.ToHashSet();
-        var existingMap = existing.ToDictionary(a => (a.WorkDate, a.ShiftTypeId));
+        var existingMap = existing.ToDictionary(
+            availability => (availability.WorkDate, availability.ShiftTypeId));
 
-        // DB-07: tránh N+1 – dùng batch load ở trên, xử lý trong bộ nhớ bên dưới.
+        RemoveDeselectedAvailabilities(existing, selectedSet);
+        UpsertSelectedAvailabilities(
+            employeeId,
+            schedulePeriodId,
+            selectedSet,
+            existingMap,
+            preferenceMap,
+            now);
+    }
 
-        // Xóa các ca không còn được chọn
-        foreach (var item in existing)
+    private void RemoveDeselectedAvailabilities(
+        IEnumerable<Availability> existing,
+        IReadOnlySet<(DateOnly WorkDate, int ShiftTypeId)> selectedSet)
+    {
+        foreach (var availability in existing)
         {
-            if (!selectedSet.Contains((item.WorkDate, item.ShiftTypeId)))
+            if (!selectedSet.Contains(
+                    (availability.WorkDate, availability.ShiftTypeId)))
             {
-                _dbContext.Availabilities.Remove(item);
+                _dbContext.Availabilities.Remove(availability);
             }
         }
+    }
 
-        foreach (var (workDate, shiftTypeId) in selectedSet)
+    private void UpsertSelectedAvailabilities(
+        int employeeId,
+        int schedulePeriodId,
+        IReadOnlySet<(DateOnly WorkDate, int ShiftTypeId)> selectedSet,
+        IReadOnlyDictionary<(DateOnly WorkDate, int ShiftTypeId), Availability> existingMap,
+        IReadOnlyDictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel> preferenceMap,
+        DateTime now)
+    {
+        foreach (var selectedShift in selectedSet)
         {
-            // NC-02: preference chỉ lấy cho ca được chọn; ca không chọn không có preference.
-            var level = preferenceMap.TryGetValue((workDate, shiftTypeId), out var p)
-                ? p
+            var level = preferenceMap.TryGetValue(selectedShift, out var preference)
+                ? preference
                 : AvailabilityPreferenceLevel.Normal;
 
-            if (existingMap.TryGetValue((workDate, shiftTypeId), out var existingEntry))
+            if (existingMap.TryGetValue(selectedShift, out var existingEntry))
             {
-                // Cập nhật preference nếu thay đổi
                 if (existingEntry.PreferenceLevel != level)
                 {
                     existingEntry.PreferenceLevel = level;
                     existingEntry.UpdatedAt = now;
                 }
+
+                continue;
             }
-            else
+
+            _dbContext.Availabilities.Add(new Availability
             {
-                // Thêm mới
-                _dbContext.Availabilities.Add(new Availability
-                {
-                    EmployeeId = employeeId,
-                    SchedulePeriodId = schedulePeriodId,
-                    WorkDate = workDate,
-                    ShiftTypeId = shiftTypeId,
-                    PreferenceLevel = level,
-                    RegisteredAt = now
-                });
-            }
+                EmployeeId = employeeId,
+                SchedulePeriodId = schedulePeriodId,
+                WorkDate = selectedShift.WorkDate,
+                ShiftTypeId = selectedShift.ShiftTypeId,
+                PreferenceLevel = level,
+                RegisteredAt = now
+            });
         }
     }
 }

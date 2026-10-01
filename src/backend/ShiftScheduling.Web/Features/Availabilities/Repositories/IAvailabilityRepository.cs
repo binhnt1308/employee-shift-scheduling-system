@@ -10,6 +10,11 @@ public interface IAvailabilityRepository
         int schedulePeriodId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<int, int>> GetCountsByEmployeeAndPeriodIdsAsync(
+        int employeeId,
+        IReadOnlyCollection<int> schedulePeriodIds,
+        CancellationToken cancellationToken = default);
+
     Task<List<Availability>> GetByPeriodWithDetailsAsync(
         int schedulePeriodId,
         int? employeeIdFilter = null,

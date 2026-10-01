@@ -190,14 +190,38 @@ internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
 internal sealed class FakeAvailabilityRepository : IAvailabilityRepository
 {
     public List<Availability> Availabilities { get; } = [];
+    public int EmployeeAndPeriodQueryCallCount { get; private set; }
+    public int BatchCountQueryCallCount { get; private set; }
+
 
     public Task<List<Availability>> GetByEmployeeAndPeriodAsync(
         int employeeId,
         int schedulePeriodId,
         CancellationToken cancellationToken = default)
     {
+        EmployeeAndPeriodQueryCallCount++;
+
         return Task.FromResult(Availabilities.Where(
             a => a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId).ToList());
+    }
+
+    public Task<IReadOnlyDictionary<int, int>> GetCountsByEmployeeAndPeriodIdsAsync(
+        int employeeId,
+        IReadOnlyCollection<int> schedulePeriodIds,
+        CancellationToken cancellationToken = default)
+    {
+        BatchCountQueryCallCount++;
+
+        var periodIdSet = schedulePeriodIds.ToHashSet();
+
+        IReadOnlyDictionary<int, int> counts = Availabilities
+            .Where(availability =>
+                availability.EmployeeId == employeeId
+                && periodIdSet.Contains(availability.SchedulePeriodId))
+            .GroupBy(availability => availability.SchedulePeriodId)
+            .ToDictionary(group => group.Key, group => group.Count());
+
+        return Task.FromResult(counts);
     }
 
     public Task<List<Availability>> GetByPeriodWithDetailsAsync(
