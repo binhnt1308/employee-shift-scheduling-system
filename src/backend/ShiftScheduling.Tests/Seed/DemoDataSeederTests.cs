@@ -5,13 +5,15 @@ using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.Seed;
 
 public sealed class DemoDataSeederTests
 {
     private readonly IPasswordHashService _passwordHashService = new Pbkdf2PasswordHashService();
-    private readonly IClock _clock = new SystemClock();
+    private readonly IClock _clock =
+        new FakeClock(new DateTime(2026, 9, 11, 4, 0, 0, DateTimeKind.Utc));
     private readonly SchedulingValidationService _validationService = new();
 
     [Fact(DisplayName = "TC-01: Dataset tạo đủ 8 nhân viên từ NV01 đến NV08")]
