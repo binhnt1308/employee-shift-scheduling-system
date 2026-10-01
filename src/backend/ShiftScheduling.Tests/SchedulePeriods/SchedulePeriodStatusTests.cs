@@ -136,7 +136,7 @@ public sealed class SchedulePeriodStatusTests
         var clock = new FakeClock(new DateTime(2026, 9, 3, 10, 0, 0, DateTimeKind.Utc));
         var service = new DashboardService(
             new FakeAccountRepository(), new FakeEmployeeRepository(), new FakeShiftTypeRepository(),
-            periodRepo, clock);
+            periodRepo, new FakeLeaveRequestRepository(), clock);
 
         var dashboard = await service.GetDashboardAsync();
 
@@ -161,7 +161,7 @@ public sealed class SchedulePeriodStatusTests
         var clock = new FakeClock(new DateTime(2026, 9, 3, 10, 0, 0, DateTimeKind.Utc));
         var service = new DashboardService(
             new FakeAccountRepository(), new FakeEmployeeRepository(), new FakeShiftTypeRepository(),
-            periodRepo, clock);
+            periodRepo, new FakeLeaveRequestRepository(), clock);
 
         var dashboard = await service.GetDashboardAsync();
 
@@ -188,7 +188,7 @@ public sealed class SchedulePeriodStatusTests
         var clock = new FakeClock(new DateTime(2026, 9, 3, 10, 0, 0, DateTimeKind.Utc));
         var service = new DashboardService(
             new FakeAccountRepository(), new FakeEmployeeRepository(), new FakeShiftTypeRepository(),
-            periodRepo, clock);
+            periodRepo, new FakeLeaveRequestRepository(), clock);
 
         var dashboard = await service.GetDashboardAsync();
 

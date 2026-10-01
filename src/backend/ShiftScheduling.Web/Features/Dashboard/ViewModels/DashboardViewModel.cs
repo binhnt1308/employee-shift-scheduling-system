@@ -38,4 +38,5 @@ public sealed class EmployeeDashboardShiftItemViewModel
     public string ShiftName { get; init; } = string.Empty;
     public string ShiftCode { get; init; } = string.Empty;
     public string ShiftHours { get; init; } = string.Empty;
+    public bool HasApprovedLeave { get; init; }
 }

@@ -535,18 +535,30 @@ else
                                             <div class="d-flex flex-column gap-2">
                                                 @foreach (var shift in day.Shifts)
                                                 {
-                                                    <div class="p-2 rounded bg-white border border-light-subtle">
-                                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                                            <i class="fa-regular fa-clock text-primary"></i>
-                                                            <span class="fw-bold text-dark">@shift.ShiftName</span>
-                                                        </div>
-                                                        @if (!string.IsNullOrWhiteSpace(shift.ShiftHours))
-                                                        {
-                                                            <div class="text-muted small ps-3 font-monospace">
-                                                                @shift.ShiftHours
+                                                    @if (shift.HasApprovedLeave)
+                                                    {
+                                                        <div class="p-2 rounded border border-warning-subtle bg-warning-subtle">
+                                                            <div class="d-flex align-items-center gap-2 text-warning-emphasis">
+                                                                <i class="fa-solid fa-calendar-xmark"></i>
+                                                                <span class="fw-semibold">Nghỉ đã duyệt</span>
                                                             </div>
-                                                        }
-                                                    </div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="p-2 rounded bg-white border border-light-subtle">
+                                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                                <i class="fa-regular fa-clock text-primary"></i>
+                                                                <span class="fw-bold text-dark">@shift.ShiftName</span>
+                                                            </div>
+                                                            @if (!string.IsNullOrWhiteSpace(shift.ShiftHours))
+                                                            {
+                                                                <div class="text-muted small ps-3 font-monospace">
+                                                                    @shift.ShiftHours
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
                                                 }
                                             </div>
                                         }
