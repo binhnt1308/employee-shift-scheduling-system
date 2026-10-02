@@ -1,0 +1,137 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.LeaveReplacementViewModel
+
+@{
+    var canApproveWithReplacement =
+            Model.IsPendingLeave
+            && Model.AffectedAssignments.Count > 0
+            && Model.AffectedAssignments.All(
+                assignment =>
+                    !assignment.IsEnded
+                    && assignment.Candidates.Count > 0);
+}
+
+<form asp-action="ApproveLeaveWithReplacement" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="LeaveRequestId" value="@Model.LeaveRequestId" />
+        <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
+
+        @for (var i = 0; i < Model.AffectedAssignments.Count; i++)
+        {
+            var assignment = Model.AffectedAssignments[i];
+            <input type="hidden"
+                   name="Replacements[@i].ShiftAssignmentId"
+                   value="@assignment.ShiftAssignmentId" />
+            <div class="card-custom mb-4">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fa-solid fa-calendar-day me-1"></i>
+                        <strong>@assignment.ShiftName</strong>
+                        (@assignment.StartTime.ToString("HH:mm") - @assignment.EndTime.ToString("HH:mm"))
+                        - Ngày @assignment.WorkDate.ToString("dd/MM/yyyy")
+                    </div>
+                    <span class="badge badge-custom badge-primary">
+                        Vị trí cần: @assignment.RequiredPosition.ToDisplayName()
+                    </span>
+                </div>
+                <div class="p-4">
+                    @if (assignment.IsEnded)
+                    {
+                        <div class="alert alert-custom alert-custom-warning mb-0">
+                            <i class="fa-solid fa-clock"></i>
+                            <div>Ca làm việc đã kết thúc và không thể bố trí người thay.</div>
+                        </div>
+                    }
+                    else if (assignment.Candidates.Count == 0)
+                    {
+                        <div class="alert alert-custom alert-custom-warning mb-0">
+                            <i class="fa-solid fa-user-xmark"></i>
+                            <div>
+                                Không có nhân viên phù hợp để thay ca này.
+                                Nếu không tìm được người thay phù hợp, Quản lý cần từ chối đơn nghỉ.
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-custom table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">Chọn</th>
+                                        <th>Mã NV</th>
+                                        <th>Họ và tên</th>
+                                        <th>Loại HĐ</th>
+                                        <th>Cấp bậc</th>
+                                        <th>Nguyện vọng</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var candidate in assignment.Candidates)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <input type="radio"
+                                                       name="Replacements[@i].CandidateEmployeeId"
+                                                       value="@candidate.EmployeeId"
+                                                       required />
+                                            </td>
+                                            <td class="fw-semibold">@candidate.EmployeeCode</td>
+                                            <td>@candidate.FullName</td>
+                                            <td>
+                                                @(candidate.EmploymentType == EmploymentType.FullTime
+                                                    ? "Toàn thời gian" : "Bán thời gian")
+                                            </td>
+                                            <td>@candidate.Level</td>
+                                            <td>
+                                                @if (candidate.PreferenceLevel == AvailabilityPreferenceLevel.Preferred)
+                                                {
+                                                    <span class="badge badge-custom badge-active">⭐ Ưu tiên</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-custom badge-secondary">
+                                                        Bình thường
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="card-custom mb-4 p-4">
+            <div class="mb-3">
+                <label for="ManagerNote" class="form-label fw-semibold">Ghi chú của Quản lý</label>
+                <textarea name="ManagerNote"
+                          id="ManagerNote"
+                          rows="2"
+                          class="form-control form-control-custom"
+                          placeholder="Ghi chú nếu cần...">@Model.ManagerNote</textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+                @if (canApproveWithReplacement)
+                {
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i class="fa-solid fa-check me-1"></i> Bố trí người thay và duyệt đơn
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            class="btn"
+                            disabled="disabled"
+                            aria-disabled="true"
+                            title="Không thể thực hiện do chưa có đủ người thay phù hợp."
+                            style="background-color: #e5e7eb; border: 1px solid #d1d5db;
+                                   color: #6b7280; cursor: not-allowed;">
+                        <i class="fa-solid fa-check me-1"></i> Bố trí người thay và duyệt đơn
+                    </button>
+                }
+            </div>
+        </div>
+    </form>
