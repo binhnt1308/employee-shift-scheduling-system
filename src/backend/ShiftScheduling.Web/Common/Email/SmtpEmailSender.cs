@@ -5,6 +5,10 @@ using Microsoft.Extensions.Options;
 
 namespace ShiftScheduling.Common.Email;
 
+/// <summary>
+/// Gửi email qua SMTP theo cấu hình. Lỗi cấu hình hoặc lỗi gửi chỉ được ghi log,
+/// không làm hỏng nghiệp vụ chính đã hoàn tất trong hệ thống.
+/// </summary>
 public sealed class SmtpEmailSender : IEmailSender
 {
     private readonly SmtpSettings _settings;
@@ -24,6 +28,7 @@ public sealed class SmtpEmailSender : IEmailSender
         string body,
         CancellationToken cancellationToken = default)
     {
+        // Kiểm tra các điều kiện có thể xác định trước để không tạo kết nối SMTP vô ích.
         if (!_settings.Enabled)
         {
             _logger.LogDebug("SMTP is disabled. Skipping email to {ToEmail}.", toEmail);
@@ -42,6 +47,7 @@ public sealed class SmtpEmailSender : IEmailSender
             return;
         }
 
+        // MailAddress tự kiểm tra định dạng địa chỉ; địa chỉ sai chỉ làm bỏ qua email hiện tại.
         MailAddress fromAddress;
         MailAddress toAddress;
         try
@@ -72,6 +78,7 @@ public sealed class SmtpEmailSender : IEmailSender
             client.Credentials = new NetworkCredential(_settings.UserName, _settings.Password);
         }
 
+        // Email là kênh thông báo bổ sung, vì vậy lỗi SMTP được ghi log thay vì ném ngược ra luồng nghiệp vụ.
         try
         {
             await client.SendMailAsync(message, cancellationToken);

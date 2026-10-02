@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho một phân công nhân viên vào ngày và ca cụ thể.
 public sealed class ShiftAssignmentConfiguration : IEntityTypeConfiguration<ShiftAssignment>
 {
     public void Configure(EntityTypeBuilder<ShiftAssignment> entity)

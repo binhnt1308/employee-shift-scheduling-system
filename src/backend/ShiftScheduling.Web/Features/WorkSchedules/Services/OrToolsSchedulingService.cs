@@ -70,6 +70,7 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
             period, activeEmployees, fixedShifts, availabilities, approvedLeaves, staffingRequirements);
 
         var solver = new CpSolver { StringParameters = $"max_time_in_seconds:{timeoutSeconds}.0" };
+        // Chỉ trạng thái Feasible/Optimal mới được chuyển thành phương án; solver không ghi trực tiếp xuống database.
         var status = solver.Solve(model);
         var solveTime = (DateTime.UtcNow - startTime).TotalSeconds;
 
@@ -153,6 +154,8 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
         var leaveSet = approvedLeaves.Where(l => l.Status == LeaveRequestStatus.Approved).ToList();
         var reqMap = staffingRequirements.ToDictionary(r => (r.WorkDate, r.ShiftTypeId));
 
+        // x[e,d,s] là biến nhị phân: nhân viên e có được xếp vào ngày d, ca s hay không.
+        // Solver chỉ sinh phương án trong bộ nhớ; việc ghi xuống lịch nháp do WorkScheduleService quyết định.
         var model = new CpModel();
         int empCount = activeEmployees.Count;
         var x = new BoolVar[empCount, 7, 3];

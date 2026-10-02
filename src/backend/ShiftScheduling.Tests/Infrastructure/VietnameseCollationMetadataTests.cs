@@ -7,7 +7,7 @@ using ShiftScheduling.Models.Entities;
 namespace ShiftScheduling.Tests.Infrastructure;
 
 /// <summary>
-/// Kiem tra EF Core Model Metadata da cau hinh Collation tieng Viet cho FullName va ShiftName (LC-06).
+/// Kiểm tra metadata EF Core đã cấu hình collation tiếng Việt cho FullName và ShiftName (LC-06).
 /// </summary>
 public sealed class VietnameseCollationMetadataTests
 {

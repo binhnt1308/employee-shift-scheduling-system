@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu đơn xin nghỉ của nhân viên theo ngày hoặc theo ca trong cơ sở dữ liệu.
 public class LeaveRequest
 {
     public int LeaveRequestId { get; set; }

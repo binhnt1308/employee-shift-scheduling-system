@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng hồ sơ nhân viên.
 public sealed class EmployeeFormViewModel
 {
     public int EmployeeId { get; set; }

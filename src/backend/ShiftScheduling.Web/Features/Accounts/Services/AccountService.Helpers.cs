@@ -59,6 +59,8 @@ public sealed partial class AccountService
         string normalizedUsername,
         int actorAccountId)
     {
+        // Quản trị viên có thể chỉnh tài khoản khác, nhưng tài khoản đang đăng nhập không được tự đổi
+        // danh tính hoặc quyền của chính mình qua luồng quản trị này.
         if (account.UserAccountId != actorAccountId)
         {
             return ServiceResult.Success();
@@ -85,6 +87,7 @@ public sealed partial class AccountService
             return ServiceResult.Failure(ErrorCodes.InvalidEnumValue, "Vai trò không hợp lệ.");
         }
 
+        // Chỉ cần kiểm tra "Admin cuối cùng" khi một Admin đang bị hạ sang vai trò khác.
         if (account.Role != UserRole.Admin || newRole == UserRole.Admin)
         {
             return ServiceResult.Success();
@@ -126,7 +129,7 @@ public sealed partial class AccountService
         int? currentAccountId,
         CancellationToken cancellationToken)
     {
-        // BR01: tai khoan nhan vien phai gan dung mot ho so nhan vien va cac role khac khong duoc gan ho so.
+        // BR01: tài khoản nhân viên phải gắn đúng một hồ sơ nhân viên; các vai trò khác không được gắn hồ sơ.
         if (role != UserRole.Employee)
         {
             return employeeId.HasValue
@@ -184,6 +187,7 @@ public sealed partial class AccountService
         string normalizedUsername,
         Employee? linkedEmployee)
     {
+        // Gỡ liên kết cũ trước khi gắn hồ sơ mới để một nhân viên không bị giữ đồng thời bởi hai quan hệ.
         if (account.Employee is not null && account.Employee.EmployeeId != model.EmployeeId)
         {
             account.Employee.UserAccountId = null;

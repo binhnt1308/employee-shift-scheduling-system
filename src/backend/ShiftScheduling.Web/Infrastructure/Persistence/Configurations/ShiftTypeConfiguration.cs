@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho loại ca làm việc và phiên bản cấu hình.
 public sealed class ShiftTypeConfiguration : IEntityTypeConfiguration<ShiftType>
 {
     public void Configure(EntityTypeBuilder<ShiftType> entity)

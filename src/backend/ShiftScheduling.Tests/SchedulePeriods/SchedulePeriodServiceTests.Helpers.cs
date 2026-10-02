@@ -8,6 +8,7 @@ using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.SchedulePeriods;
 
+// Các helper dựng Service và dữ liệu kỳ lịch dùng chung cho nhóm unit test SchedulePeriodService.
 public sealed partial class SchedulePeriodServiceTests
 {
     private static SchedulePeriodService CreateService(

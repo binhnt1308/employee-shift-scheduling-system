@@ -15,6 +15,10 @@ public static class SchedulePeriodStatusHelper
         public bool CanClose { get; init; }
     }
 
+    /// <summary>
+    /// Tính trạng thái hiển thị từ trạng thái đăng ký, WorkSchedule và mốc thời gian hiện tại.
+    /// Đây là nguồn dùng chung để các màn hình không tự suy diễn trạng thái khác nhau.
+    /// </summary>
     public static EffectiveStatusResult CalculateEffectiveStatus(
         SchedulePeriod period,
         WorkSchedule? workSchedule,
@@ -71,7 +75,7 @@ public static class SchedulePeriodStatusHelper
             };
         }
 
-        // 3. NO WorkSchedule exists for this period
+        // 3. Kỳ lịch chưa có WorkSchedule nên trạng thái phụ thuộc thời gian đăng ký.
         if (currentDate > period.WeekEndDate)
         {
             return new EffectiveStatusResult
@@ -151,7 +155,7 @@ public static class SchedulePeriodStatusHelper
 
     /// <summary>
     /// Kiểm tra trạng thái đăng ký lịch rảnh có thực sự mở tại thời điểm hiện tại hay không.
-    /// Điều kiện: RegistrationStatus == Open AND currentUtc <= AvailabilityDeadline AND currentDate < WeekStartDate.
+    /// Đăng ký chỉ thực sự mở khi status là Open, chưa quá hạn và kỳ lịch chưa bắt đầu.
     /// </summary>
     public static bool IsRegistrationEffectivelyOpen(
         SchedulePeriod period,

@@ -106,7 +106,7 @@ public sealed class SchedulingRestRuleEvaluatorTests
             { 1, morning }, { 2, afternoon }, { 3, evening }
         };
 
-        // Gap0 (T2 00:00 -> T2 16:00) = 16h < 24h
+        // Khoảng nghỉ đầu tiên từ 00:00 đến 16:00 Thứ Hai chỉ có 16 giờ, chưa đạt 24 giờ.
         // Gap1..4 (T2-T6 ca Tối 16:00-20:00) = 20h < 24h
         // Gap5 (T6 Tối -> T7 Sáng 08:00-12:00) = 12h < 24h
         // Gap6 (T7 Sáng 12:00 -> CN Chiều 12:00-16:00) = 24.0h (duy nhất)

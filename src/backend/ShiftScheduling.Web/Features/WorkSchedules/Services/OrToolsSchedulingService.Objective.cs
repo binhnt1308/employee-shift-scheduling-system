@@ -27,6 +27,7 @@ public sealed partial class OrToolsSchedulingService
         int afternoonIdx,
         int eveningIdx)
     {
+        // Trọng số được tính theo cấp bậc để mục tiêu ưu tiên thấp không thể lấn át một đơn vị của mục tiêu cao hơn.
         var objTerms = new List<LinearExpr>();
         var weights = ComputeObjectiveWeights(activeEmployees.Count, fixedShifts.Count);
 

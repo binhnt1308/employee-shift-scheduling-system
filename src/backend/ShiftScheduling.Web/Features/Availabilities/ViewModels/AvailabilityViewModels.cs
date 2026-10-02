@@ -52,7 +52,7 @@ public sealed class AvailabilityRegisterViewModel
     public WeeklyPatternViewModel WeeklyPattern { get; set; } = new();
 }
 
-// ── Manager Overview ViewModels ────────────────────────────────────────────
+// ── ViewModel tổng quan dành cho Quản lý ───────────────────────────────────
 
 public sealed class ManagerAvailabilityCellViewModel
 {
@@ -72,7 +72,7 @@ public sealed class ManagerAvailabilityEmployeeItem
     public EmploymentType EmploymentType { get; set; }
     public EmployeeLevel Level { get; set; }
 
-    // NC-02: Manager phân biệt Normal/Preferred.
+    // NC-02: Quản lý cần phân biệt mức nguyện vọng Normal và Preferred.
     public AvailabilityPreferenceLevel PreferenceLevel { get; set; } = AvailabilityPreferenceLevel.Normal;
 }
 
@@ -125,7 +125,7 @@ public sealed class WeeklyPatternViewModel
     public List<WeeklyPatternCellViewModel> Cells { get; set; } = new();
 
     /// <summary>
-    /// Ánh xạ ShiftCode (UpperCase) → ShiftTypeId active hiện tại.
+    /// Ánh xạ ShiftCode viết hoa sang ShiftTypeId đang hoạt động hiện tại.
     /// Dùng bởi JavaScript khi áp dụng mẫu vào form kỳ lịch.
     /// </summary>
     public Dictionary<string, int> ShiftCodeToShiftTypeId { get; set; } = new();
@@ -140,7 +140,7 @@ public sealed class WeeklyPatternCellViewModel
     public AvailabilityPreferenceLevel PreferenceLevel { get; set; } = AvailabilityPreferenceLevel.Normal;
 }
 
-/// <summary>Input model cho POST SaveWeeklyPattern (SE-04: server-side validation).</summary>
+/// <summary>Dữ liệu đầu vào cho POST SaveWeeklyPattern; SE-04 yêu cầu kiểm tra lại toàn bộ ở phía server.</summary>
 public sealed class WeeklyPatternEntryInputViewModel
 {
     /// <summary>1=Thứ Hai … 7=Chủ Nhật.</summary>

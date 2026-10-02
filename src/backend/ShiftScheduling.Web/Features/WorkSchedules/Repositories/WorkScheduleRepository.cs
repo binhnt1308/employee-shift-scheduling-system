@@ -180,7 +180,7 @@ public sealed class WorkScheduleRepository : IWorkScheduleRepository
                 .ThenInclude(sa => sa.ShiftType)
             .Where(ws => ws.Status == ScheduleStatus.Published);
 
-        // 1. Published schedule bao phủ ngày hiện tại (WeekStartDate <= currentDate <= WeekEndDate)
+        // 1. Ưu tiên lịch đã công bố bao phủ ngày hiện tại.
         var current = await baseQuery
             .Where(ws => ws.SchedulePeriod.WeekStartDate <= currentDate && currentDate <= ws.SchedulePeriod.WeekEndDate)
             .OrderByDescending(ws => ws.PublishedAt)

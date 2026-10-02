@@ -41,7 +41,7 @@ public interface IAvailabilityService
 
     /// <summary>
     /// Lưu mẫu lịch rảnh tuần cho nhân viên (NC-02).
-    /// Validate: Employee active, DayOfWeek 1..7, ShiftCode cố định, PreferenceLevel hợp lệ.
+    /// Kiểm tra nhân viên đang hoạt động, DayOfWeek từ 1 đến 7, ShiftCode cố định và PreferenceLevel hợp lệ.
     /// </summary>
     Task<ServiceResult> SaveWeeklyPatternAsync(
         int accountId,

@@ -18,12 +18,12 @@ namespace ShiftScheduling.Tests.Integration;
 public sealed partial class ControllerDatabaseIntegrationTests
 {
     // ============================================================
-    // IT-03 – LEAVE REQUEST SUBMIT + MANAGER REVIEW THROUGH CONTROLLER
+    // IT-03 – Gửi đơn nghỉ và Quản lý xử lý thông qua Controller.
     // ============================================================
     [Fact(DisplayName = "IT-03 - Luồng gửi đơn xin nghỉ và Quản lý xử lý qua LeaveRequestController cập nhật trạng thái và AuditLog trong database")]
     public async Task IT03_LeaveRequestWorkflow_SubmitAndApproveThroughController_UpdatesDatabaseStateAndAudit()
     {
-        // 1. Precondition: Published schedule with an assignment for employee 1
+        // 1. Chuẩn bị lịch đã công bố có một phân công cho nhân viên 1.
         var clock = new SqlServerIntegrationFixture.TestClock(new DateTime(2026, 9, 20, 10, 0, 0, DateTimeKind.Utc));
         var weekStartDate = new DateOnly(2026, 10, 19);
 
@@ -69,7 +69,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         var createRedirect = Assert.IsType<RedirectToActionResult>(createResult);
         Assert.Equal(nameof(LeaveRequestController.Index), createRedirect.ActionName);
 
-        // Query Database directly: Check Pending status
+        // Đọc lại trực tiếp từ cơ sở dữ liệu để xác nhận trạng thái Chờ duyệt.
         await using var queryDb1 = _fixture.CreateDbContext();
         var pendingLeave = await queryDb1.LeaveRequests
             .FirstOrDefaultAsync(l => l.SchedulePeriodId == period.SchedulePeriodId && l.EmployeeId == 1);
@@ -106,7 +106,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         var reviewRedirect = Assert.IsType<RedirectToActionResult>(reviewResult);
         Assert.Equal(nameof(LeaveRequestController.Index), reviewRedirect.ActionName);
 
-        // Query Database directly: Check Rejected status and reviewer metadata
+        // Đọc lại trực tiếp từ cơ sở dữ liệu để xác nhận trạng thái Từ chối và thông tin người duyệt.
         await using var queryDb2 = _fixture.CreateDbContext();
         var reviewedLeave = await queryDb2.LeaveRequests.FindAsync(pendingLeave.LeaveRequestId);
 
@@ -125,12 +125,12 @@ public sealed partial class ControllerDatabaseIntegrationTests
     }
 
     // ============================================================
-    // IT-04 – MANUAL ASSIGNMENT THROUGH WORKSCHEDULE CONTROLLER
+    // IT-04 – Phân công thủ công thông qua WorkScheduleController.
     // ============================================================
     [Fact(DisplayName = "IT-04 - Phân công thủ công qua WorkScheduleController lưu ShiftAssignment thật Source=Manual và AuditLog vào database")]
     public async Task IT04_ManualAssignment_ThroughWorkScheduleController_SavesAssignmentAndAuditToDatabase()
     {
-        // 1. Precondition
+        // 1. Chuẩn bị dữ liệu tiền điều kiện.
         var clock = new SqlServerIntegrationFixture.TestClock(new DateTime(2026, 9, 20, 10, 0, 0, DateTimeKind.Utc));
         var weekStartDate = new DateOnly(2026, 10, 26);
         var workDate = weekStartDate; // Monday
@@ -149,7 +149,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
             RegisteredAt = clock.UtcNow
         });
 
-        // Tạo sẵn WorkSchedule Draft
+        // Tạo sẵn WorkSchedule ở trạng thái Draft để thao tác phân công có lịch đích.
         var draftSchedule = new WorkSchedule
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -174,13 +174,13 @@ public sealed partial class ControllerDatabaseIntegrationTests
 
         var actionResult = await controller.AssignManual(assignModel, CancellationToken.None);
 
-        // 3. Controller response assertion: JsonResult { success = true }
+        // 3. Controller phải trả JsonResult báo thao tác thành công.
         var jsonResult = Assert.IsType<JsonResult>(actionResult);
         var json = JsonSerializer.Serialize(jsonResult.Value);
         using var jsonDoc = JsonDocument.Parse(json);
         Assert.True(jsonDoc.RootElement.GetProperty("success").GetBoolean());
 
-        // 4. Query Database directly with fresh context
+        // 4. Dùng DbContext mới để đọc lại dữ liệu từ cơ sở dữ liệu.
         await using var queryDb = _fixture.CreateDbContext();
         var assignment = await queryDb.ShiftAssignments
             .Include(a => a.WorkSchedule)
@@ -194,7 +194,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         Assert.Equal(AssignmentSource.Manual, assignment.Source);
         Assert.Equal(draftSchedule.WorkScheduleId, assignment.WorkScheduleId);
 
-        // Assert AuditLog in Database
+        // Kiểm tra AuditLog đã được lưu trong cơ sở dữ liệu.
         var audit = await queryDb.AuditLogs.FirstOrDefaultAsync(a =>
             a.Action == "MANUAL_ASSIGN_EMPLOYEE" &&
             a.EntityName == nameof(ShiftAssignment) &&
@@ -204,12 +204,12 @@ public sealed partial class ControllerDatabaseIntegrationTests
     }
 
     // ============================================================
-    // IT-05 – NC-07 ADJUST ACTUAL WORKED HOURS THROUGH REPORT CONTROLLER
+    // IT-05 – NC-07 điều chỉnh giờ công thực tế thông qua ReportController.
     // ============================================================
     [Fact(DisplayName = "IT-05 - Điều chỉnh giờ công thực tế NC-07 qua ReportController cập nhật database và phản ánh vào báo cáo tổng hợp")]
     public async Task IT05_AdjustActualWorkedHours_ThroughReportController_UpdatesAssignmentAndReflectedInReport()
     {
-        // 1. Precondition
+        // 1. Chuẩn bị dữ liệu tiền điều kiện.
         var weekStartDate = new DateOnly(2026, 11, 2);
         var shiftDate = weekStartDate; // Monday
 
@@ -219,7 +219,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         await using var setupDb = _fixture.CreateDbContext();
         var period = await SeedSchedulePeriodWith21RequirementsAsync(setupDb, weekStartDate, clock);
 
-        // Tạo WorkSchedule trạng thái Published
+        // Tạo WorkSchedule ở trạng thái Published vì chỉ lịch đã công bố mới được điều chỉnh giờ công.
         var publishedSchedule = new WorkSchedule
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -231,7 +231,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         };
         setupDb.WorkSchedules.Add(publishedSchedule);
 
-        // Thêm ShiftAssignment ca Sáng (DurationHours = 4h) cho Employee 1
+        // Thêm phân công ca Sáng 4 giờ cho nhân viên 1 làm dữ liệu đầu vào của báo cáo.
         var assignment = new ShiftAssignment
         {
             WorkSchedule = publishedSchedule,
@@ -259,11 +259,11 @@ public sealed partial class ControllerDatabaseIntegrationTests
 
         var actionResult = await controller.AdjustWorkdayHours(request, CancellationToken.None);
 
-        // 3. Controller response assertion
+        // 3. Kiểm tra phản hồi của Controller.
         var redirect = Assert.IsType<RedirectToActionResult>(actionResult);
         Assert.Equal(nameof(ReportController.Index), redirect.ActionName);
 
-        // 4. Query Database directly with fresh context to assert side-effects
+        // 4. Dùng DbContext mới để đọc lại dữ liệu và kiểm tra tác động sau thao tác.
         await using var queryDb = _fixture.CreateDbContext();
         var updatedAssignment = await queryDb.ShiftAssignments.FindAsync(assignment.ShiftAssignmentId);
 
@@ -271,7 +271,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         Assert.Equal(5m, updatedAssignment.ActualWorkedHours);
         Assert.Equal("Nhân viên tăng ca thêm 1 tiếng", updatedAssignment.WorkdayAdjustmentReason);
 
-        // Assert AuditLog
+        // Kiểm tra AuditLog được ghi nhận.
         var audit = await queryDb.AuditLogs.FirstOrDefaultAsync(a =>
             a.Action == "ADJUST_WORKDAY_HOURS" &&
             a.EntityName == nameof(ShiftAssignment) &&
@@ -280,7 +280,7 @@ public sealed partial class ControllerDatabaseIntegrationTests
         Assert.NotNull(audit);
         Assert.Equal(2, audit.ActorAccountId);
 
-        // 5. Read back through real WorkReportService to verify report aggregation side-effect
+        // 5. Đọc lại bằng WorkReportService thật để xác nhận dữ liệu báo cáo đã được tổng hợp đúng.
         var reportService = CreateRealWorkReportService(queryDb, clock);
         var overview = await reportService.GetManagerReportOverviewAsync(period.SchedulePeriodId);
 

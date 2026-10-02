@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ShiftScheduling.Common.Security;
 
+// Controller nền đọc thông tin tài khoản/role từ Claims để các Controller con dùng thống nhất.
 public abstract class AuthorizedController : Controller
 {
     protected int CurrentAccountId

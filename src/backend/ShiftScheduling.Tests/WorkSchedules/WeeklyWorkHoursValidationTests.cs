@@ -55,14 +55,14 @@ public sealed class WeeklyWorkHoursValidationTests
         var assignments = new List<ShiftAssignment>();
         var avails = new List<Availability>();
 
-        // Mon, Tue, Wed: Morning (08:00 - 12:00)
+        // Thứ Hai đến Thứ Tư: làm ca Sáng 08:00-12:00.
         for (int d = 0; d < 3; d++)
         {
             var date = period.WeekStartDate.AddDays(d);
             avails.Add(new Availability { AvailabilityId = d + 1, EmployeeId = pt.EmployeeId, SchedulePeriodId = 1, WorkDate = date, ShiftTypeId = 1 });
             assignments.Add(new ShiftAssignment { ShiftAssignmentId = d + 1, EmployeeId = pt.EmployeeId, WorkDate = date, ShiftTypeId = 1 });
         }
-        // Thu, Fri, Sat, Sun: Evening (16:00 - 20:00) -> Gap from Wed 12:00 to Thu 16:00 is 28h >= 24h
+        // Thứ Năm đến Chủ Nhật: làm ca Tối 16:00-20:00; từ 12:00 Thứ Tư đến 16:00 Thứ Năm có 28 giờ nghỉ.
         for (int d = 3; d < 7; d++)
         {
             var date = period.WeekStartDate.AddDays(d);

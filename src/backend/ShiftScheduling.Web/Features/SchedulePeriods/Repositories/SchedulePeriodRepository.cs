@@ -5,6 +5,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.SchedulePeriods.Repositories;
 
+// Truy vấn EF Core cho kỳ lịch và định mức nhân sự; không chứa quyết định nghiệp vụ.
 public sealed class SchedulePeriodRepository : ISchedulePeriodRepository
 {
     private readonly ApplicationDbContext _dbContext;

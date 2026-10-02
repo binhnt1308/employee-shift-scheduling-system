@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Reports.Services;
 
+// Nhóm logic hỗ trợ cho nghiệp vụ báo cáo ca và giờ làm.
 public sealed partial class WorkReportService
 {
     private List<WorkdayDetailItemViewModel> BuildWorkdayDetails(

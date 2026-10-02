@@ -5,6 +5,8 @@
     ViewData["Title"] = "Đăng ký ca rảnh - " + Model.PeriodName;
 }
 
+@* Form thu thập ca rảnh và mức nguyện vọng; server vẫn parse và kiểm tra lại toàn bộ key trước khi lưu. *@
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1"><i class="fa-solid fa-user-clock text-primary me-2"></i>@Model.PeriodName</h3>
@@ -191,7 +193,7 @@
                         updateCellStyle(cell, false, 'Normal');
                     });
 
-                    // Duyệt các ô trong mẫu tuần đã lưu
+                    // Mỗi ô mẫu tuần được ánh xạ lại sang đúng ngày/ca trên form của kỳ đang mở.
                     weeklyPatternData.Cells.forEach(function (patternCell) {
                         // Tìm cell theo DayOfWeek và ShiftTypeId (hoặc ShiftCode)
                         const dayOfWeek = patternCell.DayOfWeek;

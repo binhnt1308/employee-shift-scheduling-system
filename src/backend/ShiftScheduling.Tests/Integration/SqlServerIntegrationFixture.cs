@@ -10,6 +10,7 @@ using Xunit;
 
 namespace ShiftScheduling.Tests.Integration;
 
+// Fixture tạo/reset database SQL Server integration và cung cấp clock xác định cho các kiểm thử tích hợp.
 [CollectionDefinition("SqlServerIntegration", DisableParallelization = true)]
 public class SqlServerIntegrationCollection : ICollectionFixture<SqlServerIntegrationFixture>
 {

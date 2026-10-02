@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Common.Time;
 
+// Triển khai IClock bằng thời gian hệ thống và quy đổi tập trung sang múi giờ Việt Nam.
 public sealed class SystemClock : IClock
 {
     private static readonly TimeZoneInfo VietnamTimeZone = GetVietnamTimeZone();

@@ -30,14 +30,11 @@ public sealed class WorkdayHoursModelBinderTests
     [InlineData("2,0")]
     public async Task BindModelAsync_WhenInputIsTwoWithDecimalPointOrComma_BindsSuccessfullyAsTwoDecimal(string input)
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext(input);
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.True(context.Result.IsModelSet);
         Assert.Equal(2m, context.Result.Model);
         Assert.Equal(0, context.ModelState.ErrorCount);
@@ -48,14 +45,11 @@ public sealed class WorkdayHoursModelBinderTests
     [InlineData("3,5")]
     public async Task BindModelAsync_WhenInputIsThreeAndHalfWithDecimalPointOrComma_BindsSuccessfullyAsThreePointFiveDecimal(string input)
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext(input);
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.True(context.Result.IsModelSet);
         Assert.Equal(3.5m, context.Result.Model);
         Assert.Equal(0, context.ModelState.ErrorCount);
@@ -64,14 +58,11 @@ public sealed class WorkdayHoursModelBinderTests
     [Fact(DisplayName = "TC-REPORT-007 - Nhập số nguyên 2 được hiểu đúng là 2 giờ")]
     public async Task BindModelAsync_WhenInputIsIntegerString_BindsSuccessfullyAsDecimal()
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext("2");
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.True(context.Result.IsModelSet);
         Assert.Equal(2m, context.Result.Model);
         Assert.Equal(0, context.ModelState.ErrorCount);
@@ -82,14 +73,11 @@ public sealed class WorkdayHoursModelBinderTests
     [InlineData("   ")]
     public async Task BindModelAsync_WhenInputIsEmptyOrWhitespace_BindsSuccessfullyAsNull(string input)
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext(input);
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.True(context.Result.IsModelSet);
         Assert.Null(context.Result.Model);
         Assert.Equal(0, context.ModelState.ErrorCount);
@@ -104,14 +92,11 @@ public sealed class WorkdayHoursModelBinderTests
     [InlineData("1 000")]
     public async Task BindModelAsync_WhenInputIsInvalidOrContainsAmbiguousSeparators_AddsModelError(string input)
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext(input);
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.False(context.Result.IsModelSet);
         Assert.True(context.ModelState.ErrorCount > 0);
         Assert.True(context.ModelState.ContainsKey("ActualWorkedHours"));
@@ -120,13 +105,10 @@ public sealed class WorkdayHoursModelBinderTests
     [Fact(DisplayName = "TC-REPORT-010 - Trường giờ công thực tế sử dụng cách xử lý số thập phân riêng")]
     public void ActualWorkedHoursProperty_HasWorkdayHoursModelBinderAttribute()
     {
-        // Arrange
         var propertyInfo = typeof(AdjustWorkdayHoursRequest).GetProperty(nameof(AdjustWorkdayHoursRequest.ActualWorkedHours));
 
-        // Act
         var attribute = propertyInfo?.GetCustomAttribute<ModelBinderAttribute>();
 
-        // Assert
         Assert.NotNull(attribute);
         Assert.Equal(typeof(WorkdayHoursModelBinder), attribute.BinderType);
     }
@@ -134,14 +116,11 @@ public sealed class WorkdayHoursModelBinderTests
     [Fact(DisplayName = "TC-REPORT-011 - Khi biểu mẫu không gửi giờ công thì hệ thống không tự gán giá trị mặc định")]
     public async Task BindModelAsync_WhenFieldHasNoValue_DoesNotSetModel()
     {
-        // Arrange
         var binder = new WorkdayHoursModelBinder();
         var context = CreateBindingContext(rawValue: null);
 
-        // Act
         await binder.BindModelAsync(context);
 
-        // Assert
         Assert.False(context.Result.IsModelSet);
         Assert.Equal(0, context.ModelState.ErrorCount);
     }

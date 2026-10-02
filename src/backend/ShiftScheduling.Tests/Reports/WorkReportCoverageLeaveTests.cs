@@ -31,7 +31,6 @@ public sealed class WorkReportCoverageLeaveTests
     [Fact(DisplayName = "TC-REPORT-012 - Đơn nghỉ đúng ca đã duyệt không được tính vào độ phủ nhân sự của ca đó")]
     public async Task GetManagerReportOverviewAsync_WhenApprovedExactShiftLeave_ExcludesFromCoverage()
     {
-        // Arrange
         var date = new DateOnly(2026, 8, 17);
         _periodRepo.Add(CreateSingleShiftPeriod(1, date, salesReq: 1, cashierReq: 0));
         var salesEmp = CreateEmployee(1, "S1", "Sales 1", EmployeePosition.Sales);
@@ -43,10 +42,8 @@ public sealed class WorkReportCoverageLeaveTests
 
         AddLeave(101, salesEmp.EmployeeId, date, 1, LeaveRequestStatus.Approved);
 
-        // Act
         var result = await _service.GetManagerReportOverviewAsync(1);
 
-        // Assert
         Assert.NotNull(result?.CoverageSummary);
         Assert.Equal(1, result.CoverageSummary.TotalRequiredSlots);
         Assert.Equal(1, result.CoverageSummary.RequiredSalesSlots);
@@ -59,7 +56,6 @@ public sealed class WorkReportCoverageLeaveTests
     [Fact(DisplayName = "TC-REPORT-013 - Đơn nghỉ cả ngày đã duyệt không được tính vào độ phủ của các ca trong ngày")]
     public async Task GetManagerReportOverviewAsync_WhenApprovedFullDayLeave_ExcludesFromAllShiftsOnThatDate()
     {
-        // Arrange
         var date = new DateOnly(2026, 8, 17);
         _periodRepo.Add(CreateTwoShiftPeriod(1, date, salesReq: 1));
         var salesEmp = CreateEmployee(1, "S1", "Sales 1", EmployeePosition.Sales);
@@ -72,10 +68,8 @@ public sealed class WorkReportCoverageLeaveTests
 
         AddLeave(101, salesEmp.EmployeeId, date, null, LeaveRequestStatus.Approved);
 
-        // Act
         var result = await _service.GetManagerReportOverviewAsync(1);
 
-        // Assert
         Assert.NotNull(result?.CoverageSummary);
         Assert.Equal(2, result.CoverageSummary.TotalRequiredSlots);
         Assert.Equal(2, result.CoverageSummary.RequiredSalesSlots);
@@ -90,7 +84,6 @@ public sealed class WorkReportCoverageLeaveTests
     [InlineData(LeaveRequestStatus.Rejected)]
     public async Task GetManagerReportOverviewAsync_WhenLeavePendingOrRejected_DoesNotReduceCoverage(LeaveRequestStatus status)
     {
-        // Arrange
         var date = new DateOnly(2026, 8, 17);
         _periodRepo.Add(CreateSingleShiftPeriod(1, date, salesReq: 1, cashierReq: 0));
         var salesEmp = CreateEmployee(1, "S1", "Sales 1", EmployeePosition.Sales);
@@ -102,10 +95,8 @@ public sealed class WorkReportCoverageLeaveTests
 
         AddLeave(101, salesEmp.EmployeeId, date, 1, status);
 
-        // Act
         var result = await _service.GetManagerReportOverviewAsync(1);
 
-        // Assert
         Assert.NotNull(result?.CoverageSummary);
         Assert.Equal(1, result.CoverageSummary.TotalRequiredSlots);
         Assert.Equal(1, result.CoverageSummary.CoveredSalesSlots);
@@ -120,7 +111,6 @@ public sealed class WorkReportCoverageLeaveTests
     public async Task GetManagerReportOverviewAsync_WhenApprovedLeaveForDifferentEmployeeOrShift_DoesNotReduceCoverage(
         bool differentEmployee, bool differentShift)
     {
-        // Arrange
         var date = new DateOnly(2026, 8, 17);
         _periodRepo.Add(CreateSingleShiftPeriod(1, date, salesReq: 1, cashierReq: 0));
         var sales1 = CreateEmployee(1, "S1", "Sales 1", EmployeePosition.Sales);
@@ -136,10 +126,8 @@ public sealed class WorkReportCoverageLeaveTests
         int? leaveShiftTypeId = differentShift ? 2 : 1;
         AddLeave(101, leaveEmployeeId, date, leaveShiftTypeId, LeaveRequestStatus.Approved);
 
-        // Act
         var result = await _service.GetManagerReportOverviewAsync(1);
 
-        // Assert
         Assert.NotNull(result?.CoverageSummary);
         Assert.Equal(1, result.CoverageSummary.TotalRequiredSlots);
         Assert.Equal(1, result.CoverageSummary.CoveredSalesSlots);
@@ -154,7 +142,6 @@ public sealed class WorkReportCoverageLeaveTests
     public async Task GetManagerReportOverviewAsync_WhenShiftTransferred_RecipientLeaveAffectsCoverageWhileSenderLeaveDoesNot(
         bool recipientHasApprovedLeave)
     {
-        // Arrange
         var date = new DateOnly(2026, 8, 17);
         _periodRepo.Add(CreateSingleShiftPeriod(1, date, salesReq: 1, cashierReq: 0));
         var sender = CreateEmployee(1, "S1", "Sender Sales", EmployeePosition.Sales);
@@ -169,10 +156,8 @@ public sealed class WorkReportCoverageLeaveTests
         int leaveEmployeeId = recipientHasApprovedLeave ? recipient.EmployeeId : sender.EmployeeId;
         AddLeave(101, leaveEmployeeId, date, 1, LeaveRequestStatus.Approved);
 
-        // Act
         var result = await _service.GetManagerReportOverviewAsync(1);
 
-        // Assert
         Assert.NotNull(result?.CoverageSummary);
         int expectedCovered = recipientHasApprovedLeave ? 0 : 1;
         decimal expectedRate = recipientHasApprovedLeave ? 0m : 100m;

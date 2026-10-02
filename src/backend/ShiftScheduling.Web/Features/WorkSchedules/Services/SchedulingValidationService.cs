@@ -23,6 +23,7 @@ public sealed partial class SchedulingValidationService : ISchedulingValidationS
         var hardErrors = new List<string>();
         var warnings = new List<string>();
 
+        // Chuyển dữ liệu tra cứu lặp lại sang HashSet/Dictionary trước khi duyệt nhân viên và phân công.
         var availSet = BuildAvailabilitySet(availabilities);
         var leaveLookup = new ApprovedLeaveLookup(approvedLeaves);
         var shiftTypeMap = BuildShiftTypeMap(shiftTypes, staffingRequirements);
@@ -33,6 +34,7 @@ public sealed partial class SchedulingValidationService : ISchedulingValidationS
             hardErrors.Add("Kỳ lịch chưa có định mức nhân sự (Staffing Requirements).");
         }
 
+        // Chỉ kiểm tra các phân công thuộc bộ ca đã chốt của kỳ để cấu hình mới không làm sai lịch sử.
         var fixedShiftIds = ExtractFixedShiftIds(staffingRequirements);
         var validAssignments = FilterAssignmentsByStaffing(assignments, fixedShiftIds);
 
@@ -41,7 +43,7 @@ public sealed partial class SchedulingValidationService : ISchedulingValidationS
             staffingRequirements, fixedShiftIds, validAssignments, empMap, shiftTypeMap, hardErrors);
 
         // 2. Kiểm tra phân công, khối lượng công việc và nghỉ tối thiểu
-        // (BR02, BR05, BR06, BR09-BR11, BR18, BR20, BR21)
+        // Bao gồm các quy tắc về nhân viên hoạt động, lịch rảnh, tải công việc, nghỉ tối thiểu và cảnh báo ưu tiên.
         var summaries = ValidateEmployeesAndBuildSummaries(
             period, activeEmployees, validAssignments, availSet, leaveLookup, shiftTypeMap, staffingRequirements, hardErrors);
 

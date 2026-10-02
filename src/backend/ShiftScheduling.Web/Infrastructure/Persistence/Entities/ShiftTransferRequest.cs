@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu yêu cầu chuyển một phân công ca từ người gửi sang người nhận trong cơ sở dữ liệu.
 public class ShiftTransferRequest
 {
     public int ShiftTransferRequestId { get; set; }

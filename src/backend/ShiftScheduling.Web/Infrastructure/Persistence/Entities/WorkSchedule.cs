@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu lịch làm việc của một kỳ cùng trạng thái Draft/Published/Closed trong cơ sở dữ liệu.
 public class WorkSchedule
 {
     public int WorkScheduleId { get; set; }

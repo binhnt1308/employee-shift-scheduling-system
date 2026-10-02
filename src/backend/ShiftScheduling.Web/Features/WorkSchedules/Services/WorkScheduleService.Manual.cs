@@ -11,6 +11,7 @@ namespace ShiftScheduling.Features.WorkSchedules.Services;
 public partial class WorkScheduleService
 {
     /// <inheritdoc />
+    // Luồng phân công thủ công luôn xác thực kỳ, ca, nhân viên và mọi ràng buộc bắt buộc trước khi đổi ShiftAssignment.
     public async Task<ServiceResult> AssignEmployeeManualAsync(
         ManualAssignRequestViewModel model,
         int accountId,

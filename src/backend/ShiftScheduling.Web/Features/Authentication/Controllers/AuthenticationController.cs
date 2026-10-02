@@ -30,7 +30,7 @@ public sealed class AuthenticationController : Controller
     [HttpGet("Login")]
     public IActionResult Login(string? returnUrl = null)
     {
-        // Khong hien lai trang dang nhap khi nguoi dung da co phien hop le.
+        // Không hiển thị lại trang đăng nhập khi người dùng đã có phiên hợp lệ.
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Home");
@@ -62,7 +62,7 @@ public sealed class AuthenticationController : Controller
             model.Password,
             cancellationToken);
 
-        // BR01: Tai khoan bi khoa hoac thong tin dang nhap sai khong duoc tao phien.
+        // BR01: Tài khoản bị khóa hoặc thông tin đăng nhập sai không được tạo phiên.
         if (account is null)
         {
             ModelState.AddModelError(
@@ -74,7 +74,7 @@ public sealed class AuthenticationController : Controller
 
         await SignInAsync(account);
 
-        // Chi chuyen huong ve dia chi noi bo de tranh loi open redirect.
+        // Chỉ chuyển hướng đến địa chỉ nội bộ để tránh lỗ hổng open redirect.
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) &&
             Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -104,7 +104,7 @@ public sealed class AuthenticationController : Controller
 
     private async Task SignInAsync(AuthenticatedAccount account)
     {
-        // Chi dua thong tin dinh danh va phan quyen can thiet vao cookie.
+        // Chỉ đưa thông tin định danh và phân quyền cần thiết vào cookie.
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, account.UserAccountId.ToString()),

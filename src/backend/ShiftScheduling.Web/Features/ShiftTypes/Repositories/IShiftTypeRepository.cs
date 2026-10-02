@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Features.ShiftTypes.Repositories;
 
+// Khai báo các thao tác dữ liệu cần cho nghiệp vụ cấu hình ca làm việc; Service giữ quyền quyết định business rule.
 public interface IShiftTypeRepository
 {
     Task<IReadOnlyList<ShiftType>> GetAllAsync(

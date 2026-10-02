@@ -53,6 +53,7 @@ public sealed partial class WorkReportService
             return ServiceResult.Failure("ShiftTypeNotFound", "Không tìm thấy thông tin loại ca.");
         }
 
+        // Ca qua đêm kết thúc ở ngày kế tiếp; phải ghép đúng ngày + giờ kết thúc trước khi cho phép điều chỉnh.
         var vietnamNow = _clock.ToVietnamTime(_clock.UtcNow);
         var shiftEndDate = assignment.WorkDate;
         if (assignment.ShiftType.EndTime <= assignment.ShiftType.StartTime)
@@ -72,6 +73,8 @@ public sealed partial class WorkReportService
         bool hasApprovedLeave = leaveLookup.HasApprovedLeave(
             assignment.EmployeeId, request.SchedulePeriodId, assignment.WorkDate, assignment.ShiftTypeId);
 
+        // Giờ hệ thống mặc định bằng thời lượng ca, riêng ca có nghỉ đã duyệt được tính 0 giờ.
+        // ActualWorkedHours chỉ ghi khi Quản lý thực sự điều chỉnh khác giá trị mặc định này.
         decimal systemCalculatedHours = hasApprovedLeave ? 0m : assignment.ShiftType.DurationHours;
         decimal currentEffectiveHours = assignment.ActualWorkedHours ?? systemCalculatedHours;
 
@@ -82,6 +85,7 @@ public sealed partial class WorkReportService
             EffectiveWorkedHours = currentEffectiveHours
         };
 
+        // Đặt lại sẽ xóa điều chỉnh thủ công để báo cáo quay về cách tính tự động từ ca làm/đơn nghỉ.
         if (request.IsReset)
         {
             if (!assignment.ActualWorkedHours.HasValue && string.IsNullOrEmpty(assignment.WorkdayAdjustmentReason))
@@ -126,6 +130,7 @@ public sealed partial class WorkReportService
                 "Số giờ làm việc thực tế phải từ 0 đến 24 giờ.");
         }
 
+        // Nếu giá trị nhập trùng giá trị hệ thống thì không lưu điều chỉnh thủ công dư thừa.
         if (actualHours == systemCalculatedHours)
         {
             if (!assignment.ActualWorkedHours.HasValue && string.IsNullOrEmpty(assignment.WorkdayAdjustmentReason))

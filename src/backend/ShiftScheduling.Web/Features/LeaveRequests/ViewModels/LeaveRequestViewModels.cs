@@ -4,6 +4,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng đơn xin nghỉ.
 public sealed class LeaveRequestIndexViewModel
 {
     public bool IsManager { get; init; }

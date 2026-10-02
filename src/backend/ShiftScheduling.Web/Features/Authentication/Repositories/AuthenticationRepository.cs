@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Features.Authentication.Repositories;
 
+// Triển khai truy vấn EF Core cho đăng nhập và xác thực; chỉ chuẩn bị dữ liệu và tracking theo nhu cầu của Service.
 public sealed class AuthenticationRepository : IAuthenticationRepository
 {
     private readonly ApplicationDbContext _dbContext;

@@ -2,6 +2,10 @@ using System.Security.Cryptography;
 
 namespace ShiftScheduling.Common.Security;
 
+/// <summary>
+/// Băm mật khẩu bằng PBKDF2-SHA256 với salt ngẫu nhiên riêng cho từng mật khẩu.
+/// Chuỗi lưu trữ có dạng iterations.salt.hash để có thể xác thực mà không lưu mật khẩu rõ.
+/// </summary>
 public sealed class Pbkdf2PasswordHashService : IPasswordHashService
 {
     private const int Iterations = 100_000;
@@ -12,6 +16,7 @@ public sealed class Pbkdf2PasswordHashService : IPasswordHashService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
 
+        // Salt mới cho mỗi lần băm giúp hai tài khoản dùng cùng mật khẩu vẫn có hash khác nhau.
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
         var hash = Rfc2898DeriveBytes.Pbkdf2(
             password,
@@ -47,6 +52,7 @@ public sealed class Pbkdf2PasswordHashService : IPasswordHashService
                 HashAlgorithmName.SHA256,
                 expectedHash.Length);
 
+            // So sánh thời gian cố định để tránh rò rỉ thông tin qua timing attack.
             return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
         }
         catch (Exception exception) when (

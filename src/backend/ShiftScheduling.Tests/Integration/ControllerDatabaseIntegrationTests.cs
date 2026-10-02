@@ -49,12 +49,12 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
     }
 
     // ============================================================
-    // IT-01 – CREATE SCHEDULE PERIOD THROUGH CONTROLLER
+    // IT-01 – Tạo kỳ lịch thông qua SchedulePeriodController.
     // ============================================================
     [Fact(DisplayName = "IT-01 - Tạo kỳ lịch qua SchedulePeriodController ghi đúng 7 ngày, 21 định mức ca và AuditLog vào database")]
     public async Task IT01_CreateSchedulePeriod_ThroughController_CreatesPeriodAndRequirementsInDatabase()
     {
-        // 1. Precondition
+        // 1. Chuẩn bị dữ liệu tiền điều kiện.
         var clock = new SqlServerIntegrationFixture.TestClock(new DateTime(2026, 9, 20, 10, 0, 0, DateTimeKind.Utc));
         await using var db = _fixture.CreateDbContext();
 
@@ -70,14 +70,14 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
             AvailabilityDeadline = deadline
         };
 
-        // 2. Action through Controller
+        // 2. Thực hiện thao tác thông qua Controller như luồng HTTP thực tế.
         var actionResult = await controller.Create(model, CancellationToken.None);
 
-        // 3. Controller response assertion
+        // 3. Kiểm tra phản hồi của Controller.
         var redirect = Assert.IsType<RedirectToActionResult>(actionResult);
         Assert.Equal(nameof(SchedulePeriodController.Index), redirect.ActionName);
 
-        // 4. Query Database directly with fresh context to assert side-effects
+        // 4. Dùng DbContext mới để đọc lại dữ liệu và kiểm tra tác động sau thao tác.
         await using var queryDb = _fixture.CreateDbContext();
         var period = await queryDb.SchedulePeriods
             .Include(p => p.StaffingRequirements)
@@ -90,7 +90,7 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
         Assert.Equal(RegistrationStatus.Preparing, period.RegistrationStatus);
         Assert.Equal(2, period.CreatedByAccountId);
 
-        // Assert exactly 21 StaffingRequirements (7 days x 3 shifts)
+        // Cơ sở dữ liệu phải có đúng 21 định mức nhân sự tương ứng 7 ngày x 3 ca.
         Assert.Equal(21, period.StaffingRequirements.Count);
         Assert.All(period.StaffingRequirements, req =>
         {
@@ -100,7 +100,7 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
             Assert.True(req.RequiredCashiers >= 0);
         });
 
-        // Assert AuditLog in Database
+        // Kiểm tra AuditLog đã được lưu trong cơ sở dữ liệu.
         var audit = await queryDb.AuditLogs.FirstOrDefaultAsync(a =>
             a.Action == "CREATE_SCHEDULE_PERIOD" &&
             a.EntityName == nameof(SchedulePeriod) &&
@@ -111,12 +111,12 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
     }
 
     // ============================================================
-    // IT-02 – EMPLOYEE REGISTER AVAILABILITY THROUGH CONTROLLER
+    // IT-02 – Nhân viên đăng ký lịch rảnh thông qua AvailabilityController.
     // ============================================================
     [Fact(DisplayName = "IT-02 - Nhân viên đăng ký lịch rảnh qua AvailabilityController lưu đúng ca, preference và AuditLog vào database")]
     public async Task IT02_EmployeeRegisterAvailability_ThroughController_SavesAvailabilitiesAndAuditLogInDatabase()
     {
-        // 1. Precondition: Create an open SchedulePeriod
+        // 1. Chuẩn bị kỳ lịch đang mở đăng ký.
         var clock = new SqlServerIntegrationFixture.TestClock(new DateTime(2026, 9, 20, 10, 0, 0, DateTimeKind.Utc));
         var weekStartDate = new DateOnly(2026, 10, 12);
 
@@ -125,7 +125,7 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
 
         var controller = CreateAvailabilityController(setupDb, clock, accountId: 3, role: RoleNames.Employee);
 
-        // Keys format expected by production: yyyy-MM-dd_ShiftTypeId
+        // Khóa gửi lên phải đúng định dạng mà production sử dụng: yyyy-MM-dd_ShiftTypeId.
         var key1 = $"{weekStartDate:yyyy-MM-dd}_1"; // Monday Morning
         var key2 = $"{weekStartDate.AddDays(1):yyyy-MM-dd}_2"; // Tuesday Afternoon
         var selectedShiftKeys = new List<string> { key1, key2 };
@@ -135,15 +135,15 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
             [key2] = AvailabilityPreferenceLevel.Normal
         };
 
-        // 2. Action through Controller
+        // 2. Thực hiện thao tác thông qua Controller như luồng HTTP thực tế.
         var actionResult = await controller.Register(
             period.SchedulePeriodId, selectedShiftKeys, shiftPreferences, CancellationToken.None);
 
-        // 3. Controller response assertion
+        // 3. Kiểm tra phản hồi của Controller.
         var redirect = Assert.IsType<RedirectToActionResult>(actionResult);
         Assert.Equal(nameof(AvailabilityController.Index), redirect.ActionName);
 
-        // 4. Query Database directly with fresh context to assert side-effects
+        // 4. Dùng DbContext mới để đọc lại dữ liệu và kiểm tra tác động sau thao tác.
         await using var queryDb = _fixture.CreateDbContext();
         var savedAvailabilities = await queryDb.Availabilities
             .Where(a => a.SchedulePeriodId == period.SchedulePeriodId && a.EmployeeId == 1)
@@ -160,7 +160,7 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
         Assert.Equal(2, savedAvailabilities[1].ShiftTypeId);
         Assert.Equal(AvailabilityPreferenceLevel.Normal, savedAvailabilities[1].PreferenceLevel);
 
-        // Assert AuditLog in Database
+        // Kiểm tra AuditLog đã được lưu trong cơ sở dữ liệu.
         var audit = await queryDb.AuditLogs.FirstOrDefaultAsync(a =>
             a.Action == "SAVE_EMPLOYEE_AVAILABILITY" &&
             a.EntityName == nameof(Availability) &&
@@ -170,7 +170,7 @@ public sealed partial class ControllerDatabaseIntegrationTests : IAsyncLifetime
     }
 
     // ============================================================
-    // CONTROLLER & SERVICE FACTORY HELPERS
+    // Các hàm hỗ trợ tạo Controller và Service cho kiểm thử tích hợp.
     // ============================================================
 
     private static SchedulePeriodController CreateSchedulePeriodController(

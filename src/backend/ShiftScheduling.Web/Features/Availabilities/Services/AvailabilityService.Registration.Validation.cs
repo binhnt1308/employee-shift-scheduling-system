@@ -98,6 +98,10 @@ public sealed partial class AvailabilityService
             PreferenceMap { get; init; } = new();
     }
 
+    /// <summary>
+    /// Kiểm tra toàn bộ danh sách ca rảnh theo hai bước: xác thực khóa ca thuộc kỳ lịch,
+    /// sau đó chỉ chấp nhận mức nguyện vọng gắn với những ca đã được chọn.
+    /// </summary>
     private async Task<AvailabilitySelectionValidationResult> ValidateAvailabilitySelectionAsync(
         SchedulePeriod period,
         List<string> selectedShiftKeys,
@@ -165,6 +169,7 @@ public sealed partial class AvailabilityService
         var selectedShiftKeySet = new HashSet<string>();
         var parsedShifts = new List<(DateOnly WorkDate, int ShiftTypeId)>();
 
+        // Phân tích khóa một lần và dùng HashSet để từ chối khóa trùng trước khi truy cập repository.
         foreach (var key in selectedShiftKeys ?? new List<string>())
         {
             if (!selectedShiftKeySet.Add(key))
@@ -222,6 +227,7 @@ public sealed partial class AvailabilityService
         var preferenceMap =
             new Dictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel>();
 
+        // Client không được gửi preference cho một ca chưa chọn; server luôn kiểm tra lại thay vì tin dữ liệu form.
         foreach (var preference in shiftPreferences)
         {
             if (!selectedShiftKeySet.Contains(preference.Key))
@@ -248,6 +254,7 @@ public sealed partial class AvailabilityService
             preferenceMap[(date, shiftTypeId)] = preference.Value;
         }
 
+        // Ca được chọn nhưng không chỉ định preference được chuẩn hóa về Normal để dữ liệu lưu luôn đầy đủ.
         foreach (var parsedShift in parsedShifts)
         {
             if (!preferenceMap.ContainsKey(parsedShift))

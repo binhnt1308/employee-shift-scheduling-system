@@ -5,6 +5,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Các test double chuyên cho nghiệp vụ WorkSchedule và rule xếp lịch.
 internal sealed class FakeWorkScheduleRepository : IWorkScheduleRepository
 {
     public List<WorkSchedule> Schedules { get; } = [];

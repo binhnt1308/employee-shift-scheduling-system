@@ -6,7 +6,7 @@ namespace ShiftScheduling.Features.Accounts.Services;
 public interface IAccountService
 {
     /// <summary>
-    /// Lay danh sach tai khoan co phan trang va tim kiem.
+    /// Lấy danh sách tài khoản có phân trang và tìm kiếm.
     /// </summary>
     Task<AccountIndexViewModel> GetIndexAsync(
         string? keyword,
@@ -15,12 +15,12 @@ public interface IAccountService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tao du lieu khoi tao cho man hinh them tai khoan.
+    /// Tạo dữ liệu khởi tạo cho màn hình thêm tài khoản.
     /// </summary>
     Task<AccountCreateViewModel> GetCreateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tao tai khoan, bam mat khau va ghi nhat ky thao tac.
+    /// Tạo tài khoản, băm mật khẩu và ghi nhật ký thao tác.
     /// </summary>
     Task<ServiceResult> CreateAsync(
         AccountCreateViewModel model,
@@ -28,14 +28,14 @@ public interface IAccountService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay tai khoan va danh sach nhan vien co the lien ket de cap nhat.
+    /// Lấy tài khoản và danh sách nhân viên có thể liên kết để cập nhật.
     /// </summary>
     Task<AccountEditViewModel?> GetEditAsync(
         int accountId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cap nhat ten dang nhap, vai tro va ho so nhan vien lien ket.
+    /// Cập nhật tên đăng nhập, vai trò và hồ sơ nhân viên liên kết.
     /// </summary>
     Task<ServiceResult> UpdateAsync(
         int accountId,
@@ -44,7 +44,7 @@ public interface IAccountService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Khoa hoac mo khoa tai khoan va bao ve tai khoan quan tri cuoi cung.
+    /// Khóa hoặc mở khóa tài khoản và bảo vệ tài khoản quản trị cuối cùng.
     /// </summary>
     Task<ServiceResult> SetLockedAsync(
         int accountId,
@@ -53,14 +53,14 @@ public interface IAccountService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay du lieu hien thi cho man hinh dat lai mat khau.
+    /// Lấy dữ liệu hiển thị cho màn hình đặt lại mật khẩu.
     /// </summary>
     Task<AccountResetPasswordViewModel?> GetResetPasswordAsync(
         int accountId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Dat lai mat khau da bam va ghi nhat ky khong chua mat khau.
+    /// Đặt lại mật khẩu đã băm và ghi nhật ký không chứa mật khẩu.
     /// </summary>
     Task<ServiceResult> ResetPasswordAsync(
         int accountId,

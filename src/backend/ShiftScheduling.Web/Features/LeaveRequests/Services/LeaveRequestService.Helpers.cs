@@ -11,6 +11,8 @@ namespace ShiftScheduling.Features.LeaveRequests.Services;
 
 public sealed partial class LeaveRequestService
 {
+    // Xác thực đơn nghỉ trên lịch đã công bố: đúng kỳ, đúng ngày/ca, ca chưa kết thúc
+    // và không có đơn trùng đang còn hiệu lực.
     private async Task<ServiceResult> ValidateSubmissionAsync(
         Employee employee,
         LeaveRequestCreateViewModel model,
@@ -25,8 +27,8 @@ public sealed partial class LeaveRequestService
                 "Ngày xin nghỉ phải thuộc kỳ lịch đã chọn.");
         }
 
-        // B & D: Kiểm tra Employee có ít nhất 1 assignment trong WorkDate
-        // của Published schedule thuộc SchedulePeriod này
+        // B & D: Nhân viên phải có ít nhất một phân công đúng ngày xin nghỉ
+        // trên lịch đã công bố của chính kỳ lịch đang gửi đơn.
         var hasDateAssignment = await _leaveRequestRepository.HasPublishedAssignmentAsync(
             employee.EmployeeId,
             model.SchedulePeriodId,
@@ -193,6 +195,8 @@ public sealed partial class LeaveRequestService
         SubmittedAt = _clock.UtcNow
     };
 
+    // Chỉ gửi thông báo sau khi đơn đã lưu thành công; lỗi thông báo được ghi log
+    // và không rollback nghiệp vụ gửi đơn.
     private async Task TryNotifyManagersOnSubmitAsync(
         Employee employee,
         LeaveRequest request,
@@ -276,6 +280,7 @@ public sealed partial class LeaveRequestService
         }
     }
 
+    // Lỗi lưu thông báo hoặc gửi email cho nhân viên không được làm thay đổi kết quả duyệt đơn.
     private async Task TryNotifyEmployeeAsync(LeaveRequest request, CancellationToken cancellationToken)
     {
         var receiverAccountId = request.Employee.UserAccountId;

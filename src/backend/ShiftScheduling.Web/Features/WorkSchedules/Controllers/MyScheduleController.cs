@@ -7,7 +7,7 @@ using ShiftScheduling.Models.Constants;
 namespace ShiftScheduling.Features.WorkSchedules.Controllers;
 
 /// <summary>
-/// Controller cho phep Nhan vien xem lich lam viec chinh thuc da cong bo cua ban than (UC08).
+/// Controller cho phép Nhân viên xem lịch làm việc đã công bố của bản thân (UC08).
 /// </summary>
 [Authorize(Roles = RoleNames.Employee)]
 public sealed class MyScheduleController : AuthorizedController
@@ -20,7 +20,7 @@ public sealed class MyScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi lich lam viec chinh thuc cua Nhan vien.
+    /// Hiển thị lịch làm việc chính thức của Nhân viên.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(int? id, CancellationToken cancellationToken)

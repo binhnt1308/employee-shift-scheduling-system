@@ -77,7 +77,8 @@ public static partial class DemoDataSeeder
     }
 
     /// <summary>
-    /// Khởi tạo toàn bộ dữ liệu mẫu vào database nếu đáp ứng điều kiện an toàn.
+    /// Khởi tạo bộ dữ liệu demo theo mốc thời gian từ IClock nếu database đáp ứng điều kiện an toàn.
+    /// Toàn bộ kịch bản được dựng nhất quán trước khi lưu để có thể demo lặp lại và kiểm thử xác định.
     /// </summary>
     public static async Task<bool> SeedAsync(
         ApplicationDbContext dbContext,
@@ -93,6 +94,7 @@ public static partial class DemoDataSeeder
             .ToListAsync(cancellationToken);
 
         var allPeriodNames = existingPeriods.Select(p => p.PeriodName).ToList();
+        // Không seed chồng lên dữ liệu nghiệp vụ hoặc một bộ demo đã tồn tại một phần.
         var decision = EvaluateSeedPrecondition(totalEmployees, allPeriodNames);
 
         if (decision != SeedDecision.ProceedWithFreshSeed)
@@ -120,6 +122,7 @@ public static partial class DemoDataSeeder
 
         try
         {
+            // Dựng toàn bộ bộ dữ liệu trong bộ nhớ trước rồi mới AddRange/SaveChanges để ID và quan hệ nhất quán.
             var dataSet = BuildFourPeriodDemoDataSet(today, passwordHashService, clock);
 
             // Tra cứu tài khoản hiện có để tránh trùng tên đăng nhập đã được tạo sẵn

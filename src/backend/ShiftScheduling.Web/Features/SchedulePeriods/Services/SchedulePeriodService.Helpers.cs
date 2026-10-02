@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Features.SchedulePeriods.Services;
 
+// Nhóm logic hỗ trợ cho nghiệp vụ kỳ lịch và định mức nhân sự.
 public sealed partial class SchedulePeriodService
 {
     private static List<ShiftType> GetFixedThreeShifts(IReadOnlyList<ShiftType> allShiftTypes)

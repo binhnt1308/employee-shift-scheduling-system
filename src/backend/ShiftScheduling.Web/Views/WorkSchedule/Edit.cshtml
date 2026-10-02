@@ -4,6 +4,8 @@
     ViewData["Title"] = "Phân công ca - " + Model.PeriodName;
 }
 
+@* Lưới phân công 7x3 chỉ hiển thị trạng thái; server kiểm tra lại mọi ràng buộc bắt buộc trước khi lưu/công bố. *@
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1"><i class="fa-solid fa-calendar-week text-primary me-2"></i>@Model.PeriodName</h3>
@@ -134,7 +136,7 @@ else if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
     </div>
 </div>
 
-<!-- BANG PHAN CONG 7x3 -->
+<!-- Bảng phân công 7 ngày x 3 ca -->
 <div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-header bg-light py-3 fw-bold d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table me-2"></i>Bảng phân công ca làm việc (7 ngày x 3 ca cố định)</span>

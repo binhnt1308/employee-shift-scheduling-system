@@ -238,7 +238,7 @@ public sealed class WorkReportServiceTests
     }
 
     // =========================================================================
-    // NC-07 TEST SUITE
+    // Nhóm kiểm thử NC-07: tổng hợp và điều chỉnh giờ công thực tế.
     // =========================================================================
 
     [Fact(DisplayName = "NC07-01 - Ca có đơn nghỉ Approved: Tự động tính 0 giờ, không tính vào số ca/số ngày")]
@@ -263,7 +263,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Day 1: shift1 (has approved leave -> 0h)
+        // Ngày 1: ca 1 có đơn nghỉ đã duyệt nên giờ công được tính là 0.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -274,7 +274,7 @@ public sealed class WorkReportServiceTests
             ShiftType = shift1
         });
 
-        // Day 2: shift2 (no leave -> 4h)
+        // Ngày 2: ca 2 không có đơn nghỉ nên được tính đủ 4 giờ.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 102,
@@ -302,7 +302,7 @@ public sealed class WorkReportServiceTests
 
         Assert.NotNull(report);
         var row = Assert.Single(report.Rows);
-        // Only 1 working shift (Day 2), Day 1 is 0h so not counted
+        // Chỉ ca ở ngày 2 được tính là ca đã làm; ngày 1 có 0 giờ nên không tính.
         Assert.Equal(1, row.TotalShifts);
         Assert.Equal(1, row.TotalWorkDays);
         Assert.Equal(4m, row.TotalHours);
@@ -343,7 +343,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Day 1 has 2 shifts for emp1
+        // Ngày 1 có hai ca được phân công cho nhân viên 1.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -364,7 +364,7 @@ public sealed class WorkReportServiceTests
         });
         workRepo.PublishedSchedule = publishedSchedule;
 
-        // Full day leave
+        // Đơn nghỉ cả ngày.
         leaveRepo.Requests.Add(new LeaveRequest
         {
             LeaveRequestId = 1,
@@ -433,7 +433,7 @@ public sealed class WorkReportServiceTests
         });
         workRepo.PublishedSchedule = publishedSchedule;
 
-        // Pending and Rejected leaves
+        // Các đơn ở trạng thái Chờ duyệt và Từ chối không làm giảm giờ công.
         leaveRepo.Requests.Add(new LeaveRequest
         {
             LeaveRequestId = 1,
@@ -497,7 +497,7 @@ public sealed class WorkReportServiceTests
         });
         workRepo.PublishedSchedule = publishedSchedule;
 
-        // Approved leave for emp2, not emp1
+        // Đơn nghỉ được duyệt thuộc nhân viên 2, không ảnh hưởng nhân viên 1.
         leaveRepo.Requests.Add(new LeaveRequest
         {
             LeaveRequestId = 1,
@@ -645,7 +645,7 @@ public sealed class WorkReportServiceTests
         Assert.Equal(3m, assignment.ActualWorkedHours);
         Assert.Equal("Nhân viên đồng ý vào làm hỗ trợ 3h", assignment.WorkdayAdjustmentReason);
 
-        // Verify report now reflects 3 hours and counts as 1 shift
+        // Báo cáo phải phản ánh 3 giờ thực tế và vẫn tính là 1 ca đã làm.
         var report = await service.GetManagerReportOverviewAsync(1);
         Assert.NotNull(report);
         var row = Assert.Single(report.Rows);
@@ -721,7 +721,7 @@ public sealed class WorkReportServiceTests
         var audit = Assert.Single(auditRepo.Items);
         Assert.Contains("\"ActualWorkedHours\":null", audit.NewValues);
 
-        // Overview check: should be 0h because approved leave exists
+        // Tổng quan phải hiển thị 0 giờ vì ca này có đơn nghỉ đã duyệt.
         var report = await service.GetManagerReportOverviewAsync(1);
         Assert.NotNull(report);
         var detail = Assert.Single(report.Details);
@@ -887,7 +887,7 @@ public sealed class WorkReportServiceTests
 
         var service = CreateService(workRepo, periodRepo, empRepo, leaveRepo, auditRepo, uow, clock);
 
-        // Planned is 4m. Input 4m with reason or not -> normalizes to reset
+        // Giờ nhập bằng đúng giờ kế hoạch nên hệ thống chuẩn hóa về trạng thái không điều chỉnh.
         var request = new AdjustWorkdayHoursRequest
         {
             SchedulePeriodId = 1,
@@ -915,7 +915,7 @@ public sealed class WorkReportServiceTests
         var auditRepo = new FakeAuditLogRepository();
         var uow = new FakeUnitOfWork();
 
-        // Work date 2026-08-10, shift ends 11:30. Current time is 2026-08-10 10:00 (before end)
+        // Ngày làm việc 10/08/2026, ca kết thúc 11:30 nhưng thời điểm kiểm thử mới là 10:00.
         var clock = new FakeClock(new DateTime(2026, 8, 10, 3, 0, 0, DateTimeKind.Utc)); // 10:00 VN
 
         var period = CreatePeriod(1, "Kỳ 1");
@@ -979,7 +979,7 @@ public sealed class WorkReportServiceTests
         var auditRepo = new FakeAuditLogRepository();
         var uow = new FakeUnitOfWork();
 
-        // Shift starts 22:00 (Day 10), ends 06:00 (Day 11). Current time 05:00 VN on Day 11 (UTC 22:00 on Day 10)
+        // Ca qua đêm bắt đầu 22:00 ngày 10 và kết thúc 06:00 ngày 11; thời điểm kiểm thử là 05:00 giờ Việt Nam ngày 11.
         var clock = new FakeClock(new DateTime(2026, 8, 10, 22, 0, 0, DateTimeKind.Utc)); // 05:00 VN 11/08
 
         var period = CreatePeriod(1, "Kỳ 1");
@@ -1311,7 +1311,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Shift was originally assigned, then transferred to emp2
+        // Ca ban đầu thuộc nhân viên 1 rồi được chuyển cho nhân viên 2.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -1333,12 +1333,12 @@ public sealed class WorkReportServiceTests
         var rowEmp1 = report.Rows.FirstOrDefault(r => r.EmployeeId == emp1.EmployeeId);
         var rowEmp2 = report.Rows.FirstOrDefault(r => r.EmployeeId == emp2.EmployeeId);
 
-        // emp1 has 0 shifts and 0h
+        // Nhân viên 1 không còn ca làm và có 0 giờ.
         Assert.NotNull(rowEmp1);
         Assert.Equal(0, rowEmp1.TotalShifts);
         Assert.Equal(0m, rowEmp1.TotalHours);
 
-        // emp2 has 1 shift and 4h
+        // Nhân viên 2 nhận 1 ca và được tính 4 giờ.
         Assert.NotNull(rowEmp2);
         Assert.Equal(1, rowEmp2.TotalShifts);
         Assert.Equal(4m, rowEmp2.TotalHours);
@@ -1367,7 +1367,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Shift 1: Normal (4h)
+        // Ca 1 làm bình thường, tính 4 giờ.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -1379,7 +1379,7 @@ public sealed class WorkReportServiceTests
             ShiftType = shift1
         });
 
-        // Shift 2: Approved Leave (0h)
+        // Ca 2 có đơn nghỉ đã duyệt, tính 0 giờ.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 102,
@@ -1400,7 +1400,7 @@ public sealed class WorkReportServiceTests
             Status = LeaveRequestStatus.Approved
         });
 
-        // Shift 3: Manager adjusted to 2.5h
+        // Ca 3 được Quản lý điều chỉnh còn 2,5 giờ thực tế.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 103,
@@ -1431,7 +1431,7 @@ public sealed class WorkReportServiceTests
         Assert.Equal(managerRow.Warning, empReport.Summary.Warning);
         Assert.Equal(managerRow.IsTargetMet, empReport.Summary.IsTargetMet);
 
-        // Total hours should be 4 + 0 + 2.5 = 6.5h, TotalShifts = 2 (shift 2 is 0h so excluded)
+        // Tổng giờ phải là 6,5; tổng số ca đã làm là 2 vì ca nghỉ 0 giờ không được tính.
         Assert.Equal(6.5m, managerRow.TotalHours);
         Assert.Equal(2, managerRow.TotalShifts);
         Assert.Equal(2, managerRow.TotalWorkDays);
@@ -1564,7 +1564,7 @@ public sealed class WorkReportServiceTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var empRepo = new FakeEmployeeRepository();
 
-        // Clock is 12:00 VN on Day 10
+        // Đồng hồ kiểm thử đang ở 12:00 giờ Việt Nam ngày 10.
         var clock = new FakeClock(new DateTime(2026, 8, 10, 5, 0, 0, DateTimeKind.Utc));
 
         var period = CreatePeriod(1, "Kỳ 1");
@@ -1706,7 +1706,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Shift 1 is assigned
+        // Ca 1 đã được phân công.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -1719,7 +1719,7 @@ public sealed class WorkReportServiceTests
         });
         workRepo.PublishedSchedule = publishedSchedule;
 
-        // Approved leave for emp1 on the same date, but for shift2 (different shift)
+        // Nhân viên 1 có đơn nghỉ được duyệt cùng ngày nhưng cho ca 2, nên không ảnh hưởng ca 1.
         leaveRepo.Requests.Add(new LeaveRequest
         {
             LeaveRequestId = 1,
@@ -1769,7 +1769,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // Shift was assigned to emp2 (recipient) after transfer
+        // Sau khi chuyển ca, phân công thuộc về nhân viên 2.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -1783,7 +1783,7 @@ public sealed class WorkReportServiceTests
         });
         workRepo.PublishedSchedule = publishedSchedule;
 
-        // Sender (emp1) has an approved leave for this date and shift
+        // Nhân viên gửi yêu cầu chuyển ca có đơn nghỉ đã duyệt đúng ngày và đúng ca.
         leaveRepo.Requests.Add(new LeaveRequest
         {
             LeaveRequestId = 1,
@@ -1910,19 +1910,19 @@ public sealed class WorkReportServiceTests
         var result = await service.AdjustWorkdayHoursAsync(99, request);
 
         Assert.True(result.Succeeded);
-        // Verify identity fields are untouched
+        // Các trường định danh của phân công phải được giữ nguyên.
         Assert.Equal(101, assignment.ShiftAssignmentId);
         Assert.Equal(emp1.EmployeeId, assignment.EmployeeId);
         Assert.Equal(new DateOnly(2026, 8, 10), assignment.WorkDate);
         Assert.Equal(shift1.ShiftTypeId, assignment.ShiftTypeId);
         Assert.Equal(10, assignment.WorkScheduleId);
 
-        // Verify only workday adjustment fields changed
+        // Chỉ các trường liên quan đến điều chỉnh giờ công được phép thay đổi.
         Assert.Equal(2.5m, assignment.ActualWorkedHours);
         Assert.Equal("Điều chỉnh hợp lệ", assignment.WorkdayAdjustmentReason);
         Assert.NotNull(assignment.UpdatedAt);
 
-        // Verify AuditLog
+        // Kiểm tra nhật ký thao tác được ghi nhận.
         var audit = Assert.Single(auditRepo.Items);
         Assert.Equal("ADJUST_WORKDAY_HOURS", audit.Action);
         Assert.Equal("ShiftAssignment", audit.EntityName);
@@ -2189,7 +2189,7 @@ public sealed class WorkReportServiceTests
     }
 
     // =========================================================================
-    // FAIRNESS SUMMARY TEST SUITE (FAIR-01 .. FAIR-04)
+    // Nhóm kiểm thử FAIR-01 đến FAIR-04 cho thống kê cân bằng tải làm việc.
     // =========================================================================
 
     [Fact(DisplayName = "FAIR-01 - FairnessSummary: FT và PT được phân nhóm và tính toán min, max, spread riêng biệt")]
@@ -2221,7 +2221,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // ft1: 8 ca * 4h = 32h
+        // FT1: 8 ca x 4 giờ = 32 giờ.
         for (int i = 0; i < 8; i++)
         {
             publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
@@ -2234,7 +2234,7 @@ public sealed class WorkReportServiceTests
                 ShiftType = shift4h
             });
         }
-        // ft2: 10 ca * 4h = 40h
+        // FT2: 10 ca x 4 giờ = 40 giờ.
         for (int i = 0; i < 10; i++)
         {
             publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
@@ -2247,7 +2247,7 @@ public sealed class WorkReportServiceTests
                 ShiftType = shift4h
             });
         }
-        // pt1: 4 ca * 4h = 16h
+        // PT1: 4 ca x 4 giờ = 16 giờ.
         for (int i = 0; i < 4; i++)
         {
             publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
@@ -2260,7 +2260,7 @@ public sealed class WorkReportServiceTests
                 ShiftType = shift4h
             });
         }
-        // pt2: 5 ca * 4h = 20h
+        // PT2: 5 ca x 4 giờ = 20 giờ.
         for (int i = 0; i < 5; i++)
         {
             publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
@@ -2282,7 +2282,7 @@ public sealed class WorkReportServiceTests
         Assert.NotNull(report);
         Assert.NotNull(report.FairnessSummary);
 
-        // FT: min 32h, max 40h, spread 8h
+        // Nhóm FT: ít nhất 32 giờ, nhiều nhất 40 giờ, chênh lệch 8 giờ.
         Assert.Equal(2, report.FairnessSummary.FullTime.EmployeeCount);
         Assert.Equal(32m, report.FairnessSummary.FullTime.MinimumScheduledHours);
         Assert.Equal(40m, report.FairnessSummary.FullTime.MaximumScheduledHours);
@@ -2290,7 +2290,7 @@ public sealed class WorkReportServiceTests
         Assert.True(report.FairnessSummary.FullTime.HasData);
         Assert.True(report.FairnessSummary.FullTime.HasComparison);
 
-        // PT: min 16h, max 20h, spread 4h
+        // Nhóm PT: ít nhất 16 giờ, nhiều nhất 20 giờ, chênh lệch 4 giờ.
         Assert.Equal(2, report.FairnessSummary.PartTime.EmployeeCount);
         Assert.Equal(16m, report.FairnessSummary.PartTime.MinimumScheduledHours);
         Assert.Equal(20m, report.FairnessSummary.PartTime.MaximumScheduledHours);
@@ -2324,7 +2324,7 @@ public sealed class WorkReportServiceTests
             Status = ScheduleStatus.Published
         };
 
-        // ft1: 1 ca 6h = 6h
+        // FT1: 1 ca dài 6 giờ.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 101,
@@ -2335,7 +2335,7 @@ public sealed class WorkReportServiceTests
             ShiftType = shift6h
         });
 
-        // ft2: 2 ca 2h = 4h
+        // FT2: 2 ca x 2 giờ = 4 giờ.
         publishedSchedule.ShiftAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 201,

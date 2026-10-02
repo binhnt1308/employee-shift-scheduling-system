@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Models.Errors;
 
+// Tập trung mã lỗi nghiệp vụ trả về cho Controller/giao diện để tránh rải chuỗi mã lỗi trong mã nguồn.
 public static class ErrorCodes
 {
     public const string AccountNotFound = "ACCOUNT_NOT_FOUND";

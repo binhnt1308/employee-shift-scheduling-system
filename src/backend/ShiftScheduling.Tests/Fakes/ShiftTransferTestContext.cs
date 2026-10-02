@@ -6,6 +6,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Fixture gom dữ liệu và dependency fake dùng lại giữa các kiểm thử chuyển ca.
 internal sealed class ShiftTransferTestContext
 {
     private ShiftTransferTestContext()

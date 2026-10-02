@@ -15,7 +15,7 @@ public static partial class DemoDataSeeder
 
     /// <summary>
     /// Xác định có nên tạo dữ liệu demo dựa trên trạng thái hiện tại của database.
-    /// Nhận diện SEED IDENTITY dựa trên exact demo marker constants (EndsWith).
+    /// Nhận diện bộ demo bằng các marker cố định; chỉ coi là demo khi khớp đúng quy ước hậu tố.
     /// Không kiểm tra dữ liệu mutable để đảm bảo không crash startup sau khi người dùng thao tác.
     /// </summary>
     public static SeedDecision EvaluateSeedPrecondition(
@@ -50,7 +50,7 @@ public static partial class DemoDataSeeder
             return SeedDecision.SkipAlreadySeeded;
         }
 
-        // 4. Bộ demo legacy 2 kỳ hoàn chỉnh
+        // 4. Nhận diện bộ demo cũ gồm hai kỳ hoàn chỉnh để tránh seed chồng.
         if (hasPublished && hasLegacy && !hasReady && !hasRegistration && !hasClosed)
         {
             return SeedDecision.SkipLegacyDemoDataset;

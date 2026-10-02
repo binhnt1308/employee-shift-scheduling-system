@@ -5,7 +5,7 @@ using ShiftScheduling.Models.Enums;
 namespace ShiftScheduling.Features.WorkSchedules.Services;
 
 /// <summary>
-/// Helper thuần kiểm tra quy tắc xếp ca trong ngày (BR-01):
+/// Hàm hỗ trợ thuần kiểm tra quy tắc xếp ca trong ngày (BR-01):
 /// số ca tối đa, ca gãy và chồng lấn thời gian.
 /// </summary>
 public static class DailyShiftRuleEvaluator
@@ -86,10 +86,10 @@ public static class DailyShiftRuleEvaluator
 
         foreach (var req in staffingRequirements)
         {
-            // Bước 1: Nếu req.ShiftType != null, kiểm tra ngay tính nhất quán với ShiftTypeId
+            // Bước 1: Nếu req.ShiftType != null, kiểm tra ngày tính nhất quán với ShiftTypeId
             if (req.ShiftType != null && req.ShiftType.ShiftTypeId != req.ShiftTypeId)
             {
-                // Navigation và FK không nhất quán -> fail-closed ngay lập tức, không fallback
+                // Navigation và FK không nhất quán -> fail-closed ngày lập tức, không fallback
                 return Array.Empty<ShiftType>();
             }
 
@@ -150,7 +150,7 @@ public static class DailyShiftRuleEvaluator
             return false;
         }
 
-        // Condition A: Không trùng ShiftCode, đủ ba mã MORNING, AFTERNOON, EVENING
+        // Điều kiện A: không trùng ShiftCode và phải đủ ba mã MORNING, AFTERNOON, EVENING.
         var codeSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in periodShifts)
         {
@@ -241,7 +241,7 @@ public static class DailyShiftRuleEvaluator
 
         foreach (var req in staffingRequirements)
         {
-            // Bước 1: Nếu req.ShiftType != null, kiểm tra ngay tính nhất quán với ShiftTypeId
+            // Bước 1: Nếu req.ShiftType != null, kiểm tra ngày tính nhất quán với ShiftTypeId
             if (req.ShiftType != null && req.ShiftType.ShiftTypeId != req.ShiftTypeId)
             {
                 errorMessage = "Dữ liệu ca làm việc trong định mức nhân sự không nhất quán.";

@@ -123,7 +123,7 @@ public sealed class MyScheduleWorkflowTests
 
         Assert.NotNull(result);
 
-        // Kiểm tra Thứ Ba (08/09) có ca của CurrentEmployee
+        // Ngày 08/09 phải chứa đúng ca của nhân viên đang đăng nhập, không lẫn ca người khác.
         var tuesday = result.Days.First(d => d.WorkDate == new DateOnly(2026, 9, 8));
         var tuesdayMorningShift = tuesday.Shifts.First(s => s.ShiftTypeId == 1);
         Assert.Single(tuesdayMorningShift.AssignedEmployees);

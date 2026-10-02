@@ -5,6 +5,7 @@ using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.Dashboard;
 
+// Fixture dựng dependency và dữ liệu dùng chung cho kiểm thử Dashboard.
 internal sealed class DashboardTestContext
 {
     public FakeAccountRepository Accounts { get; } = new();

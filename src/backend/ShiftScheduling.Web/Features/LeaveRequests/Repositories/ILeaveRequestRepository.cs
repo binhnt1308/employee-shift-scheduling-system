@@ -4,6 +4,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.Repositories;
 
+// Khai báo thao tác dữ liệu cho đơn xin nghỉ; các quyết định nghiệp vụ vẫn thuộc Service.
 public interface ILeaveRequestRepository
 {
     Task<Employee?> GetEmployeeByAccountIdAsync(

@@ -66,6 +66,9 @@ public sealed partial class DashboardService
         };
     }
 
+    /// <summary>
+    /// Ưu tiên kỳ chứa ngày hiện tại; nếu chưa có thì chọn kỳ sắp tới gần nhất để Dashboard vẫn có ngữ cảnh hữu ích.
+    /// </summary>
     private static SchedulePeriod? SelectTargetPeriod(
         IEnumerable<SchedulePeriod> periods,
         DateOnly currentDate)

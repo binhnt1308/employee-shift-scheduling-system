@@ -6,6 +6,7 @@ using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.WorkSchedules;
 
+// Fixture dựng dữ liệu lịch cá nhân để kiểm thử UC08 nhất quán giữa nhiều kịch bản.
 internal static class MyScheduleTestFixtureFactory
 {
     public static MyScheduleFixture CreateFixture(DateOnly today)

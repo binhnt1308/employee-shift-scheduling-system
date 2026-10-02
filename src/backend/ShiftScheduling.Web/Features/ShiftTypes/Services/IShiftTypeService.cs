@@ -6,19 +6,19 @@ namespace ShiftScheduling.Features.ShiftTypes.Services;
 public interface IShiftTypeService
 {
     /// <summary>
-    /// Lay danh sach ba ca co dinh theo thu tu hien thi.
+    /// Lấy danh sách ba ca cố định theo thứ tự hiển thị.
     /// </summary>
     Task<IReadOnlyList<ShiftTypeListItemViewModel>> GetAllAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay cau hinh ba ca dang active de chinh sua dong thoi tren mot form.
+    /// Lấy cấu hình ba ca đang hoạt động để chỉnh sửa đồng thời trên một form.
     /// </summary>
     Task<ShiftConfigurationEditViewModel?> GetConfigurationAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cap nhat cau hinh ba ca lam viec dong thoi theo phien ban moi (versioned).
+    /// Cập nhật đồng thời cấu hình ba ca làm việc bằng một phiên bản mới.
     /// </summary>
     Task<ServiceResult> UpdateConfigurationAsync(
         ShiftConfigurationEditViewModel model,
@@ -26,14 +26,14 @@ public interface IShiftTypeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay thong tin mot ca de cap nhat (legacy).
+    /// Lấy thông tin một ca để cập nhật theo luồng cũ.
     /// </summary>
     Task<ShiftTypeEditViewModel?> GetEditAsync(
         int shiftTypeId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cap nhat khung gio ca (legacy).
+    /// Cập nhật khung giờ ca theo luồng cũ.
     /// </summary>
     Task<ServiceResult> UpdateAsync(
         int shiftTypeId,

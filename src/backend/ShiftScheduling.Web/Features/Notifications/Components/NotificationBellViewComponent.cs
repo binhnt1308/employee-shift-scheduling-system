@@ -4,6 +4,7 @@ using ShiftScheduling.Features.Notifications.Services;
 
 namespace ShiftScheduling.Features.Notifications.Components;
 
+// ViewComponent chuẩn bị dữ liệu thông báo dùng chung trước khi render partial tương ứng.
 public sealed class NotificationBellViewComponent : ViewComponent
 {
     private readonly INotificationService _notificationService;

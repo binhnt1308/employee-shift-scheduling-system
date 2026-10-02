@@ -358,7 +358,7 @@ public sealed class OrToolsSchedulingServiceTests
         Assert.True(result.Succeeded, result.Message);
         Assert.True(result.ValidationResult.IsValid);
 
-        // Kiểm tra mỗi nhân viên không quá 1 ca/ngày
+        // Quy tắc cứng: mỗi nhân viên chỉ được nhận tối đa một ca trong cùng ngày.
         foreach (var emp in employees)
         {
             for (int d = 0; d < 7; d++)
@@ -1330,7 +1330,7 @@ public sealed class OrToolsSchedulingServiceTests
             Position = EmployeePosition.Cashier
         };
 
-        // Kiểm tra PositionLabel nghiệp vụ
+        // Nhãn vị trí phải lấy từ hồ sơ nhân viên, không suy ra từ ca được xếp.
         Assert.Equal("Tư vấn", salesItem.PositionLabel);
         Assert.NotEqual("1", salesItem.PositionLabel);
 

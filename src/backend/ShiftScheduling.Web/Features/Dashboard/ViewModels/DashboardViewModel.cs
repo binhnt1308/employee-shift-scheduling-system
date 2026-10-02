@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Models.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng Dashboard tổng quan.
 public sealed class DashboardViewModel
 {
     public int AccountCount { get; init; }

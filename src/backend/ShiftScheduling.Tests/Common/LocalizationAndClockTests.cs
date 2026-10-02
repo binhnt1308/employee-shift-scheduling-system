@@ -14,7 +14,7 @@ using ShiftScheduling.Tests.Fakes;
 namespace ShiftScheduling.Tests.Common;
 
 /// <summary>
-/// Kiem tra cau hinh Culture vi-VN va chuc nang quy doi gio Viet Nam (LC-03).
+/// Kiểm tra cấu hình Culture vi-VN và chức năng quy đổi giờ Việt Nam (LC-03).
 /// </summary>
 public sealed class LocalizationAndClockTests
 {

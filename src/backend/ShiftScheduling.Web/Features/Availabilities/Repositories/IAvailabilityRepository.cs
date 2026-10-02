@@ -32,7 +32,7 @@ public interface IAvailabilityRepository
     /// <param name="selectedShifts">Danh sách ca được chọn.</param>
     /// <param name="preferenceMap">Ánh xạ (WorkDate, ShiftTypeId) → PreferenceLevel cho các ca được chọn.</param>
     /// <param name="now">Thời điểm hiện tại (UTC).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">Token hủy thao tác khi request kết thúc sớm.</param>
     Task SaveEmployeeAvailabilitiesAsync(
         int employeeId,
         int schedulePeriodId,

@@ -10,7 +10,7 @@ using ShiftScheduling.Models.Errors;
 namespace ShiftScheduling.Features.WorkSchedules.Controllers;
 
 /// <summary>
-/// Controller quan ly phan cong ca (UC05), OR-Tools (UC06) va cong bo lich (UC07).
+/// Controller quản lý phân công ca (UC05), OR-Tools (UC06) và công bố lịch (UC07).
 /// </summary>
 [Authorize(Roles = RoleNames.Manager)]
 public sealed class WorkScheduleController : AuthorizedController
@@ -23,7 +23,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Danh sach cac ky lich va trang thai phan cong.
+    /// Danh sách các kỳ lịch và trạng thái phân công.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -36,7 +36,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Man hinh phan cong ca thu cong (Grid 7x3) va sinh lich OR-Tools.
+    /// Màn hình phân công ca thủ công (lưới 7x3) và sinh lịch bằng OR-Tools.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -51,7 +51,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Lay danh sach nhan vien du dieu kien cho ca lam viec de phan cong.
+    /// Lấy danh sách nhân viên đủ điều kiện cho ca làm việc để phân công.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetEligibleEmployees(
@@ -66,7 +66,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly phan cong hoac thay the nhan vien vao ca thu cong (AJAX / Form).
+    /// Xử lý phân công hoặc thay thế nhân viên vào ca thủ công.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -84,7 +84,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly xoa nhan vien khoi ca phan cong thu cong.
+    /// Xử lý gỡ nhân viên khỏi ca phân công thủ công.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -102,7 +102,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Luu lich nhap (BR14: Cho phep luu lich nhap chua hoan chinh).
+    /// Lưu lịch nháp; BR14 cho phép lịch nháp chưa hoàn chỉnh.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -122,7 +122,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Sinh lich de xuat tu dong bang Google OR-Tools CP-SAT (UC06/BR15).
+    /// Sinh lịch đề xuất tự động bằng Google OR-Tools CP-SAT (UC06/BR15).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -133,7 +133,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Ghi de phuong an de xuat OR-Tools vao lich nhap (UC06).
+    /// Ghi đè phương án OR-Tools vào lịch nháp (UC06).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -153,7 +153,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Duyet va cong bo lich chinh thuc (UC07/BR14/BR16).
+    /// Duyệt và công bố lịch chính thức (UC07/BR14/BR16).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]

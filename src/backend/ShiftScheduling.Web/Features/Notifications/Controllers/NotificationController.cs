@@ -5,6 +5,7 @@ using ShiftScheduling.Features.Notifications.Services;
 
 namespace ShiftScheduling.Features.Notifications.Controllers;
 
+// Controller nhận yêu cầu của chức năng thông báo và chuyển toàn bộ xử lý nghiệp vụ sang Service.
 [Authorize]
 public sealed class NotificationController : AuthorizedController
 {

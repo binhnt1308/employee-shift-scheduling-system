@@ -11,7 +11,6 @@ public sealed class AuthenticationServiceTests
     [Fact(DisplayName = "TC01-01 - UC01 - Đăng nhập bằng tài khoản hợp lệ")]
     public async Task AuthenticateAsync_WhenPasswordIsCorrect_ReturnsAccount()
     {
-        // Sap xep
         var repository = new FakeAuthenticationRepository();
         repository.Accounts.Add(new UserAccount
         {
@@ -22,10 +21,8 @@ public sealed class AuthenticationServiceTests
         });
         var service = new AuthenticationService(repository, new FakePasswordHashService());
 
-        // Thuc hien
         var result = await service.AuthenticateAsync("ADMIN", "Demo@123");
 
-        // Kiem tra
         Assert.NotNull(result);
         Assert.Equal(1, result!.UserAccountId);
     }
@@ -33,7 +30,6 @@ public sealed class AuthenticationServiceTests
     [Fact(DisplayName = "TC01-02 - UC01 BR01 - Tài khoản bị khóa không được đăng nhập")]
     public async Task AuthenticateAsync_WhenAccountIsLocked_ReturnsNull()
     {
-        // Sap xep
         var repository = new FakeAuthenticationRepository();
         repository.Accounts.Add(new UserAccount
         {
@@ -45,10 +41,8 @@ public sealed class AuthenticationServiceTests
         });
         var service = new AuthenticationService(repository, new FakePasswordHashService());
 
-        // Thuc hien
         var result = await service.AuthenticateAsync("admin", "Demo@123");
 
-        // Kiem tra
         Assert.Null(result);
     }
 

@@ -93,6 +93,10 @@ public sealed class AvailabilityRepository : IAvailabilityRepository
         return await query.ToListAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Đồng bộ lịch rảnh của một nhân viên trong một kỳ: xóa ca bỏ chọn, cập nhật ca còn giữ và thêm ca mới.
+    /// Toàn bộ trạng thái hiện tại được tải trước để tránh truy vấn cơ sở dữ liệu trong vòng lặp.
+    /// </summary>
     public async Task SaveEmployeeAvailabilitiesAsync(
         int employeeId,
         int schedulePeriodId,

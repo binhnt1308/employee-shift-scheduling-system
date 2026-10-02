@@ -13,7 +13,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-03 - UC01 BR01 - Tạo tài khoản trùng tên đăng nhập")]
     public async Task CreateAsync_WhenUsernameExists_ReturnsDuplicateError()
     {
-        // Sap xep
         var repository = new FakeAccountRepository { UsernameExists = true };
         var service = CreateService(repository);
         var model = new AccountCreateViewModel
@@ -24,10 +23,8 @@ public sealed class AccountServiceTests
             Role = UserRole.Manager
         };
 
-        // Thuc hien
         var result = await service.CreateAsync(model, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.DuplicateUsername, result.ErrorCode);
     }
@@ -35,13 +32,10 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-04 - UC01 BR01 - Khóa tài khoản của chính mình")]
     public async Task SetLockedAsync_WhenTargetIsCurrentAccount_ReturnsSelfChangeError()
     {
-        // Sap xep
         var service = CreateService(new FakeAccountRepository());
 
-        // Thuc hien
         var result = await service.SetLockedAsync(1, true, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.SelfAccountChange, result.ErrorCode);
     }
@@ -49,7 +43,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-05 - UC01 BR01 - Tạo tài khoản Employee không liên kết hồ sơ")]
     public async Task CreateAsync_WhenEmployeeRoleHasNoEmployee_ReturnsLinkError()
     {
-        // Sap xep
         var repository = new FakeAccountRepository();
         var service = CreateService(repository);
         var model = new AccountCreateViewModel
@@ -60,10 +53,8 @@ public sealed class AccountServiceTests
             Role = UserRole.Employee
         };
 
-        // Thuc hien
         var result = await service.CreateAsync(model, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.InvalidEmployeeLink, result.ErrorCode);
     }
@@ -71,7 +62,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-06 - UC01 BR01 - Tạo tài khoản Employee liên kết hồ sơ hợp lệ")]
     public async Task CreateAsync_WhenEmployeeLinkIsValid_CreatesAccount()
     {
-        // Sap xep
         var repository = new FakeAccountRepository();
         repository.Employees.Add(new Employee
         {
@@ -90,10 +80,8 @@ public sealed class AccountServiceTests
             EmployeeId = 10
         };
 
-        // Thuc hien
         var result = await service.CreateAsync(model, 1);
 
-        // Kiem tra
         Assert.True(result.Succeeded);
         Assert.Single(repository.Accounts);
         Assert.Same(repository.Accounts[0], repository.Employees[0].UserAccount);
@@ -102,7 +90,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-07 - UC01 BR01 - Khóa tài khoản Admin cuối cùng")]
     public async Task SetLockedAsync_WhenTargetIsLastAdmin_ReturnsLastAdminError()
     {
-        // Sap xep
         var repository = new FakeAccountRepository { HasOtherActiveAdmin = false };
         repository.Accounts.Add(new UserAccount
         {
@@ -112,10 +99,8 @@ public sealed class AccountServiceTests
         });
         var service = CreateService(repository);
 
-        // Thuc hien
         var result = await service.SetLockedAsync(2, true, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.LastActiveAdmin, result.ErrorCode);
     }
@@ -123,7 +108,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-09 - UC01 BR01 - Khóa tài khoản bình thường")]
     public async Task SetLockedAsync_WhenTargetIsNormalAccount_LocksAccount()
     {
-        // Sap xep
         var repository = new FakeAccountRepository();
         var targetAccount = new UserAccount
         {
@@ -136,10 +120,8 @@ public sealed class AccountServiceTests
         var unitOfWork = new FakeUnitOfWork();
         var service = CreateService(repository, unitOfWork);
 
-        // Thuc hien
         var result = await service.SetLockedAsync(2, true, 1, CancellationToken.None);
 
-        // Kiem tra
         Assert.True(result.Succeeded);
         Assert.True(targetAccount.IsLocked);
         Assert.Equal(1, unitOfWork.SaveCount);
@@ -148,7 +130,6 @@ public sealed class AccountServiceTests
     [Fact(DisplayName = "TC01-10 - UC01 BR01 - Mở khóa tài khoản bị khóa")]
     public async Task SetLockedAsync_WhenTargetIsLockedAccount_UnlocksAccount()
     {
-        // Sap xep
         var repository = new FakeAccountRepository();
         var targetAccount = new UserAccount
         {
@@ -161,10 +142,8 @@ public sealed class AccountServiceTests
         var unitOfWork = new FakeUnitOfWork();
         var service = CreateService(repository, unitOfWork);
 
-        // Thuc hien
         var result = await service.SetLockedAsync(2, false, 1, CancellationToken.None);
 
-        // Kiem tra
         Assert.True(result.Succeeded);
         Assert.False(targetAccount.IsLocked);
         Assert.Equal(1, unitOfWork.SaveCount);

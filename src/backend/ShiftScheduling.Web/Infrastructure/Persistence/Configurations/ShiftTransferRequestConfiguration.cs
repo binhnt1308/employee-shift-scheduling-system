@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho yêu cầu chuyển phân công từ người gửi sang người nhận.
 public sealed class ShiftTransferRequestConfiguration : IEntityTypeConfiguration<ShiftTransferRequest>
 {
     public void Configure(EntityTypeBuilder<ShiftTransferRequest> entity)

@@ -6,6 +6,10 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.Repositories;
 
+/// <summary>
+/// Truy cập đơn nghỉ và các dữ liệu lịch liên quan. Repository chỉ chịu trách nhiệm truy vấn/lưu trữ;
+/// quyết định nghiệp vụ duyệt, hủy hay giới hạn ca nằm ở Service.
+/// </summary>
 public sealed class LeaveRequestRepository : ILeaveRequestRepository
 {
     private readonly ApplicationDbContext _dbContext;

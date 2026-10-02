@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu thông báo nội bộ gửi đến một tài khoản trong cơ sở dữ liệu.
 public class Notification
 {
     public int NotificationId { get; set; }

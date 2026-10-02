@@ -108,7 +108,6 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "TC-LEAVE-006 - GET gợi ý candidate: Preferred trước Normal, tie-break EmployeeCode")]
     public async Task TC_LEAVE_006_ApprovedLeave_PublishedSchedule_RanksPreferredBeforeNormal()
     {
-        // Arrange
         _employeeRepo.Employees.Clear();
         _employeeRepo.Employees.AddRange([_leavingSales,
             CreateEmployee(5, "NV99", "Z", EmployeePosition.Sales, EmployeeLevel.Level2, 105),
@@ -119,9 +118,7 @@ public sealed class WorkScheduleLeaveReplacementTests
         AddAvail(5);
         AddAvail(2);
         AddAvail(3, AvailabilityPreferenceLevel.Normal);
-        // Act
         var result = await _scheduleService.GetLeaveReplacementAsync(1);
-        // Assert
         Assert.NotNull(result);
         var assignmentVm = Assert.Single(result.AffectedAssignments);
         Assert.Equal(3, assignmentVm.Candidates.Count);
@@ -133,74 +130,56 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "TC-LEAVE-007 - POST từ chối candidate có đơn nghỉ mới phát sinh")]
     public async Task TC_LEAVE_007_PostReplacement_RevalidatesLatestState_RejectsCandidateWithNewApprovedLeave()
     {
-        // Arrange
         var target = SetupStandard(2);
         CreateApprovedLeave(2, 2, 1);
-        // Act
         var result = await ReplaceAsync(2, managerId: 99);
-        // Assert
         Assert.Equal((false, ErrorCodes.EmployeeOnLeave, 1), (result.Succeeded, result.ErrorCode, target.EmployeeId));
     }
 
     [Fact(DisplayName = "POST xếp người thay từ chối candidate khác Position với nhân viên nghỉ")]
     public async Task ReplaceApprovedLeaveAssignment_DifferentPosition_ReturnsInvalidShiftAssignment()
     {
-        // Arrange
         SetupStandard(4);
-        // Act
         var result = await ReplaceAsync(4, managerId: 99);
-        // Assert
         Assert.Equal((false, ErrorCodes.InvalidShiftAssignment), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "POST xếp người thay từ chối candidate chưa đăng ký rảnh cho ca")]
     public async Task ReplaceApprovedLeaveAssignment_CandidateNotAvailable_ReturnsEmployeeNotAvailable()
     {
-        // Arrange
         SetupStandard();
-        // Act
         var result = await ReplaceAsync(3, managerId: 99);
-        // Assert
         Assert.Equal((false, ErrorCodes.EmployeeNotAvailable), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "POST xếp người thay từ chối candidate nếu làm mất định mức Level 2+ của ca")]
     public async Task ReplaceApprovedLeaveAssignment_BreaksLevel2StaffingRequirement_ReturnsInvalidShiftAssignment()
     {
-        // Arrange
         var target = Assign(100, 1, 1, _morningShift);
         _employeeRepo.Employees.Add(
             CreateEmployee(6, "NV06", "L1", EmployeePosition.Cashier, EmployeeLevel.Level1, 106));
         CreatePublishedSchedule(target, Assign(106, 6, 1, _morningShift));
         CreateApprovedLeave(1, 1, 1);
         AddAvail(3, AvailabilityPreferenceLevel.Normal);
-        // Act
         var result = await ReplaceAsync(3, managerId: 99);
-        // Assert
         Assert.Equal((false, ErrorCodes.InvalidShiftAssignment), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "POST xếp người thay từ chối candidate nếu vi phạm giới hạn số ca trong ngày")]
     public async Task ReplaceApprovedLeaveAssignment_ViolatesDailyShiftLimit_ReturnsInvalidShiftAssignment()
     {
-        // Arrange
         SetupStandard(2);
         _workScheduleRepo.Schedules.First().ShiftAssignments.Add(Assign(102, 2, 2, _afternoonShift));
-        // Act
         var result = await ReplaceAsync(2, managerId: 99);
-        // Assert
         Assert.Equal((false, ErrorCodes.InvalidShiftAssignment), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "TC-LEAVE-008 - Thay thế thành công: cập nhật in-place, không SaveAssignmentsAsync")]
     public async Task TC_LEAVE_008_ManagerReplacement_Success_InPlaceMutation()
     {
-        // Arrange
         var target = SetupStandard(2);
         var schedule = _workScheduleRepo.Schedules.First();
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.True(result.Succeeded);
         Assert.Equal((2, 100, AssignmentSource.Manual), (target.EmployeeId, target.ShiftAssignmentId, target.Source));
         Assert.Equal((ScheduleStatus.Published, 0), (schedule.Status, _workScheduleRepo.SaveAssignmentsCount));
@@ -209,11 +188,8 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "Thay thế thành công tạo bản ghi AuditLog với Action REPLACE_APPROVED_LEAVE_ASSIGNMENT")]
     public async Task ReplaceApprovedLeaveAssignment_Success_CreatesAuditLog()
     {
-        // Arrange
         SetupStandard(2);
-        // Act
         var result = await ReplaceAsync(2, managerId: 999);
-        // Assert
         Assert.True(result.Succeeded);
         var audit = Assert.Single(_auditLogRepo.Items, l => l.Action == "REPLACE_APPROVED_LEAVE_ASSIGNMENT");
         Assert.Equal(("100", 999), (audit.EntityId, audit.ActorAccountId));
@@ -222,11 +198,8 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "Thay thế thành công gửi thông báo ScheduleChanged cho cả 2 nhân viên")]
     public async Task ReplaceApprovedLeaveAssignment_Success_CreatesScheduleChangedNotifications()
     {
-        // Arrange
         SetupStandard(2);
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.True(result.Succeeded);
         Assert.Contains(_notificationRepo.Items,
             n => n.ReceiverAccountId == 102 && n.Type == NotificationType.ScheduleChanged);
@@ -237,13 +210,10 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "Thay thế thành công giữ nguyên dữ liệu và điều chỉnh công của ca không liên quan")]
     public async Task ReplaceApprovedLeaveAssignment_Success_DoesNotModifyUnrelatedAssignment()
     {
-        // Arrange
         SetupStandard(2);
         var other = Assign(200, 1, 2, _afternoonShift, 4.0m, "Ghi nhận công");
         _workScheduleRepo.Schedules.First().ShiftAssignments.Add(other);
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.True(result.Succeeded);
         Assert.Equal((1, 4.0m, "Ghi nhận công"),
             (other.EmployeeId, other.ActualWorkedHours, other.WorkdayAdjustmentReason));
@@ -255,13 +225,10 @@ public sealed class WorkScheduleLeaveReplacementTests
     public async Task ReplaceApprovedLeaveAssignment_WithWorkdayAdjustment_ReturnsFailure(
         double? hours, string? reason)
     {
-        // Arrange
         var target = SetupStandard(2);
         target.ActualWorkedHours = hours.HasValue ? (decimal)hours.Value : null;
         target.WorkdayAdjustmentReason = reason;
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.Equal((false, 1, 0), (result.Succeeded, target.EmployeeId, _unitOfWork.SaveCount));
         Assert.Empty(_auditLogRepo.Items);
     }
@@ -269,12 +236,9 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "POST xếp người thay từ chối khi thiếu định mức nhân sự StaffingRequirement")]
     public async Task ReplaceApprovedLeaveAssignment_MissingStaffingRequirement_ReturnsInvalidShiftAssignment()
     {
-        // Arrange
         var target = SetupStandard(2);
         foreach (var r in _period.StaffingRequirements) r.WorkDate = _workDate.AddDays(1);
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.Equal((false, ErrorCodes.InvalidShiftAssignment, 1, 0),
             (result.Succeeded, result.ErrorCode, target.EmployeeId, _unitOfWork.SaveCount));
     }
@@ -282,7 +246,6 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "POST xếp người thay ca qua đêm trước giờ kết thúc thành công")]
     public async Task ReplaceApprovedLeaveAssignment_OvernightShiftBeforeEnd_AllowsReplacement()
     {
-        // Arrange
         _eveningShift.StartTime = new(22, 0);
         _eveningShift.EndTime = new(6, 0);
         var target = Assign(100, 1, 3, _eveningShift);
@@ -290,25 +253,20 @@ public sealed class WorkScheduleLeaveReplacementTests
         CreateApprovedLeave(1, 1, 3);
         AddAvail(2, shiftId: 3);
         var service = CreateService(new FakeClock(new DateTime(2026, 8, 12, 19, 0, 0, DateTimeKind.Utc)));
-        // Act
         var result = await service.ReplaceApprovedLeaveAssignmentAsync(
             new() { LeaveRequestId = 1, ShiftAssignmentId = 100, CandidateEmployeeId = 2 }, 999);
-        // Assert
         Assert.Equal((true, 2), (result.Succeeded, target.EmployeeId));
     }
 
     [Fact(DisplayName = "TC-LEAVE-009 - Đơn nghỉ cả ngày: thay từng ca độc lập, không auto-assign")]
     public async Task TC_LEAVE_009_FullDayLeave_MultipleShifts_IndependentReplacement_NoAutoAssign()
     {
-        // Arrange
         var morning = Assign(101, 1, 1, _morningShift);
         var afternoon = Assign(102, 1, 2, _afternoonShift);
         var schedule = CreatePublishedSchedule(morning, Assign(105, 4, 1, _morningShift), afternoon);
         CreateApprovedLeave(5, 1, null, "Nghỉ cả ngày");
         AddAvail(2);
-        // Act
         var result = await ReplaceAsync(2, leaveId: 5, assignId: 101, managerId: 88);
-        // Assert
         Assert.True(result.Succeeded);
         Assert.Equal((2, 1), (morning.EmployeeId, afternoon.EmployeeId));
         Assert.DoesNotContain(schedule.ShiftAssignments, a => a.EmployeeId == 88);
@@ -317,12 +275,9 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "GET đơn xin nghỉ cả ngày trả về đầy đủ các ca làm việc bị ảnh hưởng")]
     public async Task GetLeaveReplacement_FullDayLeave_ReturnsAllAffectedShifts()
     {
-        // Arrange
         CreatePublishedSchedule(Assign(101, 1, 1, _morningShift), Assign(102, 1, 2, _afternoonShift));
         CreateApprovedLeave(5, 1, null, "Nghỉ cả ngày");
-        // Act
         var result = await _scheduleService.GetLeaveReplacementAsync(5);
-        // Assert
         Assert.NotNull(result);
         Assert.Equal(2, result.AffectedAssignments.Count);
     }
@@ -330,41 +285,32 @@ public sealed class WorkScheduleLeaveReplacementTests
     [Fact(DisplayName = "Ca làm việc đã kết thúc bị từ chối xếp người thay")]
     public async Task ReplaceApprovedLeaveAssignment_EndedShift_ReturnsLeaveRequestShiftEnded()
     {
-        // Arrange
         var target = SetupStandard();
         target.WorkDate = new DateOnly(2026, 8, 9);
         _leaveRepo.Requests.First().LeaveDate = target.WorkDate;
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.Equal((false, ErrorCodes.LeaveRequestShiftEnded), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "Ca làm việc không tìm thấy ShiftType bị từ chối fail-safe với ShiftTypeNotFound")]
     public async Task ReplaceApprovedLeaveAssignment_MissingShiftType_ReturnsShiftTypeNotFound()
     {
-        // Arrange
         var target = SetupStandard();
         target.ShiftTypeId = 999;
         target.ShiftType = null!;
         _leaveRepo.Requests.First().ShiftTypeId = 999;
-        // Act
         var result = await ReplaceAsync(2);
-        // Assert
         Assert.Equal((false, ErrorCodes.ShiftTypeNotFound), (result.Succeeded, result.ErrorCode));
     }
 
     [Fact(DisplayName = "POST xếp người thay chỉ dành cho Quản lý và có chống giả mạo yêu cầu")]
     public void WorkScheduleController_LeaveReplacementActions_HaveCorrectSecurityAttributes()
     {
-        // Arrange
         var controller = typeof(WorkScheduleController);
         var method = controller.GetMethod(nameof(WorkScheduleController.ReplaceApprovedLeaveAssignment));
-        // Act
         var auth = controller.GetCustomAttribute<AuthorizeAttribute>();
         var post = method?.GetCustomAttribute<HttpPostAttribute>();
         var csrf = method?.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>();
-        // Assert
         Assert.Equal(RoleNames.Manager, auth?.Roles);
         Assert.NotNull(post);
         Assert.NotNull(csrf);

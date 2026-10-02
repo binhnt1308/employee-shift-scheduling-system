@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Features.ShiftTypes.Repositories;
 
+// Triển khai truy vấn EF Core cho cấu hình ca làm việc; chỉ chuẩn bị dữ liệu và tracking theo nhu cầu của Service.
 public sealed class ShiftTypeRepository : IShiftTypeRepository
 {
     private readonly ApplicationDbContext _dbContext;

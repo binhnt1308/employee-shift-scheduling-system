@@ -3,6 +3,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.SchedulePeriods.Repositories;
 
+// Khai báo thao tác dữ liệu cho kỳ lịch và định mức nhân sự; các quy tắc nghiệp vụ vẫn thuộc Service.
 public interface ISchedulePeriodRepository
 {
     Task<PagedResult<SchedulePeriod>> GetPagedAsync(

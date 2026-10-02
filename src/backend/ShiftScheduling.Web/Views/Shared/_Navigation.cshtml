@@ -1,5 +1,6 @@
 @using System.Security.Claims
 @using ShiftScheduling.Models.Constants
+@* Thanh điều hướng theo vai trò; chỉ hiển thị liên kết phù hợp với quyền của người dùng. *@
 
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();

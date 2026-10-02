@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Models.Entities;
 
+// Entity biểu diễn cấu hình một loại ca làm việc và phiên bản cấu hình trong miền nghiệp vụ cấu hình ca làm việc.
 public class ShiftType
 {
     public int ShiftTypeId { get; set; }

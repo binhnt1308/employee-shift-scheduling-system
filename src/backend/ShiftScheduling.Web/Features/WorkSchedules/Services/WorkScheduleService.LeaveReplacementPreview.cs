@@ -339,6 +339,8 @@ public partial class WorkScheduleService
         }
 
         var preview = await BuildLeaveReplacementCoreAsync(leave, cancellationToken);
+        // Chỉ gợi ý phương án nghỉ khẩn cấp khi có ít nhất một ca không thể bố trí người thay theo ràng buộc bắt buộc.
+        // Nếu mọi ca đều có ứng viên thì buộc Quản lý dùng luồng bố trí người thay có xác nhận.
         var allCoverable = preview is not null && preview.AffectedAssignments.Count > 0
             && preview.AffectedAssignments.All(a => !a.IsEnded && a.Candidates.Count > 0);
         if (allCoverable)

@@ -5,6 +5,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Availabilities.Services;
 
+// Các hàm ánh xạ dữ liệu nghiệp vụ đăng ký lịch rảnh sang ViewModel, tách khỏi luồng xử lý chính để dễ đọc.
 public sealed partial class AvailabilityService
 {
     private sealed record RegistrationState(

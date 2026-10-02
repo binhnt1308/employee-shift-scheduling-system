@@ -179,7 +179,7 @@ public sealed partial class AvailabilityService
     // ── private helpers ───────────────────────────────────────────────
 
     /// <summary>
-    /// Lấy 3 ca cố định từ kỳ lịch hoặc fallback sang danh sách active.
+    /// Lấy ba ca cố định từ kỳ lịch; nếu kỳ chưa có dữ liệu thì dùng danh sách ca đang hoạt động.
     /// Dùng chung cho Registration và Mapping partial.
     /// </summary>
     internal async Task<List<ShiftType>> ResolveFixedShiftsAsync(
@@ -311,7 +311,7 @@ public sealed partial class AvailabilityService
                 Position = availability.Employee.Position,
                 EmploymentType = availability.Employee.EmploymentType,
                 Level = availability.Employee.Level,
-                // NC-02: Manager phân biệt Normal/Preferred.
+                // NC-02: Quản lý cần phân biệt mức nguyện vọng Normal và Preferred.
                 PreferenceLevel = availability.PreferenceLevel
             })
             .OrderBy(employee => employee.Position)

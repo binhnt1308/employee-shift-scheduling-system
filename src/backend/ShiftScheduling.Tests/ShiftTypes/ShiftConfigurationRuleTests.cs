@@ -23,13 +23,13 @@ public sealed class ShiftConfigurationRuleTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = new FakeShiftTypeRepository();
 
-        // Version 1 (inactive)
+        // Phiên bản 1 đã ngừng hoạt động.
         var v1Morning = new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 1, DurationHours = 4, StartTime = new(8, 0), EndTime = new(12, 0) };
         var v1Afternoon = new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 2, DurationHours = 4, StartTime = new(12, 0), EndTime = new(16, 0) };
         var v1Evening = new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 3, DurationHours = 4, StartTime = new(16, 0), EndTime = new(20, 0) };
         shiftTypeRepo.ShiftTypes.AddRange(new[] { v1Morning, v1Afternoon, v1Evening });
 
-        // Version 2 (active)
+        // Phiên bản 2 đang hoạt động.
         var v2Morning = new ShiftType { ShiftTypeId = 4, ShiftCode = "MORNING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 1, DurationHours = 5, StartTime = new(7, 0), EndTime = new(12, 0) };
         var v2Afternoon = new ShiftType { ShiftTypeId = 5, ShiftCode = "AFTERNOON", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 2, DurationHours = 5, StartTime = new(12, 0), EndTime = new(17, 0) };
         var v2Evening = new ShiftType { ShiftTypeId = 6, ShiftCode = "EVENING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 3, DurationHours = 4, StartTime = new(17, 0), EndTime = new(21, 0) };
@@ -77,12 +77,12 @@ public sealed class ShiftConfigurationRuleTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var shiftTypeRepo = new FakeShiftTypeRepository();
 
-        // Version 1 (inactive)
+        // Phiên bản 1 đã ngừng hoạt động.
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 1, ShiftCode = "MORNING", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 1, StartTime = new(8, 0), EndTime = new(12, 0), DurationHours = 4 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 2, ShiftCode = "AFTERNOON", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 2, StartTime = new(12, 0), EndTime = new(16, 0), DurationHours = 4 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 3, StartTime = new(16, 0), EndTime = new(20, 0), DurationHours = 4 });
 
-        // Version 2 (active)
+        // Phiên bản 2 đang hoạt động.
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 4, ShiftCode = "MORNING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 1, StartTime = new(7, 0), EndTime = new(12, 0), DurationHours = 5 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 5, ShiftCode = "AFTERNOON", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 2, StartTime = new(12, 0), EndTime = new(17, 0), DurationHours = 5 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 6, ShiftCode = "EVENING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 3, StartTime = new(17, 0), EndTime = new(21, 0), DurationHours = 4 });
@@ -128,7 +128,7 @@ public sealed class ShiftConfigurationRuleTests
         var v1Evening = new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ConfigurationVersion = 1, IsActive = false, DisplayOrder = 3, StartTime = new(16, 0), EndTime = new(20, 0), DurationHours = 4 };
         shiftTypeRepo.ShiftTypes.AddRange(new[] { v1Morning, v1Afternoon, v1Evening });
 
-        // Version 2 active
+        // Phiên bản 2 đang hoạt động.
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 4, ShiftCode = "MORNING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 1, StartTime = new(7, 0), EndTime = new(12, 0), DurationHours = 5 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 5, ShiftCode = "AFTERNOON", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 2, StartTime = new(12, 0), EndTime = new(17, 0), DurationHours = 5 });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType { ShiftTypeId = 6, ShiftCode = "EVENING", ConfigurationVersion = 2, IsActive = true, DisplayOrder = 3, StartTime = new(17, 0), EndTime = new(21, 0), DurationHours = 4 });

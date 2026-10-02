@@ -11,6 +11,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Các test double dùng chung cho repository, clock và dependency nhỏ trong unit test.
 internal sealed class FakeClock : IClock
 {
     public DateTime UtcNow { get; init; }

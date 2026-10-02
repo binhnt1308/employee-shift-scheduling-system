@@ -3,6 +3,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTypes.Services;
 
+// Các hàm ánh xạ dữ liệu nghiệp vụ cấu hình ca làm việc sang ViewModel, tách khỏi luồng xử lý chính để dễ đọc.
 public sealed partial class ShiftTypeService
 {
     private static ShiftTypeListItemViewModel MapListItem(ShiftType shiftType) => new()

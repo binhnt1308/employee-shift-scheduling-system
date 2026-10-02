@@ -16,6 +16,8 @@ public partial class WorkScheduleService
         var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
         if (period is null) return new List<EligibleEmployeeOptionViewModel>();
 
+        // Tải dữ liệu liên quan theo lô một lần rồi đánh giá từng nhân viên trong bộ nhớ,
+        // tránh N+1 khi dựng danh sách ứng viên.
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
         var availabilities = await _availabilityRepository.GetByPeriodWithDetailsAsync(
             schedulePeriodId, null, null, workDate, shiftTypeId, cancellationToken);
@@ -103,6 +105,7 @@ public partial class WorkScheduleService
 
         shiftTypeMap.TryGetValue(shiftTypeId, out var targetShift);
 
+        // Gom mọi lý do không đủ điều kiện để giao diện giải thích đầy đủ thay vì chỉ trả lỗi đầu tiên.
         var reasons = new List<string>();
         if (!hasAvail) reasons.Add("Chưa đăng ký rảnh");
         if (hasLeave) reasons.Add("Có đơn nghỉ đã duyệt");

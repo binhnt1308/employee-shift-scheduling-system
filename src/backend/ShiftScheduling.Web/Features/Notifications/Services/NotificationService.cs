@@ -8,6 +8,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Notifications.Services;
 
+// Nhóm logic hỗ trợ cho nghiệp vụ thông báo.
 public sealed class NotificationService : INotificationService
 {
     private const int DefaultPageSize = 20;

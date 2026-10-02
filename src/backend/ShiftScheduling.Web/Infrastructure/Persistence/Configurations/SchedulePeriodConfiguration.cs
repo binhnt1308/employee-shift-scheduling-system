@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho kỳ lịch 7 ngày và thời hạn đăng ký.
 public sealed class SchedulePeriodConfiguration : IEntityTypeConfiguration<SchedulePeriod>
 {
     public void Configure(EntityTypeBuilder<SchedulePeriod> entity)

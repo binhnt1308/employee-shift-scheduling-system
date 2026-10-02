@@ -5,7 +5,7 @@ using ShiftScheduling.Models.Enums;
 namespace ShiftScheduling.Tests.WorkSchedules;
 
 /// <summary>
-/// Kiem tra cac mieu ranh gioy thoi gian (LC-04) voi quy tac nghi giua hai ca (BR20).
+/// Kiểm tra các mốc ranh giới thời gian (LC-04) của quy tắc nghỉ giữa hai ca (BR20).
 /// </summary>
 public sealed class SchedulingRestRuleEvaluatorBoundaryTests
 {

@@ -84,7 +84,7 @@ public sealed partial class AccountService : IAccountService
         CancellationToken cancellationToken = default)
     {
         var normalizedUsername = NormalizeUsername(model.Username);
-        // BR01: Chi quan tri vien duoc tao tai khoan va moi tai khoan chi co mot vai tro hop le.
+        // BR01: Chỉ quản trị viên được tạo tài khoản và mỗi tài khoản chỉ có một vai trò hợp lệ.
         var validation = await ValidateNewAccountAsync(model, normalizedUsername, cancellationToken);
         if (!validation.Result.Succeeded)
         {

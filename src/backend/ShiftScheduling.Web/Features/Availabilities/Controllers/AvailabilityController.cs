@@ -81,7 +81,7 @@ public sealed class AvailabilityController : AuthorizedController
 
     /// <summary>
     /// Lưu mẫu lịch rảnh tuần (NC-02).
-    /// AntiForgery + Employee auth. Server validate toàn bộ DayOfWeek/ShiftCode/PreferenceLevel.
+    /// Yêu cầu AntiForgery và quyền Nhân viên; server kiểm tra lại toàn bộ DayOfWeek, ShiftCode và PreferenceLevel.
     /// </summary>
     [Authorize(Roles = RoleNames.Employee)]
     [HttpPost]
@@ -116,7 +116,7 @@ public sealed class AvailabilityController : AuthorizedController
             : RedirectToAction(nameof(Index));
     }
 
-    /// <summary>Màn hình Quản lý xem và lọc lịch rảnh của nhân viên (Read-only).</summary>
+    /// <summary>Màn hình chỉ đọc để Quản lý xem và lọc lịch rảnh của nhân viên.</summary>
     [Authorize(Roles = RoleNames.Manager)]
     [HttpGet]
     public async Task<IActionResult> Overview(

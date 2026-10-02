@@ -22,7 +22,7 @@ using ShiftScheduling.Models.Results;
 namespace ShiftScheduling.Features.WorkSchedules.Services;
 
 /// <summary>
-/// Service ho tro phan cong (UC05), sinh lich OR-Tools (UC06) va cong bo lich (UC07).
+/// Service hỗ trợ phân công (UC05), sinh lịch OR-Tools (UC06) và công bố lịch (UC07).
 /// </summary>
 public partial class WorkScheduleService : IWorkScheduleService
 {

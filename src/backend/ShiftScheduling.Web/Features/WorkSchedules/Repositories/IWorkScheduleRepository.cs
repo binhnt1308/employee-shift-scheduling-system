@@ -3,6 +3,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.WorkSchedules.Repositories;
 
+// Khai báo thao tác dữ liệu cho lịch làm việc; các quy tắc nghiệp vụ vẫn thuộc Service.
 public interface IWorkScheduleRepository
 {
     Task<WorkSchedule?> GetByPeriodIdAsync(

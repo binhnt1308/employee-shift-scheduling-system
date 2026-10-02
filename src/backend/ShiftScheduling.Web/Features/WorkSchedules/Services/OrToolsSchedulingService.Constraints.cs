@@ -16,6 +16,7 @@ public sealed partial class OrToolsSchedulingService
         HashSet<(int EmployeeId, DateOnly WorkDate, int ShiftTypeId)> availSet,
         List<LeaveRequest> leaveSet)
     {
+        // Mỗi biến bị khóa về 0 nếu nhân viên không rảnh, đang nghỉ đã duyệt hoặc đã ngừng hoạt động.
         int empCount = activeEmployees.Count;
         for (int e = 0; e < empCount; e++)
         {
@@ -50,6 +51,7 @@ public sealed partial class OrToolsSchedulingService
         List<ShiftType> fixedShifts,
         Dictionary<(DateOnly WorkDate, int ShiftTypeId), StaffingRequirement> reqMap)
     {
+        // Mỗi ngày/ca phải đạt đúng định mức theo vị trí và có ít nhất một nhân viên đủ kinh nghiệm khi ca có nhu cầu.
         int empCount = activeEmployees.Count;
         for (int d = 0; d < 7; d++)
         {
@@ -101,6 +103,7 @@ public sealed partial class OrToolsSchedulingService
 
         var (policyMax, allowSplit) = policy;
 
+        // Từ đây áp dụng tải công việc theo từng nhân viên: số ca/ngày, ca gãy, số ngày/tuần và nghỉ giữa hai ngày.
         // BR20 / BRD BR-03: Xác định các cặp ca liên tiếp giữa ngày D và D+1 không đạt khoảng nghỉ tối thiểu 12 giờ
         var invalidConsecutiveShiftPairs = new List<(int ShiftIdx1, int ShiftIdx2)>();
         if (fixedShifts != null)

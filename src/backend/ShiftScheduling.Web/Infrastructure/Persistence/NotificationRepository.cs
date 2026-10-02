@@ -6,6 +6,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Infrastructure.Persistence;
 
+// Triển khai truy vấn/lưu thông báo nội bộ bằng EF Core, bao gồm trạng thái đã đọc và người nhận.
 public sealed class NotificationRepository : INotificationRepository
 {
     private readonly ApplicationDbContext _dbContext;

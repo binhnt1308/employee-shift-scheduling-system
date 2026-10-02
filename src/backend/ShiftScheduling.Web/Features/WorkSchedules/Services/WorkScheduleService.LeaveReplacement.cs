@@ -22,6 +22,10 @@ public partial class WorkScheduleService
         return await BuildLeaveReplacementCoreAsync(leaveRequest, cancellationToken);
     }
 
+    /// <summary>
+    /// Dựng danh sách ca bị ảnh hưởng và ứng viên thay thế cho một đơn nghỉ trên lịch đã công bố.
+    /// Hệ thống chỉ lọc ứng viên hợp lệ; Quản lý vẫn phải chủ động chọn và xác nhận người thay.
+    /// </summary>
     private async Task<LeaveReplacementViewModel?> BuildLeaveReplacementCoreAsync(
         LeaveRequest leaveRequest, CancellationToken cancellationToken)
     {
@@ -295,6 +299,8 @@ public partial class WorkScheduleService
         var oldSource = target.Source;
         var now = _clock.UtcNow;
 
+        // Thay thế có kiểm soát: chỉ đổi nhân viên trên phân công bị ảnh hưởng,
+        // không tự tạo hoặc xóa ca ngoài lựa chọn của Quản lý.
         target.EmployeeId = candidate.EmployeeId;
         target.Source = AssignmentSource.Manual;
         target.UpdatedAt = now;

@@ -21,6 +21,10 @@ public static partial class DemoDataSeeder
         }
     }
 
+    /// <summary>
+    /// Dựng tài khoản và hồ sơ nhân viên demo theo cặp để các luồng đăng nhập,
+    /// phân quyền và lịch làm việc dùng cùng một bộ dữ liệu.
+    /// </summary>
     private static List<Employee> BuildAccountsAndEmployees(
         DemoDataSet dataSet,
         DateTime nowUtc,

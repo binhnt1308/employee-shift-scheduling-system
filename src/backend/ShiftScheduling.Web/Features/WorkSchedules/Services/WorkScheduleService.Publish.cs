@@ -41,10 +41,10 @@ public partial class WorkScheduleService
         }
 
         // BR16: Tải dữ liệu mới nhất từ DB và kiểm tra lại toàn bộ các ràng buộc
-        // ngay trước khi công bố
+        // ngày trước khi công bố
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
 
-        // BR02: Khong cong bo lich neu con phan cong cho nhan vien da ngung hoat dong.
+        // BR02: Không công bố lịch nếu còn phân công cho nhân viên đã ngừng hoạt động.
         var activeEmployeeIds = activeEmployees.Select(e => e.EmployeeId).ToHashSet();
         if (schedule.ShiftAssignments.Any(a => !activeEmployeeIds.Contains(a.EmployeeId)))
         {
@@ -65,6 +65,7 @@ public partial class WorkScheduleService
             .ToList();
         var shiftsForValidation = periodShifts.Count == 3 ? periodShifts : allShifts;
 
+        // Công bố là điểm chốt cuối cùng: không tin kết quả validate trước đó mà kiểm tra lại trên dữ liệu mới nhất.
         var validationResult = _validationService.ValidateSchedule(
             period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
             schedule.ShiftAssignments.ToList(), shiftsForValidation);
@@ -79,6 +80,7 @@ public partial class WorkScheduleService
                 $" vi phạm bắt buộc. Không thể công bố: {errorSummary}");
         }
 
+        // Chỉ chuyển lịch sang Published sau khi toàn bộ ràng buộc bắt buộc đều hợp lệ.
         var now = _clock.UtcNow;
         await _workScheduleRepository.PublishScheduleAsync(schedule.WorkScheduleId, accountId, now, cancellationToken);
 
@@ -116,6 +118,7 @@ public partial class WorkScheduleService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Email chỉ là bước thông báo sau khi đã lưu; lỗi ở từng người nhận không được rollback lịch đã công bố.
         if (_emailSender is not null)
         {
             var assignedEmployees = activeEmployees
@@ -259,12 +262,12 @@ public partial class WorkScheduleService
         var period = publishedSchedule.SchedulePeriod;
         var fixedShifts = await ResolveFixedShiftsAsync(period, cancellationToken);
 
-        // Chi loc nhung ca cua chinh nhan vien dang dang nhap (UC08)
+        // Chỉ lấy các ca của chính nhân viên đang đăng nhập (UC08).
         var myAssignments = publishedSchedule.ShiftAssignments
             .Where(a => a.EmployeeId == employee.EmployeeId)
             .ToList();
 
-        // Dong bo voi man Manager: nap don nghi da duyet cua ky lich de hien thi dung trang thai nghi
+        // Nạp đơn nghỉ đã duyệt của kỳ lịch để Dashboard nhân viên hiển thị cùng trạng thái với màn hình Quản lý.
         var approvedLeaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             period.SchedulePeriodId, cancellationToken);
 

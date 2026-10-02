@@ -42,6 +42,9 @@ public sealed partial class DashboardService
         }
 
         var employee = account.Employee;
+
+        // Giữ nguyên phân công gốc trong dữ liệu; Dashboard chỉ thay cách hiển thị
+        // khi phân công đó được phủ bởi một đơn nghỉ đã duyệt.
         var assignments = GetEmployeeAssignments(
             employee.EmployeeId,
             hasSchedule,
@@ -57,6 +60,7 @@ public sealed partial class DashboardService
         {
             EmployeeFullName = employee.FullName,
             HasMySchedule = assignments.Count > 0,
+            // Ca được phủ bởi đơn nghỉ đã duyệt vẫn tồn tại trong lịch nhưng không được tính là ca làm của tuần.
             EmployeeTotalAssignedShifts = assignments.Count(
                 assignment => !HasApprovedLeave(assignment, approvedLeaves)),
             EmployeeWeekSchedule = BuildEmployeeWeekSchedule(
@@ -83,6 +87,10 @@ public sealed partial class DashboardService
             .ToList();
     }
 
+    /// <summary>
+    /// Đơn nghỉ cả ngày có ShiftTypeId = null nên áp dụng cho mọi ca trong ngày;
+    /// đơn nghỉ theo ca chỉ áp dụng khi ShiftTypeId khớp đúng phân công.
+    /// </summary>
     private static bool HasApprovedLeave(
         ShiftAssignment assignment,
         IReadOnlyList<LeaveRequest> approvedLeaves)

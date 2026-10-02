@@ -114,6 +114,7 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
             _clock.TodayInVietnam,
             cancellationToken);
 
+        // Chỉ cho phép xin nghỉ trên ca chưa kết thúc; ca quá khứ không còn là lựa chọn hợp lệ trên form.
         assignments = assignments
             .Where(a => ValidateNotEnded(a.WorkDate, a.ShiftType).Succeeded)
             .ToArray();
@@ -136,6 +137,7 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
             a.ShiftType?.EndTime ?? TimeOnly.MinValue
         )).ToArray();
 
+        // Mặc định ưu tiên kỳ hiện tại, rồi kỳ sắp tới, cuối cùng mới dùng kỳ gần nhất trong quá khứ.
         if (model.SchedulePeriodId == 0 && eligiblePeriods.Length > 0)
         {
             var today = _clock.TodayInVietnam;
@@ -204,6 +206,7 @@ public sealed partial class LeaveRequestService : ILeaveRequestService
             return validation;
         }
 
+        // Lưu đơn và AuditLog trước; lỗi ở bước gửi thông báo/email sau đó không được làm mất đơn đã gửi.
         var request = BuildLeaveRequest(employee.EmployeeId, model);
         _leaveRequestRepository.Add(request);
         AddAuditLog(actorAccountId, "SUBMIT_LEAVE_REQUEST", request, null, BuildAuditValues(request));

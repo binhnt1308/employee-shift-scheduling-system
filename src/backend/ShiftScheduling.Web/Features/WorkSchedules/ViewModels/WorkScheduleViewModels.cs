@@ -3,6 +3,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.WorkSchedules.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng xếp và quản lý lịch làm việc.
 public sealed class WorkScheduleIndexViewModel
 {
     public List<WorkSchedulePeriodItemViewModel> Periods { get; set; } = new();

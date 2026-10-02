@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Availabilities.Services;
 
+// Nhóm thao tác chuẩn bị và lưu thay đổi cho nghiệp vụ đăng ký lịch rảnh; validation được thực hiện trước khi vào đây.
 public sealed partial class AvailabilityService
 {
     private async Task SaveEmployeeAvailabilityChangesAsync(

@@ -6,6 +6,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Accounts.Repositories;
 
+// Triển khai truy vấn EF Core cho tài khoản và phân quyền; chỉ chuẩn bị dữ liệu và tracking theo nhu cầu của Service.
 public sealed class AccountRepository : IAccountRepository
 {
     private readonly ApplicationDbContext _dbContext;

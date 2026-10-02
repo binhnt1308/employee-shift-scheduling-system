@@ -255,7 +255,7 @@ public sealed class ShiftConfigurationLifecycleUnitTests
         var auditRepo = new FakeAuditLogRepository();
         var service = CreateService(repo, uow, auditRepo);
 
-        // Model with exact same times as active shifts (8:00-12:00, 12:00-16:00, 16:00-20:00)
+        // Dữ liệu cập nhật giữ nguyên khung giờ của ba ca đang hoạt động.
         var model = new ShiftConfigurationEditViewModel
         {
             ExpectedConfigurationVersion = 1,
@@ -274,7 +274,7 @@ public sealed class ShiftConfigurationLifecycleUnitTests
         Assert.Equal(0, uow.SaveCount);
         Assert.Empty(auditRepo.Items);
 
-        // Repo still only has the original 3 shifts, still version 1 and active
+        // Repository vẫn chỉ có ba ca gốc của phiên bản 1 và chúng vẫn đang hoạt động.
         var activeShifts = await repo.GetActiveShiftsAsync(true);
         Assert.Equal(3, activeShifts.Count);
         Assert.All(activeShifts, s => Assert.Equal(1, s.ConfigurationVersion));
@@ -300,7 +300,7 @@ public sealed class ShiftConfigurationLifecycleUnitTests
         Assert.Equal(3, activeShifts.Count);
         Assert.All(activeShifts, s => Assert.Equal(2, s.ConfigurationVersion));
 
-        // Total shifts in repo is 6 (3 old deactivated + 3 new active)
+        // Repository có 6 ca: 3 ca phiên bản cũ đã ngừng và 3 ca phiên bản mới đang hoạt động.
         Assert.Equal(6, repo.ShiftTypes.Count);
         Assert.Equal(3, repo.ShiftTypes.Count(s => !s.IsActive && s.ConfigurationVersion == 1));
         Assert.Equal(3, repo.ShiftTypes.Count(s => s.IsActive && s.ConfigurationVersion == 2));

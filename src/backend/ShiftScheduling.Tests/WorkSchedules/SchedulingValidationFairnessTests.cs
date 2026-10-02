@@ -11,7 +11,6 @@ public sealed class SchedulingValidationFairnessTests
     [Fact(DisplayName = "TC-SCHEDULE-022 - Issue #12: Cảnh báo công bằng PT hiển thị giá trị số thực tế, không chứa literal {minPt}/{maxPt}")]
     public void ValidateSchedule_WhenPartTimeWorkloadUnbalanced_FairnessWarningContainsActualNumbersAndNoLiterals()
     {
-        // Arrange
         var period = CreateTestPeriod();
         var shiftTypes = CreateThreeFixedShifts();
 
@@ -33,11 +32,9 @@ public sealed class SchedulingValidationFairnessTests
 
         var avails = CreateAvailabilities(assignments);
 
-        // Act
         var result = _service.ValidateSchedule(
             period, new[] { emp1, emp2 }, avails, new List<LeaveRequest>(), requirements, assignments, shiftTypes);
 
-        // Assert
         Assert.Contains(result.Warnings, w => w.Contains("1 ca đến 4 ca"));
         Assert.DoesNotContain(result.Warnings, w => w.Contains("{minPt}") || w.Contains("{maxPt}"));
     }
@@ -45,7 +42,6 @@ public sealed class SchedulingValidationFairnessTests
     [Fact(DisplayName = "TC-SCHEDULE-023 - Issue #12: Cảnh báo công bằng FT hiển thị giá trị số thực tế, không chứa literal {minFt}/{maxFt}")]
     public void ValidateSchedule_WhenFullTimeWorkloadUnbalanced_FairnessWarningContainsActualNumbersAndNoLiterals()
     {
-        // Arrange
         var period = CreateTestPeriod();
         var shiftTypes = CreateThreeFixedShifts();
 
@@ -70,11 +66,9 @@ public sealed class SchedulingValidationFairnessTests
 
         var avails = CreateAvailabilities(assignments);
 
-        // Act
         var result = _service.ValidateSchedule(
             period, new[] { emp1, emp2 }, avails, new List<LeaveRequest>(), requirements, assignments, shiftTypes);
 
-        // Assert
         Assert.Contains(result.Warnings, w => w.Contains("3 ngày đến 5 ngày"));
         Assert.DoesNotContain(result.Warnings, w => w.Contains("{minFt}") || w.Contains("{maxFt}"));
     }

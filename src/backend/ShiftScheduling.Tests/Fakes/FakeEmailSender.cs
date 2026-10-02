@@ -2,6 +2,7 @@ using ShiftScheduling.Common.Email;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Fake IEmailSender ghi nhận email đã gửi để kiểm thử notification mà không gọi SMTP thật.
 public sealed record SentEmail(string ToEmail, string Subject, string Body);
 
 public sealed class FakeEmailSender : IEmailSender

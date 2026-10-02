@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Reports.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng báo cáo ca và giờ làm.
 public sealed class WorkReportRowItemViewModel
 {
     public int Index { get; set; }

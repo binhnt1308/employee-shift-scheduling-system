@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu nhật ký thao tác dùng để truy vết thay đổi nghiệp vụ trong cơ sở dữ liệu.
 public sealed class AuditLog
 {
     public long AuditLogId { get; set; }

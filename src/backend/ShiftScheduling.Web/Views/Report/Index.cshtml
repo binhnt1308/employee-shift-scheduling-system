@@ -3,6 +3,8 @@
     ViewData["Title"] = "Báo cáo tổng hợp ca & giờ làm";
 }
 
+@* Báo cáo Quản lý: bộ lọc và số liệu đều lấy từ WorkReportService, View không tự tính nghiệp vụ. *@
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold mb-1"><i class="fa-solid fa-chart-column text-primary me-2"></i>Báo cáo tổng hợp ca & giờ làm</h3>
@@ -162,7 +164,7 @@
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-2">
-                            <!-- Full-time -->
+                            <!-- Nhân viên toàn thời gian -->
                             <div class="col-sm-6">
                                 <div class="p-2 px-3 rounded bg-light border h-100">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -195,7 +197,7 @@
                                 </div>
                             </div>
 
-                            <!-- Part-time -->
+                            <!-- Nhân viên bán thời gian -->
                             <div class="col-sm-6">
                                 <div class="p-2 px-3 rounded bg-light border h-100">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -330,7 +332,7 @@
         </div>
     </div>
 
-    <!-- TAB 2: Chi tiết ngày công & điều chỉnh giờ làm -->
+    <!-- TAB 2: Chỉ tiết ngày công & điều chỉnh giờ làm -->
     <div class="tab-pane fade" id="details-pane" role="tabpanel" aria-labelledby="details-tab" tabindex="0">
         <partial name="_WorkdayDetails" model="Model" />
     </div>

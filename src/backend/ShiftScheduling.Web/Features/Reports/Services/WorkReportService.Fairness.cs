@@ -12,6 +12,7 @@ public sealed partial class WorkReportService
         IReadOnlyList<ShiftAssignment> publishedAssignments,
         IReadOnlyList<StaffingRequirement>? requirements = null)
     {
+        // Lấy cả nhân viên có ca và nhân viên thuộc kỳ nhưng chưa được xếp ca để chênh lệch tải không bị "đẹp giả".
         var employeeMap = new Dictionary<int, Employee>();
 
         foreach (var assignment in publishedAssignments)
@@ -36,6 +37,7 @@ public sealed partial class WorkReportService
 
         var periodEmployees = employeeMap.Values.ToList();
 
+        // Khi navigation ShiftType chưa được nạp, dùng thời lượng từ StaffingRequirement làm nguồn dự phòng.
         var shiftDurationMap = new Dictionary<int, decimal>();
         if (requirements != null)
         {
