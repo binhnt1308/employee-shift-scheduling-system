@@ -1225,6 +1225,14 @@ hoặc secret của Azure, không commit vào repository.
 Schema trên môi trường triển khai được cập nhật bằng Entity Framework Core
 Migrations, không chỉnh sửa trực tiếp bằng công cụ quản trị.
 
+## Video demo
+
+🎥 [Xem video demo hệ thống](https://drive.google.com/drive/folders/1HQySNvFK6HeHenwC_qAur71WnWTtMi1w?usp=sharing)
+
+## Thông tin bản bảo vệ
+
+- Phiên bản: `v1.0`
+
 ---
 
 # 22. Repository
