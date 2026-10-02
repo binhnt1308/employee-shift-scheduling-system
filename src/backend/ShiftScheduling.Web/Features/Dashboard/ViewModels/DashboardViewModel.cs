@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Models.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng Dashboard tổng quan.
 public sealed class DashboardViewModel
 {
     public int AccountCount { get; init; }
@@ -38,4 +39,5 @@ public sealed class EmployeeDashboardShiftItemViewModel
     public string ShiftName { get; init; } = string.Empty;
     public string ShiftCode { get; init; } = string.Empty;
     public string ShiftHours { get; init; } = string.Empty;
+    public bool HasApprovedLeave { get; init; }
 }

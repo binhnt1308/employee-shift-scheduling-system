@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity biểu diễn hồ sơ nhân viên và các thuộc tính dùng cho quy tắc xếp lịch trong miền nghiệp vụ hồ sơ nhân viên.
 public class Employee
 {
     public int EmployeeId { get; set; }

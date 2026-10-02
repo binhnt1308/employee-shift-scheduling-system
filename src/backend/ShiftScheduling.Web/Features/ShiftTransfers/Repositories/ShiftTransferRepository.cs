@@ -7,6 +7,10 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.Repositories;
 
+/// <summary>
+/// Truy cập dữ liệu chuyển ca. Các truy vấn workflow nạp đủ assignment, kỳ lịch và nhân viên cần thiết
+/// để Service có thể kiểm tra hard rule trong bộ nhớ mà không phát sinh N+1.
+/// </summary>
 public sealed class ShiftTransferRepository : IShiftTransferRepository
 {
     private readonly ApplicationDbContext _dbContext;

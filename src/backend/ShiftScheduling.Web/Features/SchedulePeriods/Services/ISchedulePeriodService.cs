@@ -4,12 +4,12 @@ using ShiftScheduling.Models.Results;
 namespace ShiftScheduling.Features.SchedulePeriods.Services;
 
 /// <summary>
-/// Service quan ly ky lich va dinh muc nhan su theo FR03/UC03.
+/// Service quản lý kỳ lịch và định mức nhân sự theo FR03/UC03.
 /// </summary>
 public interface ISchedulePeriodService
 {
     /// <summary>
-    /// Lay danh sach cac ky lich co phan trang.
+    /// Lấy danh sách các kỳ lịch có phân trang.
     /// </summary>
     Task<SchedulePeriodIndexViewModel> GetIndexAsync(
         int page,
@@ -17,21 +17,21 @@ public interface ISchedulePeriodService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay thong tin chi tiet ky lich va dinh muc nhan su 21 ca trong tuan.
+    /// Lấy chi tiết kỳ lịch và 21 định mức nhân sự trong tuần.
     /// </summary>
     Task<SchedulePeriodDetailsViewModel?> GetDetailsAsync(
         int schedulePeriodId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay du lieu de chinh sua dinh muc nhan su 21 ca trong tuan.
+    /// Lấy dữ liệu để chỉnh sửa 21 định mức nhân sự trong tuần.
     /// </summary>
     Task<StaffingRequirementEditViewModel?> GetEditStaffingAsync(
         int schedulePeriodId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tao ky lich 7 ngay va khoi tao 21 dong dinh muc ca lam viec.
+    /// Tạo kỳ lịch 7 ngày và khởi tạo 21 dòng định mức ca làm việc.
     /// </summary>
     Task<ServiceResult> CreateAsync(
         SchedulePeriodCreateViewModel model,
@@ -39,7 +39,7 @@ public interface ISchedulePeriodService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cap nhat dinh muc nhan su ban hang va thu ngan cho 21 ca trong tuan.
+    /// Cập nhật định mức nhân sự bán hàng và thu ngân cho 21 ca trong tuần.
     /// </summary>
     Task<ServiceResult> UpdateStaffingAsync(
         StaffingRequirementEditViewModel model,
@@ -47,7 +47,7 @@ public interface ISchedulePeriodService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Mo dang ky lich ranh cho ky lich khi du lieu va thoi han hop le.
+    /// Mở đăng ký lịch rảnh khi dữ liệu kỳ lịch và thời hạn hợp lệ.
     /// </summary>
     Task<ServiceResult> OpenRegistrationAsync(
         int schedulePeriodId,

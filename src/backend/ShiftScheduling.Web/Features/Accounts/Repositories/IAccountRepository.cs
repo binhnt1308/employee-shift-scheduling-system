@@ -3,6 +3,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Accounts.Repositories;
 
+// Khai báo các thao tác dữ liệu cần cho nghiệp vụ tài khoản và phân quyền; Service giữ quyền quyết định business rule.
 public interface IAccountRepository
 {
 

@@ -32,7 +32,7 @@ public sealed class WeeklyAvailabilityPatternRepository : IWeeklyAvailabilityPat
         DateTime now,
         CancellationToken cancellationToken = default)
     {
-        // DB-07: batch load tất cả pattern hiện tại, tránh N+1.
+        // DB-07: Tải toàn bộ mẫu hiện tại theo một lô để tránh truy vấn N+1.
         var existing = await _dbContext.WeeklyAvailabilityPatterns
             .Where(p => p.EmployeeId == employeeId)
             .ToListAsync(cancellationToken);
@@ -44,7 +44,7 @@ public sealed class WeeklyAvailabilityPatternRepository : IWeeklyAvailabilityPat
 
         var existingMap = existing.ToDictionary(p => (p.DayOfWeek, p.ShiftCode));
 
-        // Xóa các entry không còn trong danh sách mới
+        // Đồng bộ theo dữ liệu mới: mục không còn được chọn phải bị xóa khỏi mẫu tuần.
         foreach (var item in existing)
         {
             if (!newKeys.Contains((item.DayOfWeek, item.ShiftCode)))
@@ -57,7 +57,7 @@ public sealed class WeeklyAvailabilityPatternRepository : IWeeklyAvailabilityPat
         {
             if (existingMap.TryGetValue((dayOfWeek, shiftCode), out var existingEntry))
             {
-                // Cập nhật preference nếu thay đổi
+                // Giữ bản ghi hiện có và chỉ cập nhật mức nguyện vọng khi người dùng thay đổi.
                 if (existingEntry.PreferenceLevel != preferenceLevel)
                 {
                     existingEntry.PreferenceLevel = preferenceLevel;
@@ -66,7 +66,7 @@ public sealed class WeeklyAvailabilityPatternRepository : IWeeklyAvailabilityPat
             }
             else
             {
-                // Thêm mới
+                // Chỉ tạo bản ghi khi tổ hợp ngày/ca chưa tồn tại trong mẫu hiện tại.
                 _dbContext.WeeklyAvailabilityPatterns.Add(new WeeklyAvailabilityPattern
                 {
                     EmployeeId = employeeId,

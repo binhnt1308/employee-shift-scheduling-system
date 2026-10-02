@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho tài khoản đăng nhập, vai trò và liên kết hồ sơ nhân viên.
 public sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
 {
     public void Configure(EntityTypeBuilder<UserAccount> entity)

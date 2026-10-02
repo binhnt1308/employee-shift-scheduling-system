@@ -16,7 +16,7 @@ public sealed partial class AvailabilityService
         List<WeeklyPatternEntryInputViewModel> entries,
         CancellationToken cancellationToken = default)
     {
-        // SE-06: Kiểm quyền từng record – Employee chỉ lưu mẫu của chính mình.
+        // SE-06: Kiểm quyền trên từng bản ghi – Nhân viên chỉ được lưu mẫu của chính mình.
         var employee = await _employeeRepository.GetByAccountIdAsync(accountId, true, cancellationToken);
         if (employee is null || !employee.IsActive)
         {

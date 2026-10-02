@@ -4,6 +4,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Fake repository kỳ lịch dùng dữ liệu trong bộ nhớ để unit test Service độc lập với EF Core.
 public sealed class FakeSchedulePeriodRepository : ISchedulePeriodRepository
 {
     public List<SchedulePeriod> SchedulePeriods { get; } = new();

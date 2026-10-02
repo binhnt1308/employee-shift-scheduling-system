@@ -32,6 +32,7 @@ public static partial class DemoDataSeeder
         "NV01", "NV02", "NV03", "NV04", "NV05", "NV06", "NV07", "NV08"
     ];
 
+    public const string ClosedDemoPeriodMarker = "(Demo đã đóng)";
     public const string PublishedDemoPeriodMarker = "(Demo đã công bố)";
     public const string ReadyToScheduleDemoPeriodMarker = "(Demo sẵn sàng xếp lịch)";
     public const string RegistrationDemoPeriodMarker = "(Demo đang đăng ký)";
@@ -43,24 +44,41 @@ public static partial class DemoDataSeeder
     ];
 
     /// <summary>
-    /// Tính toán ngày Thứ Hai của 3 kỳ demo đại diện cho 3 giai đoạn nghiệp vụ:
-    /// 1. Kỳ quá khứ đã công bố (tuần trước)
-    /// 2. Kỳ sẵn sàng xếp lịch (tuần tới)
-    /// 3. Kỳ đang mở đăng ký (tuần sau nữa)
+    /// Tính toán ngày Thứ Hai của 4 kỳ demo đại diện cho 4 giai đoạn vòng đời nghiệp vụ:
+    /// 1. Kỳ quá khứ đã đóng lịch sử (tuần trước)
+    /// 2. Kỳ hiện tại đã công bố và đang áp dụng (tuần này)
+    /// 3. Kỳ sắp đến đã hết hạn đăng ký, sẵn sàng xếp lịch (tuần tới)
+    /// 4. Kỳ tương lai đang mở đăng ký lịch rảnh (tuần sau nữa)
     /// </summary>
-    public static (DateOnly PastWeekStart, DateOnly ReadyWeekStart, DateOnly FutureWeekStart) CalculatePeriodDates(DateOnly today)
+    public static (
+        DateOnly PreviousWeekStart,
+        DateOnly CurrentWeekStart,
+        DateOnly NextWeekStart,
+        DateOnly FollowingWeekStart) CalculateFourPeriodDates(DateOnly today)
     {
         int daysFromMonday = ((int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek) - 1;
         var currentMonday = today.AddDays(-daysFromMonday);
-        var pastWeekStart = currentMonday.AddDays(-7);
-        var readyWeekStart = currentMonday.AddDays(7);
-        var futureWeekStart = currentMonday.AddDays(14);
+        var previousWeekStart = currentMonday.AddDays(-7);
+        var currentWeekStart = currentMonday;
+        var nextWeekStart = currentMonday.AddDays(7);
+        var followingWeekStart = currentMonday.AddDays(14);
 
-        return (pastWeekStart, readyWeekStart, futureWeekStart);
+        return (previousWeekStart, currentWeekStart, nextWeekStart, followingWeekStart);
     }
 
     /// <summary>
-    /// Khởi tạo toàn bộ dữ liệu mẫu vào database nếu đáp ứng điều kiện an toàn.
+    /// Tính toán ngày Thứ Hai của các kỳ demo (phương thức tương thích ngược cho 3 kỳ).
+    /// </summary>
+    public static (DateOnly PastWeekStart, DateOnly ReadyWeekStart, DateOnly FutureWeekStart)
+        CalculatePeriodDates(DateOnly today)
+    {
+        var (previousWeekStart, _, nextWeekStart, followingWeekStart) = CalculateFourPeriodDates(today);
+        return (previousWeekStart, nextWeekStart, followingWeekStart);
+    }
+
+    /// <summary>
+    /// Khởi tạo bộ dữ liệu demo theo mốc thời gian từ IClock nếu database đáp ứng điều kiện an toàn.
+    /// Toàn bộ kịch bản được dựng nhất quán trước khi lưu để có thể demo lặp lại và kiểm thử xác định.
     /// </summary>
     public static async Task<bool> SeedAsync(
         ApplicationDbContext dbContext,
@@ -68,7 +86,7 @@ public static partial class DemoDataSeeder
         IClock clock,
         CancellationToken cancellationToken = default)
     {
-        // Kiểm tra điều kiện an toàn để tránh ghi đè dữ liệu nghiệp vụ hoặc tạo trùng dữ liệu
+        // Kiểm tra an toàn để tránh ghi đè dữ liệu nghiệp vụ hoặc tạo trùng dữ liệu
         var totalEmployees = await dbContext.Employees.CountAsync(cancellationToken);
 
         var existingPeriods = await dbContext.SchedulePeriods
@@ -76,6 +94,7 @@ public static partial class DemoDataSeeder
             .ToListAsync(cancellationToken);
 
         var allPeriodNames = existingPeriods.Select(p => p.PeriodName).ToList();
+        // Không seed chồng lên dữ liệu nghiệp vụ hoặc một bộ demo đã tồn tại một phần.
         var decision = EvaluateSeedPrecondition(totalEmployees, allPeriodNames);
 
         if (decision != SeedDecision.ProceedWithFreshSeed)
@@ -84,11 +103,14 @@ public static partial class DemoDataSeeder
         }
 
         var today = clock.TodayInVietnam;
-        var (pastWeekStart, readyWeekStart, futureWeekStart) = CalculatePeriodDates(today);
+        var (prevWeekStart, currWeekStart, nextWeekStart, followWeekStart) = CalculateFourPeriodDates(today);
 
         // Tránh xung đột ngày bắt đầu kỳ nếu người dùng đã tạo thủ công kỳ trùng ngày
         if (await dbContext.SchedulePeriods.AnyAsync(
-            p => p.WeekStartDate == pastWeekStart || p.WeekStartDate == readyWeekStart || p.WeekStartDate == futureWeekStart, cancellationToken))
+            p => p.WeekStartDate == prevWeekStart
+              || p.WeekStartDate == currWeekStart
+              || p.WeekStartDate == nextWeekStart
+              || p.WeekStartDate == followWeekStart, cancellationToken))
         {
             return false;
         }
@@ -100,10 +122,13 @@ public static partial class DemoDataSeeder
 
         try
         {
-            var dataSet = BuildDemoDataSet(today, passwordHashService, clock);
+            // Dựng toàn bộ bộ dữ liệu trong bộ nhớ trước rồi mới AddRange/SaveChanges để ID và quan hệ nhất quán.
+            var dataSet = BuildFourPeriodDemoDataSet(today, passwordHashService, clock);
 
             // Tra cứu tài khoản hiện có để tránh trùng tên đăng nhập đã được tạo sẵn
             var existingAccounts = await dbContext.UserAccounts.ToListAsync(cancellationToken);
+            SynchronizeExistingDemoAccountPasswords(existingAccounts, passwordHashService);
+
             var existingUsernames = existingAccounts
                 .Select(u => u.Username)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -151,9 +176,12 @@ public static partial class DemoDataSeeder
 
             if (activeShiftTypes.Count >= 3)
             {
-                var morningShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "MORNING") ?? activeShiftTypes[0];
-                var afternoonShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "AFTERNOON") ?? activeShiftTypes[1];
-                var eveningShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "EVENING") ?? activeShiftTypes[2];
+                var morningShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "MORNING")
+                    ?? activeShiftTypes[0];
+                var afternoonShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "AFTERNOON")
+                    ?? activeShiftTypes[1];
+                var eveningShift = activeShiftTypes.FirstOrDefault(st => st.ShiftCode == "EVENING")
+                    ?? activeShiftTypes[2];
 
                 var shiftIdMap = new Dictionary<int, int>
                 {
@@ -188,8 +216,10 @@ public static partial class DemoDataSeeder
             }
 
             // Đồng bộ CreatedByAccountId theo tài khoản quản lý
-            var managerAccount = existingAccounts.FirstOrDefault(u => string.Equals(u.Username, PrimaryManagerUsername, StringComparison.OrdinalIgnoreCase))
-                ?? accountsToInsert.FirstOrDefault(u => string.Equals(u.Username, PrimaryManagerUsername, StringComparison.OrdinalIgnoreCase));
+            var managerAccount = existingAccounts.FirstOrDefault(
+                u => string.Equals(u.Username, PrimaryManagerUsername, StringComparison.OrdinalIgnoreCase))
+                ?? accountsToInsert.FirstOrDefault(
+                    u => string.Equals(u.Username, PrimaryManagerUsername, StringComparison.OrdinalIgnoreCase));
             int managerId = managerAccount?.UserAccountId > 0 ? managerAccount.UserAccountId : 2;
 
             foreach (var period in dataSet.Periods)

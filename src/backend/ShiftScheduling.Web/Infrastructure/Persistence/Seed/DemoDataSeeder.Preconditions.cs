@@ -15,52 +15,52 @@ public static partial class DemoDataSeeder
 
     /// <summary>
     /// Xác định có nên tạo dữ liệu demo dựa trên trạng thái hiện tại của database.
-    /// Nhận diện SEED IDENTITY dựa trên exact demo marker constants (EndsWith).
-    /// Không kiểm tra dữ liệu nghiệp vụ mutable để đảm bảo không crash startup sau khi người dùng thao tác.
+    /// Nhận diện bộ demo bằng các marker cố định; chỉ coi là demo khi khớp đúng quy ước hậu tố.
+    /// Không kiểm tra dữ liệu mutable để đảm bảo không crash startup sau khi người dùng thao tác.
     /// </summary>
     public static SeedDecision EvaluateSeedPrecondition(
         int totalEmployees,
         IEnumerable<string> existingPeriodNames)
     {
-        var periodList = existingPeriodNames.ToList();
-        var hasPublishedPeriod = periodList.Any(name => name.EndsWith(PublishedDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-        var hasReadyPeriod = periodList.Any(name => name.EndsWith(ReadyToScheduleDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-        var hasRegistrationPeriod = periodList.Any(name => name.EndsWith(RegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-        var hasLegacyRegistrationPeriod = periodList.Any(name => name.EndsWith(LegacyRegistrationDemoPeriodMarker, StringComparison.OrdinalIgnoreCase));
-
-        var hasAnyDemoPeriod = hasPublishedPeriod || hasReadyPeriod || hasRegistrationPeriod || hasLegacyRegistrationPeriod;
+        var list = existingPeriodNames.ToList();
+        bool Has(string m) => list.Any(n => n.EndsWith(m, StringComparison.OrdinalIgnoreCase));
+        var hasClosed = Has(ClosedDemoPeriodMarker);
+        var hasPublished = Has(PublishedDemoPeriodMarker);
+        var hasReady = Has(ReadyToScheduleDemoPeriodMarker);
+        var hasRegistration = Has(RegistrationDemoPeriodMarker);
+        var hasLegacy = Has(LegacyRegistrationDemoPeriodMarker);
 
         // 1. Không chứa bất kỳ marker demo nào
-        if (!hasAnyDemoPeriod)
+        if (!hasClosed && !hasPublished && !hasReady && !hasRegistration && !hasLegacy)
         {
-            if (totalEmployees == 0 && periodList.Count == 0)
-            {
-                return SeedDecision.ProceedWithFreshSeed;
-            }
-
-            // Database đã có nhân viên hoặc kỳ lịch nghiệp vụ thực tế
-            return SeedDecision.SkipExistingBusinessData;
+            return (totalEmployees == 0 && list.Count == 0)
+                ? SeedDecision.ProceedWithFreshSeed
+                : SeedDecision.SkipExistingBusinessData;
         }
 
-        // 2. Bộ demo mới 3 kỳ hoàn chỉnh
-        if (hasPublishedPeriod && hasReadyPeriod && hasRegistrationPeriod && !hasLegacyRegistrationPeriod)
+        // 2. Bộ demo mới 4 kỳ hoàn chỉnh
+        if (hasClosed && hasPublished && hasReady && hasRegistration && !hasLegacy)
         {
             return SeedDecision.SkipAlreadySeeded;
         }
 
-        // 3. Bộ demo legacy 2 kỳ hoàn chỉnh
-        if (hasPublishedPeriod && hasLegacyRegistrationPeriod && !hasReadyPeriod && !hasRegistrationPeriod)
+        // 3. Bộ demo 3 kỳ tương thích
+        if (!hasClosed && hasPublished && hasReady && hasRegistration && !hasLegacy)
+        {
+            return SeedDecision.SkipAlreadySeeded;
+        }
+
+        // 4. Nhận diện bộ demo cũ gồm hai kỳ hoàn chỉnh để tránh seed chồng.
+        if (hasPublished && hasLegacy && !hasReady && !hasRegistration && !hasClosed)
         {
             return SeedDecision.SkipLegacyDemoDataset;
         }
 
-        // 4. Tổ hợp marker demo không hợp lệ hoặc thiếu kỳ -> Báo lỗi bảo vệ toàn vẹn dữ liệu
+        // 5. Tổ hợp marker demo không hợp lệ hoặc thiếu kỳ -> Báo lỗi bảo vệ dữ liệu
         throw new InvalidOperationException(
-            $"Partial demo dataset detected: Database contains demo period markers but lacks a valid complete demo dataset. " +
-            $"Published demo period: {hasPublishedPeriod}, " +
-            $"Ready to schedule demo period: {hasReadyPeriod}, " +
-            $"Registration demo period: {hasRegistrationPeriod}, " +
-            $"Legacy registration demo period: {hasLegacyRegistrationPeriod}. " +
+            "Partial demo dataset detected: Database contains demo period markers but lacks complete demo set. " +
+            $"Closed: {hasClosed}, Published: {hasPublished}, Ready: {hasReady}, " +
+            $"Registration: {hasRegistration}, Legacy: {hasLegacy}. " +
             "Seeder will not proceed to prevent data corruption.");
     }
 
@@ -97,7 +97,7 @@ public static partial class DemoDataSeeder
     }
 
     /// <summary>
-    /// Kiểm tra xem database đã có đầy đủ bộ dữ liệu mẫu (3 kỳ mới hoặc legacy 2 kỳ) hay chưa để đảm bảo không tạo lặp lại.
+    /// Kiểm tra xem database đã có đầy đủ bộ dữ liệu mẫu hay chưa để tránh tạo lặp.
     /// </summary>
     public static bool IsAlreadySeeded(
         IEnumerable<string> existingEmployeeCodes,

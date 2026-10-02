@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Results;
 
 namespace ShiftScheduling.Features.Reports.Services;
 
+// Khai báo các ca sử dụng nghiệp vụ của chức năng báo cáo ca và giờ làm để Controller không phụ thuộc implementation.
 public interface IWorkReportService
 {
     Task<ManagerWorkReportOverviewViewModel?> GetManagerReportOverviewAsync(

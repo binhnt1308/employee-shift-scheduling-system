@@ -4,6 +4,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.LeaveRequests.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng đơn xin nghỉ.
 public sealed class LeaveRequestIndexViewModel
 {
     public bool IsManager { get; init; }
@@ -70,6 +71,9 @@ public sealed class LeaveRequestDetailsViewModel
     public bool CanReview { get; init; }
     public bool CanCancel { get; init; }
     public bool IsManager { get; init; }
+    public int SchedulePeriodId { get; init; }
+    public bool NeedsReplacement => IsManager && Status == LeaveRequestStatus.Approved && HasPublishedAssignment;
+    public bool ReplacementHandled => IsManager && Status == LeaveRequestStatus.Approved && !HasPublishedAssignment;
     public string RowVersion { get; init; } = string.Empty;
 }
 
@@ -83,6 +87,8 @@ public sealed class LeaveRequestReviewViewModel
     public string? ManagerNote { get; set; }
 
     public LeaveRequestDetailsViewModel Details { get; set; } = new();
+
+    public ShiftScheduling.Features.WorkSchedules.ViewModels.LeaveReplacementViewModel? ReplacementPreview { get; set; }
 }
 
 public sealed record LeavePeriodOptionViewModel(

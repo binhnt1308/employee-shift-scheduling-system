@@ -27,7 +27,7 @@ public sealed class AuthenticationService : IAuthenticationService
             normalizedUsername,
             cancellationToken);
 
-        // BR01: Tai khoan bi khoa khong duoc dang nhap vao he thong.
+        // BR01: Tài khoản bị khóa không được đăng nhập vào hệ thống.
         if (account is null || account.IsLocked)
         {
             return null;

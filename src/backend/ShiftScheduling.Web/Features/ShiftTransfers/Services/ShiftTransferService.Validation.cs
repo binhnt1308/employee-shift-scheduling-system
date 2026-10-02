@@ -84,6 +84,9 @@ public sealed partial class ShiftTransferService
     {
         var errors = new List<string>();
         var warnings = new List<string>();
+
+        // Kiểm tra ca, người gửi và người nhận trước để không truy vấn thêm dữ liệu
+        // khi điều kiện nền tảng đã không hợp lệ.
         AddAssignmentAndIdentityErrors(assignment, sender, receiver, errors);
         if (errors.Count > 0)
         {
@@ -150,6 +153,7 @@ public sealed partial class ShiftTransferService
             return;
         }
 
+        // Loại người gửi khỏi ca rồi giả lập thêm người nhận để kiểm tra định mức theo vị trí sau khi chuyển.
         var employees = assignments
             .Where(item => item.ShiftAssignmentId != target.ShiftAssignmentId)
             .Select(item => item.Employee)

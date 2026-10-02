@@ -3,6 +3,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Employees.Repositories;
 
+// Khai báo các thao tác dữ liệu cần cho nghiệp vụ hồ sơ nhân viên; Service giữ quyền quyết định business rule.
 public interface IEmployeeRepository
 {
     Task<PagedResult<Employee>> GetPagedAsync(

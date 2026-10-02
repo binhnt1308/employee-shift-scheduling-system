@@ -3,6 +3,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Common.Notifications;
 
+// Khai báo các truy vấn và thao tác lưu thông báo nội bộ cho người dùng.
 public interface INotificationRepository
 {
     void Add(Notification notification);

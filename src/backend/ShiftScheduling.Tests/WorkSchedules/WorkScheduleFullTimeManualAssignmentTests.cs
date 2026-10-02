@@ -70,7 +70,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
     {
         var (period, emp, morning, afternoon, _) = await SetupPeriodWithFullTimeEmployeeAsync();
 
-        // Step 1: Assign Morning
+        // Bước 1: phân công ca Sáng.
         await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -79,7 +79,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
             ShiftTypeId = morning.ShiftTypeId
         }, accountId: 2);
 
-        // Step 2: Assign Afternoon
+        // Bước 2: phân công thêm ca Chiều trong cùng ngày.
         var result = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -322,7 +322,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         _availRepo.Availabilities.Add(new Availability { EmployeeId = emp.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = morning.ShiftTypeId });
         _availRepo.Availabilities.Add(new Availability { EmployeeId = emp.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = afternoon.ShiftTypeId });
 
-        // First shift
+        // Ca thứ nhất trong ngày.
         await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -331,7 +331,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
             ShiftTypeId = morning.ShiftTypeId
         }, accountId: 2);
 
-        // Second shift on same day
+        // Ca thứ hai trong cùng ngày.
         var result = await _scheduleService.AssignEmployeeManualAsync(new ManualAssignRequestViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -409,7 +409,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
     {
         var (period, emp, morning, afternoon, _) = await SetupPeriodWithFullTimeEmployeeAsync();
 
-        // Cấu hình kỳ với MaxShiftsPerEmployeePerDay = 1 (Version 2)
+        // Cấu hình kỳ dùng phiên bản 2 với giới hạn tối đa 1 ca/ngày.
         period.StaffingRequirements.Clear();
         var shiftsV2 = new[]
         {
@@ -460,7 +460,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
     {
         var (period, emp, morning, _, evening) = await SetupPeriodWithFullTimeEmployeeAsync();
 
-        // Cấu hình kỳ với Max=2, AllowSplitShift=true (Version 2)
+        // Cấu hình kỳ dùng phiên bản 2: tối đa 2 ca/ngày và cho phép ca gãy.
         period.StaffingRequirements.Clear();
         var shiftsSplit = new[]
         {
@@ -559,10 +559,10 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
     [Fact(DisplayName = "TC-MANUAL-REQ-01 - GetEligibleEmployeesForShiftAsync nạp requirements khi includeRequirements = true")]
     public async Task GetEligibleEmployeesForShiftAsync_WhenRequirementsRequireExplicitInclude_LoadsPeriodPolicy()
     {
-        // 1. Tạo period, employee, ba ShiftType, Availability bằng helper hiện có
+        // 1. Dựng kỳ lịch, nhân viên, ba ca và lịch rảnh bằng helper dùng chung.
         var (period, emp, morning, _, _) = await SetupPeriodWithFullTimeEmployeeAsync();
 
-        // 2. Lưu bản sao các StaffingRequirements của period
+        // 2. Giữ bản sao StaffingRequirement để kiểm tra thao tác phân công không làm thay đổi định mức.
         var requirements = period.StaffingRequirements.ToList();
 
         // 3. Đưa các requirement đó vào FakeSchedulePeriodRepository.Requirements
@@ -575,7 +575,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
         var options = await _scheduleService.GetEligibleEmployeesForShiftAsync(
             period.SchedulePeriodId, period.WeekStartDate, morning.ShiftTypeId);
 
-        // 6 & 7. Assertion
+        // Bước 6-7: kiểm tra kết quả và các tác động liên quan.
         var option = Assert.Single(options, o => o.EmployeeId == emp.EmployeeId);
         Assert.True(option.IsEligible, option.IneligibilityReason);
         Assert.DoesNotContain("Kỳ lịch không có dữ liệu ca làm việc hoặc định mức nhân sự.", option.IneligibilityReason ?? string.Empty);
@@ -821,7 +821,7 @@ public sealed class WorkScheduleFullTimeManualAssignmentTests
 
         await _workScheduleRepo.EnsureDraftExistsAsync(period.SchedulePeriodId, 2, _clock.UtcNow);
 
-        // Add availability for all shifts
+        // Đăng ký rảnh cho toàn bộ ca để tách biệt kiểm thử quy tắc phân công.
         _availRepo.Availabilities.Add(new Availability { EmployeeId = emp.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = morning.ShiftTypeId });
         _availRepo.Availabilities.Add(new Availability { EmployeeId = emp.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = afternoon.ShiftTypeId });
         _availRepo.Availabilities.Add(new Availability { EmployeeId = emp.EmployeeId, SchedulePeriodId = period.SchedulePeriodId, WorkDate = period.WeekStartDate, ShiftTypeId = evening.ShiftTypeId });

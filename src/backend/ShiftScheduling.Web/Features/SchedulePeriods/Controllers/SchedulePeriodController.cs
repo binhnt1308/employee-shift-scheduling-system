@@ -9,9 +9,9 @@ using ShiftScheduling.Models.Constants;
 namespace ShiftScheduling.Features.SchedulePeriods.Controllers;
 
 /// <summary>
-/// Controller quan ly ky lich va dinh muc nhan su (FR03/UC03).
+/// Controller quản lý kỳ lịch và định mức nhân sự (FR03/UC03).
 /// </summary>
-// BR01: Chi Quan ly cua hang duoc truy cap chuc nang thiet lap ky lich va dinh muc ca.
+// BR01: Chỉ Quản lý cửa hàng được truy cập chức năng thiết lập kỳ lịch và định mức ca.
 [Authorize(Roles = RoleNames.Manager)]
 public sealed class SchedulePeriodController : AuthorizedController
 {
@@ -27,7 +27,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi danh sach ky lich.
+    /// Hiển thị danh sách kỳ lịch.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -40,7 +40,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Form tao ky lich moi.
+    /// Hiển thị form tạo kỳ lịch mới.
     /// </summary>
     [HttpGet]
     public IActionResult Create()
@@ -64,7 +64,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly tao ky lich moi.
+    /// Xử lý tạo kỳ lịch mới.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -89,7 +89,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Xem chi tiet ky lich va 21 dinh muc ca.
+    /// Xem chi tiết kỳ lịch và 21 định mức ca.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Details(
@@ -106,7 +106,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Form chinh sua dinh muc nhan su 21 ca trong tuan.
+    /// Hiển thị form chỉnh sửa 21 định mức nhân sự trong tuần.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> EditStaffing(
@@ -123,7 +123,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly cap nhat dinh muc nhan su 21 ca trong tuan.
+    /// Xử lý cập nhật 21 định mức nhân sự trong tuần.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -148,7 +148,7 @@ public sealed class SchedulePeriodController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly mo dang ky lich ranh cho ky lich.
+    /// Xử lý mở đăng ký lịch rảnh cho kỳ lịch.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]

@@ -6,6 +6,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Fake repository chuyển ca phục vụ unit test các rule mà không cần cơ sở dữ liệu thật.
 internal sealed class FakeShiftTransferRepository : IShiftTransferRepository
 {
     public List<Employee> Employees { get; } = [];

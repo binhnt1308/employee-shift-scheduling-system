@@ -5,6 +5,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.Repositories;
 
+// Khai báo thao tác dữ liệu cho chuyển ca; các quyết định nghiệp vụ vẫn thuộc Service.
 public interface IShiftTransferRepository
 {
     Task<Employee?> GetEmployeeByAccountIdAsync(

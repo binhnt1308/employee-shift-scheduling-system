@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ShiftScheduling.Models.Errors;
 
+/// <summary>
+/// Chuyển exception chưa được xử lý thành response thống nhất, đồng thời che chi tiết nội bộ khỏi người dùng.
+/// Xung đột dữ liệu trả HTTP 409; lỗi ngoài dự kiến trả HTTP 500 kèm TraceId để tra log.
+/// </summary>
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -24,6 +28,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             traceId,
             httpContext.Request.Path);
 
+        // Tách lỗi cạnh tranh cập nhật/xung đột dữ liệu khỏi lỗi hệ thống để UI có thể yêu cầu người dùng tải lại.
         var isConcurrency = exception is DbUpdateConcurrencyException
             || (exception is DataConflictException conflict
                 && conflict.InnerException is DbUpdateConcurrencyException);

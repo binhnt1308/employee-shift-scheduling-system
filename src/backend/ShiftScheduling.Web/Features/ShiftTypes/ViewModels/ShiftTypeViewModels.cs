@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ShiftScheduling.Models.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng cấu hình ca làm việc.
 public sealed class ShiftTypeEditViewModel
 {
     public int ShiftTypeId { get; set; }

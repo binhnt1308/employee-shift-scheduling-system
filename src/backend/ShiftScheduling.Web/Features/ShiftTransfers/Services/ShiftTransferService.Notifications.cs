@@ -3,6 +3,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.ShiftTransfers.Services;
 
+// Nhóm logic tạo thông báo cho nghiệp vụ chuyển ca; thông báo không thay thế kết quả nghiệp vụ chính.
 public sealed partial class ShiftTransferService
 {
     private async Task TrySaveRequestNotificationAsync(

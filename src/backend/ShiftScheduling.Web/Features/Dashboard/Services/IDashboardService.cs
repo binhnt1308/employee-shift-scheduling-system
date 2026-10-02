@@ -3,15 +3,15 @@ using ShiftScheduling.Models.ViewModels;
 namespace ShiftScheduling.Features.Dashboard.Services;
 
 /// <summary>
-/// Service tong hop so lieu hien thi tren Dashboard.
+/// Service tổng hợp số liệu hiển thị trên Dashboard.
 /// </summary>
 public interface IDashboardService
 {
     /// <summary>
-    /// Lay so lieu tong hop tai khoan, nhan vien va ca lam viec de hien thi trang chu.
+    /// Lấy số liệu tổng hợp tài khoản, nhân viên và ca làm việc để hiển thị trang chủ.
     /// </summary>
-    /// <param name="cancellationToken">Token huy thao tac khi request ngung.</param>
-    /// <returns>ViewModel chua cac con so thuc te tu database.</returns>
+    /// <param name="cancellationToken">Token hủy thao tác khi request kết thúc sớm.</param>
+    /// <returns>ViewModel chứa các số liệu thực tế từ cơ sở dữ liệu.</returns>
     Task<DashboardViewModel> GetDashboardAsync(
         int? userAccountId = null,
         CancellationToken cancellationToken = default);

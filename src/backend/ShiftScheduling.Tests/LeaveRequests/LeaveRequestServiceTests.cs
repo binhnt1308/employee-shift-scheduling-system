@@ -746,16 +746,16 @@ public sealed class LeaveRequestServiceTests
     [Fact(DisplayName = "TC-EXPIRED-SHIFT - Ca đã qua trong quá khứ hoặc đã kết thúc hôm nay -> không hiển thị trên form")]
     public async Task PrepareCreateAsync_WhenAssignmentEndedInPastOrToday_FiltersOutExpiredAssignments()
     {
-        // 13:00 VN (06:00 UTC) on 2026-08-10:
-        // Shift 1 (08:00 - 12:00) ended today.
-        // Shift 2 (12:00 - 16:00) ongoing/not ended.
+        // Thời điểm kiểm thử: 13:00 giờ Việt Nam (06:00 UTC) ngày 10/08/2026.
+        // Ca 1 (08:00-12:00) đã kết thúc trong ngày.
+        // Ca 2 (12:00-16:00) vẫn đang diễn ra.
         var context = CreateContext(new DateTime(2026, 8, 10, 6, 0, 0, DateTimeKind.Utc));
         context.Repository.PublishedAssignments.Clear();
 
         var period = context.Repository.Periods[0];
         var shifts = context.Repository.ShiftTypes;
 
-        // 1. Assignment in the past (2026-08-09) -> should be filtered
+        // 1. Phân công ngày 09/08/2026 đã qua nên phải bị loại.
         context.Repository.PublishedAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 1,
@@ -767,7 +767,7 @@ public sealed class LeaveRequestServiceTests
             WorkSchedule = new WorkSchedule { SchedulePeriodId = period.SchedulePeriodId, SchedulePeriod = period, Status = ScheduleStatus.Published }
         });
 
-        // 2. Assignment today ended (Shift 1 ends at 12:00, now is 13:00) -> should be filtered
+        // 2. Ca hôm nay đã kết thúc lúc 12:00 trong khi hiện tại là 13:00 nên phải bị loại.
         context.Repository.PublishedAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 2,
@@ -779,7 +779,7 @@ public sealed class LeaveRequestServiceTests
             WorkSchedule = new WorkSchedule { SchedulePeriodId = period.SchedulePeriodId, SchedulePeriod = period, Status = ScheduleStatus.Published }
         });
 
-        // 3. Assignment today active (Shift 2 ends at 16:00, now is 13:00) -> should be kept
+        // 3. Ca hôm nay chưa kết thúc (16:00) tại thời điểm 13:00 nên phải được giữ lại.
         context.Repository.PublishedAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 3,
@@ -805,7 +805,7 @@ public sealed class LeaveRequestServiceTests
         var context = CreateContext();
         var period = context.Repository.Periods[0];
 
-        // Create versioned shift type 7 with IsActive = false
+        // Tạo ca thuộc phiên bản lịch sử với IsActive = false để kiểm tra dữ liệu cũ vẫn được đọc đúng.
         var versionedShift = new ShiftType
         {
             ShiftTypeId = 7,
@@ -817,7 +817,7 @@ public sealed class LeaveRequestServiceTests
             IsActive = false
         };
         context.Repository.ShiftTypes.Add(versionedShift);
-        // Add to published assignments
+        // Gắn ca lịch sử vào một phân công của lịch đã công bố.
         context.Repository.PublishedAssignments.Clear();
         context.Repository.PublishedAssignments.Add(new ShiftAssignment
         {
@@ -855,7 +855,7 @@ public sealed class LeaveRequestServiceTests
     [Fact(DisplayName = "TC-DEFAULT-PERIOD - Có cả kỳ bao phủ Today và kỳ tương lai -> mặc định ưu tiên kỳ bao phủ Today")]
     public async Task PrepareCreateAsync_WhenMultipleEligiblePeriods_DefaultsToPeriodCoveringToday()
     {
-        // Today is 2026-08-10
+        // Ngày hiện tại cố định trong kiểm thử là 10/08/2026.
         var context = CreateContext(new DateTime(2026, 8, 10, 1, 0, 0, DateTimeKind.Utc));
         var period1 = context.Repository.Periods[0]; // 2026-08-10 to 2026-08-16 (covers today)
 
@@ -869,7 +869,7 @@ public sealed class LeaveRequestServiceTests
         context.Repository.Periods.Add(period2);
 
         var shifts = context.Repository.ShiftTypes;
-        // Period 2 published assignment for employee
+        // Kỳ lịch 2 có một phân công đã công bố cho nhân viên.
         context.Repository.PublishedAssignments.Add(new ShiftAssignment
         {
             ShiftAssignmentId = 20,

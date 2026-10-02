@@ -1,4 +1,5 @@
 @model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleIndexViewModel
+@* Danh sách kỳ lịch và trạng thái WorkSchedule để Quản lý đi vào luồng xếp lịch. *@
 @{
     ViewData["Title"] = "Quản lý lịch làm việc";
 }
@@ -40,7 +41,11 @@
                                 <span class="@item.EffectiveRegistrationBadgeClass">@item.EffectiveRegistrationStatusName</span>
                             </td>
                             <td>
-                                @if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                @if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Closed)
+                                {
+                                    <span class="badge bg-secondary">Đã chốt</span>
+                                }
+                                else if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
                                 {
                                     <span class="badge bg-primary">Đã công bố</span>
                                 }
@@ -59,9 +64,19 @@
                             <td class="text-end">
                                 @if (item.CanSchedule)
                                 {
-                                    <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
-                                        <i class="fa-solid fa-pen-to-square me-1"></i>Phân công / Chỉnh sửa
-                                    </a>
+                                    if (item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Published
+                                        || item.ScheduleStatus == ShiftScheduling.Models.Enums.ScheduleStatus.Closed)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-outline-primary">
+                                            <i class="fa-solid fa-eye me-1"></i>Xem lịch
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.SchedulePeriodId" class="btn btn-sm btn-primary-custom">
+                                            <i class="fa-solid fa-pen-to-square me-1"></i>Phân công / Chỉnh sửa
+                                        </a>
+                                    }
                                 }
                                 else
                                 {

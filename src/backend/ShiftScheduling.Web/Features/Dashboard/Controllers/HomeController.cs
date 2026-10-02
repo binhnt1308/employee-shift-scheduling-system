@@ -13,7 +13,7 @@ public sealed class HomeController : Controller
     private readonly IDashboardService _dashboardService;
 
     /// <summary>
-    /// Khoi tao Controller tong quan voi DashboardService duoc tiem vao.
+    /// Khởi tạo Controller tổng quan với DashboardService được tiêm vào.
     /// </summary>
     public HomeController(IDashboardService dashboardService)
     {
@@ -21,7 +21,7 @@ public sealed class HomeController : Controller
     }
 
     /// <summary>
-    /// Hien thi trang chu tong quan he thong voi cac con so thong ke dong.
+    /// Hiển thị trang chủ tổng quan hệ thống với các số liệu thống kê động.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ public sealed class HomeController : Controller
     }
 
     /// <summary>
-    /// Trang hien thi thong bao loi he thong.
+    /// Trang hiển thị thông báo lỗi hệ thống.
     /// </summary>
     [AllowAnonymous]
     [HttpGet]

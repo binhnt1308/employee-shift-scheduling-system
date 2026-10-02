@@ -191,7 +191,7 @@ public sealed class ShiftTransferRuleTests
         }
 
         // Nhận ca Thứ 2 (08:00-12:00) -> người nhận sẽ có ca cả 7 ngày
-        // -> tất cả gap < 24h -> vi phạm BR21
+        // Mọi khoảng nghỉ đều dưới 24 giờ nên phải vi phạm BR21.
         var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
 
         Assert.False(result.Succeeded);
@@ -208,8 +208,8 @@ public sealed class ShiftTransferRuleTests
         context.Afternoon.MaxShiftsPerEmployeePerDay = 1;
         context.Evening.MaxShiftsPerEmployeePerDay = 1;
 
-        // Target assignment is Morning
-        // Receiver already has Afternoon on that day
+        // Ca cần chuyển là ca Sáng.
+        // Người nhận đã có ca Chiều trong cùng ngày.
         context.AddReceiverAssignment(context.TargetAssignment.WorkDate, context.Afternoon);
 
         var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);
@@ -231,8 +231,8 @@ public sealed class ShiftTransferRuleTests
         context.Evening.MaxShiftsPerEmployeePerDay = 2;
         context.Evening.AllowSplitShift = true;
 
-        // Target assignment is Morning
-        // Receiver already has Evening on that day
+        // Ca cần chuyển là ca Sáng.
+        // Người nhận đã có ca Tối trong cùng ngày.
         context.AddReceiverAssignment(context.TargetAssignment.WorkDate, context.Evening);
 
         var result = await context.Service.SubmitAsync(context.CreateValidModel(), 10);

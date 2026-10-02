@@ -25,7 +25,7 @@ public sealed class EmployeeService : IEmployeeService
     private readonly ILogger<EmployeeService> _logger;
 
     /// <summary>
-    /// Khoi tao EmployeeService voi cac dependency duoc tiem vao.
+    /// Khởi tạo EmployeeService với các dependency được tiêm vào.
     /// </summary>
     public EmployeeService(
         IEmployeeRepository employeeRepository,
@@ -161,7 +161,7 @@ public sealed class EmployeeService : IEmployeeService
             }
         }
 
-        // BR02: Khong xoa ho so da co lich su, chi thay doi trang thai hoat dong.
+        // BR02: Không xóa hồ sơ đã có lịch sử; chỉ thay đổi trạng thái hoạt động.
         var previousValues = new { employee.IsActive };
         employee.IsActive = isActive;
         AddAuditLog(actorAccountId, "SET_EMPLOYEE_STATUS", employee, previousValues, new { employee.IsActive });
@@ -176,14 +176,14 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Kiem tra cac quy tac nghiep vu: Enum hop le, ngay sinh/ngay vao lam hop le, ma va email khong trung lap.
+    /// Kiểm tra enum, ngày sinh/ngày vào làm và tính duy nhất của mã nhân viên, email.
     /// </summary>
     private async Task<ServiceResult> ValidateAsync(
         EmployeeFormViewModel model,
         int? excludedEmployeeId,
         CancellationToken cancellationToken)
     {
-        // BR02: Moi nhan vien chi co mot vi tri, mot hinh thuc lam viec va mot level hop le.
+        // BR02: Mỗi nhân viên chỉ có một vị trí, một hình thức làm việc và một cấp độ hợp lệ.
         if (!Enum.IsDefined(typeof(EmployeePosition), model.Position)
             || !Enum.IsDefined(typeof(EmploymentType), model.EmploymentType)
             || !Enum.IsDefined(typeof(EmployeeLevel), model.Level))
@@ -218,7 +218,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Kiem tra ngay sinh nho hon ngay hien tai va ngay vao lam hop le.
+    /// Kiểm tra ngày sinh phải trước ngày hiện tại và ngày vào làm phải hợp lệ.
     /// </summary>
     private ServiceResult ValidateDates(EmployeeFormViewModel model)
     {
@@ -249,7 +249,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Khoi tao doi tuong Employee tu ViewModel.
+    /// Khởi tạo đối tượng Employee từ ViewModel.
     /// </summary>
     private static Employee BuildEmployee(EmployeeFormViewModel model)
     {
@@ -259,7 +259,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Cap nhat cac thuoc tinh cua Employee tu ViewModel.
+    /// Cập nhật các thuộc tính của Employee từ ViewModel.
     /// </summary>
     private static void ApplyChanges(Employee employee, EmployeeFormViewModel model)
     {
@@ -275,7 +275,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Ghi nhat ky thao tac (Audit Log) vao he thong.
+    /// Ghi nhật ký thao tác (Audit Log) vào hệ thống.
     /// </summary>
     private void AddAuditLog(
         int actorAccountId,
@@ -295,7 +295,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Xay dung object gia tri de luu nhat ky thay doi.
+    /// Xây dựng dữ liệu giá trị để lưu nhật ký thay đổi.
     /// </summary>
     private static object BuildAuditValues(Employee employee)
     {
@@ -313,7 +313,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Chuyen doi tu Entity Employee sang EmployeeFormViewModel.
+    /// Chuyển đổi Entity Employee sang EmployeeFormViewModel.
     /// </summary>
     private static EmployeeFormViewModel MapForm(Employee employee)
     {
@@ -333,7 +333,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Chuyen doi tu Entity Employee sang EmployeeListItemViewModel.
+    /// Chuyển đổi Entity Employee sang EmployeeListItemViewModel.
     /// </summary>
     private static EmployeeListItemViewModel MapListItem(Employee employee)
     {
@@ -352,7 +352,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Chuan hoa ma nhan vien (viet hoa, xoa khoang trang).
+    /// Chuẩn hóa mã nhân viên: viết hoa và loại bỏ khoảng trắng thừa.
     /// </summary>
     private static string NormalizeEmployeeCode(string employeeCode)
     {
@@ -360,7 +360,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Chuan hoa email (viet thuong, xoa khoang trang).
+    /// Chuẩn hóa email: viết thường và loại bỏ khoảng trắng thừa.
     /// </summary>
     private static string? NormalizeEmail(string? email)
     {
@@ -368,7 +368,7 @@ public sealed class EmployeeService : IEmployeeService
     }
 
     /// <summary>
-    /// Chuan hoa chuoi khong bat buoc.
+    /// Chuẩn hóa chuỗi không bắt buộc; giá trị rỗng được quy về null.
     /// </summary>
     private static string? NormalizeOptional(string? value)
     {

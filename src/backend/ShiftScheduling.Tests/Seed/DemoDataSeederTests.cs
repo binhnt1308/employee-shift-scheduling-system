@@ -5,13 +5,15 @@ using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Infrastructure.Persistence.Seed;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Tests.Fakes;
 
 namespace ShiftScheduling.Tests.Seed;
 
 public sealed class DemoDataSeederTests
 {
     private readonly IPasswordHashService _passwordHashService = new Pbkdf2PasswordHashService();
-    private readonly IClock _clock = new SystemClock();
+    private readonly IClock _clock =
+        new FakeClock(new DateTime(2026, 9, 11, 4, 0, 0, DateTimeKind.Utc));
     private readonly SchedulingValidationService _validationService = new();
 
     [Fact(DisplayName = "TC-01: Dataset tạo đủ 8 nhân viên từ NV01 đến NV08")]
@@ -102,14 +104,14 @@ public sealed class DemoDataSeederTests
         Assert.Equal(5, ft.Count);
         Assert.Equal(3, pt.Count);
 
-        // 5 FT: NV01, NV02, NV03, NV04, NV07
+        // Nhóm toàn thời gian gồm 5 nhân viên: NV01, NV02, NV03, NV04, NV07.
         Assert.Contains(ft, e => e.EmployeeCode == "NV01");
         Assert.Contains(ft, e => e.EmployeeCode == "NV02");
         Assert.Contains(ft, e => e.EmployeeCode == "NV03");
         Assert.Contains(ft, e => e.EmployeeCode == "NV04");
         Assert.Contains(ft, e => e.EmployeeCode == "NV07");
 
-        // 3 PT: NV05, NV06, NV08
+        // Nhóm bán thời gian gồm 3 nhân viên: NV05, NV06, NV08.
         Assert.Contains(pt, e => e.EmployeeCode == "NV05");
         Assert.Contains(pt, e => e.EmployeeCode == "NV06");
         Assert.Contains(pt, e => e.EmployeeCode == "NV08");
@@ -370,14 +372,14 @@ public sealed class DemoDataSeederTests
         const decimal shiftDurationHours = 4.00m; // Ca EVENING chuẩn có thời lượng 4.00h
         const decimal systemCalculatedHours = 4.00m;
 
-        // 1. Target phải là NV02 - Chiêm Trung Hậu
+        // 1. Phân công đích của kịch bản phải thuộc NV02 - Chiêm Trung Hậu.
         Assert.Equal("NV02", fridayEveningAssign.Employee.EmployeeCode);
 
         // 2. ActualWorkedHours phải có giá trị
         Assert.NotNull(fridayEveningAssign.ActualWorkedHours);
         var actualHours = fridayEveningAssign.ActualWorkedHours.Value;
 
-        // 3. 0 <= ActualWorkedHours <= ShiftType.DurationHours
+        // 3. Giờ công thực tế luôn nằm trong khoảng từ 0 đến thời lượng ca.
         Assert.True(actualHours >= 0, "ActualWorkedHours phải lớn hơn hoặc bằng 0.");
         Assert.True(actualHours <= shiftDurationHours, "ActualWorkedHours không được vượt quá DurationHours của ca.");
 
@@ -482,7 +484,7 @@ public sealed class DemoDataSeederTests
             Assert.True(_passwordHashService.VerifyPassword("Password123!", account.PasswordHash));
         }
 
-        // Scenario B validation
+        // Kiểm tra tính nhất quán của dữ liệu kịch bản B.
         var periodB = dataSet.Periods.Single(p => p.RegistrationStatus == RegistrationStatus.Closed);
         var reqsB = dataSet.StaffingRequirements.Where(r => r.SchedulePeriod == periodB).ToList();
         var availsB = dataSet.Availabilities.Where(a => a.SchedulePeriod == periodB).ToList();

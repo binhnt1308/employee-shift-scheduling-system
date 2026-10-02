@@ -14,6 +14,15 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Password123!Ci"
+        ports:
+          - 1433:1433
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,5 +41,19 @@ jobs:
       - name: Build solution
         run: dotnet build src/backend/ShiftScheduling.sln --configuration Release --no-restore --warnaserror
 
-      - name: Run unit tests
-        run: dotnet test src/backend/ShiftScheduling.sln --configuration Release --no-build --filter "FullyQualifiedName!~ControllerDatabaseIntegrationTests" --verbosity normal
+      - name: Wait for SQL Server readiness
+        run: |
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/1433) >/dev/null 2>&1; then
+              echo "SQL Server is listening on 127.0.0.1:1433 (attempt $i)"
+              break
+            fi
+            echo "Waiting for SQL Server... ($i/30)"
+            sleep 1
+          done
+          sleep 2
+
+      - name: Run all tests
+        env:
+          SHIFT_SCHEDULING_TEST_CONNECTION: "Server=127.0.0.1,1433;Database=ShiftSchedulingDb_IntegrationTest;User Id=sa;Password=Password123!Ci;TrustServerCertificate=True;MultipleActiveResultSets=True"
+        run: dotnet test src/backend/ShiftScheduling.sln --configuration Release --no-build --verbosity normal

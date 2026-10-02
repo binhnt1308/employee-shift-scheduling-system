@@ -10,6 +10,11 @@ public interface IAvailabilityRepository
         int schedulePeriodId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<int, int>> GetCountsByEmployeeAndPeriodIdsAsync(
+        int employeeId,
+        IReadOnlyCollection<int> schedulePeriodIds,
+        CancellationToken cancellationToken = default);
+
     Task<List<Availability>> GetByPeriodWithDetailsAsync(
         int schedulePeriodId,
         int? employeeIdFilter = null,
@@ -27,7 +32,7 @@ public interface IAvailabilityRepository
     /// <param name="selectedShifts">Danh sách ca được chọn.</param>
     /// <param name="preferenceMap">Ánh xạ (WorkDate, ShiftTypeId) → PreferenceLevel cho các ca được chọn.</param>
     /// <param name="now">Thời điểm hiện tại (UTC).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">Token hủy thao tác khi request kết thúc sớm.</param>
     Task SaveEmployeeAvailabilitiesAsync(
         int employeeId,
         int schedulePeriodId,

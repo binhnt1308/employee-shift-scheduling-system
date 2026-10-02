@@ -6,6 +6,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Tests.Fakes;
 
+// Repository giả lập thông báo lưu dữ liệu trong bộ nhớ, giúp kiểm thử luồng thông báo mà không cần cơ sở dữ liệu thật.
 internal sealed class FakeNotificationRepository : INotificationRepository
 {
     public List<Notification> Items { get; } = [];
@@ -95,6 +96,8 @@ internal sealed class FakeNotificationRepository : INotificationRepository
     }
 }
 
+// Repository giả lập đơn nghỉ mô phỏng các truy vấn và bộ lọc quan trọng,
+// giúp kiểm thử nghiệp vụ nghỉ phép độc lập với EF Core.
 internal sealed class FakeLeaveRequestRepository : ILeaveRequestRepository
 {
     public List<Employee> Employees { get; } = [];

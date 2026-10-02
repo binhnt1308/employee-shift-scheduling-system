@@ -30,6 +30,7 @@ public sealed partial class SchedulePeriodService
             return statusResult;
         }
 
+        // Ưu tiên ba ca đã được chốt trong định mức của chính kỳ lịch để không lấy nhầm cấu hình ca mới hơn.
         var periodShifts = period.StaffingRequirements
             .Select(r => r.ShiftType)
             .Where(st => st != null)
@@ -48,6 +49,7 @@ public sealed partial class SchedulePeriodService
 
         period.RegistrationStatus = RegistrationStatus.Open;
 
+        // Thông báo được tạo trong cùng UnitOfWork để trạng thái mở đăng ký và thông báo không lệch nhau.
         await SendRegistrationOpenedNotificationsAsync(period, cancellationToken);
 
         LogAndAuditRegistrationOpen(period, actorAccountId);
@@ -149,7 +151,7 @@ public sealed partial class SchedulePeriodService
         HashSet<int> validFixedShiftIds)
     {
         // BR03: Hệ thống chỉ sử dụng ba ca cố định trong kỳ lịch.
-        // Revalidate exact 21 combinations (7 days x 3 shifts).
+        // Kiểm tra lại đủ đúng 21 tổ hợp (7 ngày x 3 ca) trước khi lưu.
         var requirements = period.StaffingRequirements.ToList();
         var validFixedRequirements = requirements.Where(r => validFixedShiftIds.Contains(r.ShiftTypeId)).ToList();
 

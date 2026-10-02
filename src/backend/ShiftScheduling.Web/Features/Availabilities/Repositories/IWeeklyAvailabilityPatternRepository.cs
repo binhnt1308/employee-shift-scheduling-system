@@ -22,7 +22,7 @@ public interface IWeeklyAvailabilityPatternRepository
     /// <param name="employeeId">ID nhân viên sở hữu mẫu.</param>
     /// <param name="entries">Danh sách entry mới; truyền rỗng để xóa toàn bộ mẫu.</param>
     /// <param name="now">Thời điểm hiện tại (UTC).</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">Token hủy thao tác khi request kết thúc sớm.</param>
     Task UpsertByEmployeeAsync(
         int employeeId,
         IEnumerable<(int DayOfWeek, string ShiftCode, AvailabilityPreferenceLevel PreferenceLevel)> entries,

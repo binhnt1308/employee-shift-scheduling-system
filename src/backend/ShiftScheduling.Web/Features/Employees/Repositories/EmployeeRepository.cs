@@ -5,6 +5,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Employees.Repositories;
 
+// Triển khai truy vấn EF Core cho hồ sơ nhân viên; chỉ chuẩn bị dữ liệu và tracking theo nhu cầu của Service.
 public sealed class EmployeeRepository : IEmployeeRepository
 {
     private readonly ApplicationDbContext _dbContext;

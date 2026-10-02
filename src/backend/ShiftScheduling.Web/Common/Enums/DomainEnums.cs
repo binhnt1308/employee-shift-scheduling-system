@@ -13,6 +13,16 @@ public enum EmployeePosition
     Cashier = 2
 }
 
+public static class EmployeePositionExtensions
+{
+    public static string ToDisplayName(this EmployeePosition position) => position switch
+    {
+        EmployeePosition.Sales => "Tư vấn",
+        EmployeePosition.Cashier => "Thu ngân",
+        _ => position.ToString()
+    };
+}
+
 public enum EmploymentType
 {
     PartTime = 1,
@@ -37,7 +47,8 @@ public enum ScheduleStatus
 {
     Proposed = 1,
     Draft = 2,
-    Published = 3
+    Published = 3,
+    Closed = 4
 }
 
 public enum AssignmentSource

@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho nhật ký thao tác, gồm khóa, quan hệ và giới hạn dữ liệu.
 public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
     public void Configure(EntityTypeBuilder<AuditLog> entity)

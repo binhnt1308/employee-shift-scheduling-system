@@ -1,0 +1,93 @@
+@model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleEditViewModel
+
+<!-- MODAL THÊM PHÂN CÔNG THỦ CÔNG -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="assignModalTitle">Phân công nhân viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="assignModalAlert" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Chọn nhân viên phù hợp</label>
+                    <select id="assignEmployeeSelect" class="form-select">
+                        <option value="">-- Đang tải nhân viên rảnh --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign(this)">Phân công</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL XEM TRƯỚC LỊCH ĐỀ XUẤT OR-TOOLS -->
+<div class="modal fade" id="orToolsModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-robot me-2"></i>Kết quả sinh lịch đề xuất tự động (Google OR-Tools)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="orToolsLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted fw-semibold">Google OR-Tools CP-SAT đang giải bài toán lập lịch...</p>
+                </div>
+                <div id="orToolsContent" class="d-none">
+                    <div id="orToolsStatusBanner" class="alert alert-success mb-3"></div>
+                    <div class="card card-custom mb-3">
+                        <div class="card-header bg-light py-2 fw-bold small">Danh sách lượt phân công đề xuất</div>
+                        <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Ca</th>
+                                        <th>Nhân viên</th>
+                                        <th>Vị trí</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orToolsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-none" id="orToolsFooter">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Bỏ đề xuất</button>
+                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal(this)"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.CanClose)
+{
+    <div class="modal fade" id="closeScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-action="Close" asp-route-id="@Model.SchedulePeriodId">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Chốt kỳ làm việc</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Sau khi chốt kỳ, lịch và giờ công của kỳ này không thể tiếp tục điều chỉnh.
+                        Bạn có chắc chắn muốn chốt kỳ?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-danger">Xác nhận chốt kỳ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

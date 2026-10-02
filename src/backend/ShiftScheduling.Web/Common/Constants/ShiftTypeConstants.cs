@@ -1,7 +1,7 @@
 namespace ShiftScheduling.Common.Constants;
 
 /// <summary>
-/// Dinh nghia ba ca lam viec co dinh duy nhat cua he thong theo BR03.
+/// Định nghĩa ba ca làm việc cố định duy nhất của hệ thống theo BR03.
 /// </summary>
 public static class ShiftTypeConstants
 {
@@ -19,7 +19,7 @@ public static class ShiftTypeConstants
     public static readonly TimeOnly EveningEndTime = new(20, 0);
 
     /// <summary>
-    /// Kiem tra ma ca co phai la mot trong ba ca co dinh hay khong.
+    /// Kiểm tra mã ca có phải là một trong ba ca cố định hay không.
     /// </summary>
     public static bool IsFixedShiftCode(string? shiftCode)
     {

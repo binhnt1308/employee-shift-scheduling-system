@@ -1,7 +1,10 @@
+@using ShiftScheduling.Common.Time
 @model ShiftScheduling.Features.WorkSchedules.ViewModels.WorkScheduleEditViewModel
 @{
     ViewData["Title"] = "Phân công ca - " + Model.PeriodName;
 }
+
+@* Lưới phân công 7x3 chỉ hiển thị trạng thái; server kiểm tra lại mọi ràng buộc bắt buộc trước khi lưu/công bố. *@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -9,14 +12,7 @@
         <p class="text-muted small mb-0">
             Tuần: @Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy") | 
             Trạng thái: 
-            @if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
-            {
-                <span class="badge bg-success">ĐÃ CÔNG BỐ</span>
-            }
-            else
-            {
-                <span class="badge bg-warning text-dark">BẢN NHÁP</span>
-            }
+            <span class="badge badge-custom @Model.DisplayBadgeClass">@Model.EffectiveStatusName</span>
             @if (Model.IsGeneratedByORTools)
             {
                 <span class="badge bg-info text-dark ms-1"><i class="fa-solid fa-robot me-1"></i>Từ OR-Tools</span>
@@ -25,16 +21,25 @@
     </div>
     <div class="d-flex gap-2">
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Quay lại</a>
-        @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+        @if (Model.CanClose)
         {
-            <form method="post" asp-action="SaveDraft" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#closeScheduleModal">
+                <i class="fa-solid fa-lock me-1"></i>Chốt kỳ làm việc
+            </button>
+        }
+        else if (Model.CanEditAssignments)
+        {
+            <form method="post" asp-action="SaveDraft" asp-route-id="@Model.SchedulePeriodId" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-primary"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu nháp</button>
             </form>
-            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools</button>
-            <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline" data-prevent-double-submit="true">
+            <button type="button" class="btn btn-outline-info text-dark" onclick="generateOrToolsProposal(this)">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Sinh lịch OR-Tools
+            </button>
+            <form method="post" asp-action="Publish" asp-route-id="@Model.SchedulePeriodId" class="d-inline">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "") onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
+                <button type="submit" class="btn btn-success" @(!Model.ValidationResult.IsValid ? "disabled" : "")
+                        onclick="return confirm('Xác nhận công bố chính thức lịch làm việc này cho nhân viên?');">
                     <i class="fa-solid fa-paper-plane me-1"></i>Công bố lịch
                 </button>
             </form>
@@ -54,6 +59,36 @@
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <i class="fa-solid fa-circle-exclamation me-2"></i>@TempData["Error"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Closed)
+{
+    <div class="alert alert-secondary border-0 shadow-sm d-flex align-items-center mb-4">
+        <i class="fa-solid fa-lock fs-4 me-3 text-secondary"></i>
+        <div>
+            <div class="fw-semibold">Lịch làm việc của kỳ này đã chốt.</div>
+            <div class="small text-muted">
+                Tất cả phân công và giờ công của kỳ làm việc này đã bị khóa và không thể tiếp tục điều chỉnh.
+            </div>
+        </div>
+    </div>
+}
+else if (Model.Status == ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+{
+    <div class="alert alert-info border-0 shadow-sm d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-circle-info fs-4 me-3 text-info"></i>
+            <div>
+                <div class="fw-semibold">Lịch này đã được công bố nên không thể chỉnh phân công trực tiếp.</div>
+                <div class="small text-muted">
+                    Nếu nhân viên có đơn nghỉ đã được duyệt, hãy xử lý người thay tại chức năng Đơn xin nghỉ.
+                </div>
+            </div>
+        </div>
+        <a asp-controller="LeaveRequest" asp-action="Index" class="btn btn-sm btn-outline-primary ms-3 text-nowrap">
+            <i class="fa-solid fa-calendar-minus me-1"></i>Đến Đơn xin nghỉ
+        </a>
     </div>
 }
 
@@ -101,64 +136,148 @@
     </div>
 </div>
 
-<!-- BANG PHAN CONG 7x3 -->
+<!-- Bảng phân công 7 ngày x 3 ca -->
 <div class="card card-custom border-0 shadow-sm mb-4">
     <div class="card-header bg-light py-3 fw-bold d-flex justify-content-between align-items-center">
         <span><i class="fa-solid fa-table me-2"></i>Bảng phân công ca làm việc (7 ngày x 3 ca cố định)</span>
     </div>
     <div class="card-body p-0">
+        <div class="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-3 small text-muted">
+            <span class="fw-semibold text-dark"><i class="fa-solid fa-circle-info text-primary me-1"></i>Chú thích:</span>
+            <span><span class="text-warning fw-bold">★</span> Nguyện vọng ưu tiên</span>
+            <span class="d-inline-flex align-items-center gap-1"><span class="legend-swatch legend-swatch-sales"></span> Tư vấn</span>
+            <span class="d-inline-flex align-items-center gap-1"><span class="legend-swatch legend-swatch-cashier"></span> Thu ngân</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0">
                 <thead class="table-light text-center">
                     <tr>
-                        <th style="width: 180px;">Ngày</th>
-                        <th>Ca sáng (08:00 - 12:00)</th>
-                        <th>Ca chiều (12:00 - 16:00)</th>
-                        <th>Ca tối (16:00 - 20:00)</th>
+                        <th style="width: 140px; min-width: 140px;">Ca làm việc</th>
+                        @foreach (var day in Model.Days)
+                        {
+                            <th style="min-width: 220px;">
+                                <div class="fw-bold">@day.WorkDate.DayOfWeek.ToShortVietnameseDay()</div>
+                                <div class="text-muted small">@day.WorkDate.ToString("dd/MM")</div>
+                            </th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var day in Model.Days)
+                    @{
+                        var shiftTemplates = Model.Days.FirstOrDefault()?.Shifts ?? new();
+                    }
+                    @foreach (var st in shiftTemplates)
                     {
-                        <tr>
-                            <td class="fw-semibold bg-light bg-opacity-50 ps-3">
-                                @day.DayOfWeekName
+                        <tr class="calendar-shift-row @(st.ShiftTypeId == 2 ? "manager-calendar-afternoon" : "")">
+                            <td class="calendar-shift-title-cell fw-semibold">
+                                <div class="fw-bold">@st.ShiftName</div>
+                                <div class="text-muted small">@st.StartTime.ToString("HH:mm")–@st.EndTime.ToString("HH:mm")</div>
                             </td>
-                            @foreach (var shift in day.Shifts)
+                            @foreach (var day in Model.Days)
                             {
-                                <td class="align-top p-2" style="min-width: 240px;">
-                                    <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
-                                        <span class="badge bg-secondary">@shift.ShiftName</span>
-                                        <div>
-                                            <span class="badge @(shift.AssignedSales == shift.RequiredSales ? "bg-success" : "bg-danger") me-1" @(shift.AssignedSales > shift.RequiredSales ? "title=\"Vượt định mức\"" : "")>Sales: @shift.AssignedSales/@shift.RequiredSales</span>
-                                            <span class="badge @(shift.AssignedCashier == shift.RequiredCashier ? "bg-success" : "bg-danger") me-1" @(shift.AssignedCashier > shift.RequiredCashier ? "title=\"Vượt định mức\"" : "")>TN: @shift.AssignedCashier/@shift.RequiredCashier</span>
-                                            <span class="badge @(shift.HasLevel2Plus ? "bg-info text-dark" : "bg-dark")" title="Yêu cầu Level 2+">L2+: @(shift.HasLevel2Plus ? "Có" : "Thiếu")</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex flex-column gap-1 mb-2">
-                                        @foreach (var emp in shift.AssignedEmployees)
-                                        {
-                                            <div class="p-1 px-2 rounded bg-light border d-flex justify-content-between align-items-center small">
-                                                <div>
-                                                    <strong class="text-dark">@emp.EmployeeCode</strong> - @emp.FullName
-                                                    <span class="badge bg-secondary ms-1">@emp.Position</span>
-                                                </div>
-                                                @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
-                                                {
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId, this)" title="Xóa phân công">
-                                                        <i class="fa-solid fa-xmark"></i>
-                                                    </button>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-
-                                    @if (Model.Status != ShiftScheduling.Models.Enums.ScheduleStatus.Published)
+                                var shift = day.Shifts.FirstOrDefault(s => s.ShiftTypeId == st.ShiftTypeId);
+                                <td class="calendar-cell">
+                                    @if (shift != null)
                                     {
-                                        <button type="button" class="btn btn-xs btn-outline-primary w-100 py-1" onclick="openAssignModal(@Model.SchedulePeriodId, '@shift.WorkDate.ToString("yyyy-MM-dd")', @shift.ShiftTypeId, '@day.DayOfWeekName - @shift.ShiftName')">
-                                            <i class="fa-solid fa-plus me-1"></i>Thêm nhân viên
-                                        </button>
+                                        var totalReq = shift.RequiredSales + shift.RequiredCashier;
+                                        var totalAssigned = shift.AssignedSales + shift.AssignedCashier;
+                                        var missingCount = shift.MissingSales + shift.MissingCashier;
+                                        var isSalesMissing = shift.AssignedSales < shift.RequiredSales;
+                                        var isCashierMissing = shift.AssignedCashier < shift.RequiredCashier;
+                                        var l2Text = shift.HasLevel2Plus ? "Có" : "Thiếu";
+                                        var staffingTooltip = $"Tư vấn: {shift.AssignedSales}/{shift.RequiredSales}&#10;Thu ngân: {shift.AssignedCashier}/{shift.RequiredCashier}&#10;Nhân viên II+: {l2Text}";
+
+                                        <div class="calendar-cell-header">
+                                            @if (shift.IsSatisfied)
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" tabindex="0" title="@Html.Raw(staffingTooltip)">
+                                                    <i class="fa-solid fa-check me-1"></i>Đủ @totalAssigned/@totalReq
+                                                </span>
+                                            }
+                                            else if (missingCount > 0)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold" tabindex="0" title="@Html.Raw(staffingTooltip)">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Thiếu @missingCount · @totalAssigned/@totalReq
+                                                </span>
+                                            }
+                                            else if (!shift.HasLevel2Plus)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold" tabindex="0" title="@Html.Raw(staffingTooltip)">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Thiếu II+ · @totalAssigned/@totalReq
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-semibold" tabindex="0" title="@Html.Raw(staffingTooltip)">
+                                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Vượt · @totalAssigned/@totalReq
+                                                </span>
+                                            }
+
+                                            <div class="d-inline-flex align-items-center gap-2 small" tabindex="0" title="@Html.Raw(staffingTooltip)">
+                                                <span class="d-inline-flex align-items-center @(isSalesMissing ? "text-danger fw-bold" : "text-secondary")" title="Tư vấn: @shift.AssignedSales/@shift.RequiredSales">
+                                                    <i class="fa-solid fa-user text-primary me-1" aria-label="Tư vấn"></i>@(isSalesMissing ? $"{shift.AssignedSales}/{shift.RequiredSales}" : $"{shift.AssignedSales}")
+                                                </span>
+                                                <span class="d-inline-flex align-items-center @(isCashierMissing ? "text-danger fw-bold" : "text-secondary")" title="Thu ngân: @shift.AssignedCashier/@shift.RequiredCashier">
+                                                    <i class="fa-solid fa-cash-register text-success me-1" aria-label="Thu ngân"></i>@(isCashierMissing ? $"{shift.AssignedCashier}/{shift.RequiredCashier}" : $"{shift.AssignedCashier}")
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="calendar-chips-container my-1">
+                                            @foreach (var emp in shift.AssignedEmployees)
+                                            {
+                                                var posClass = emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "employee-chip-sales" : "employee-chip-cashier";
+                                                var posName = emp.Position == ShiftScheduling.Models.Enums.EmployeePosition.Sales ? "Tư vấn" : "Thu ngân";
+                                                var levelName = emp.Level switch
+                                                {
+                                                    ShiftScheduling.Models.Enums.EmployeeLevel.Level1 => "I",
+                                                    ShiftScheduling.Models.Enums.EmployeeLevel.Level2 => "II",
+                                                    ShiftScheduling.Models.Enums.EmployeeLevel.Level3 => "III",
+                                                    _ => emp.Level.ToString()
+                                                };
+                                                var prefText = emp.IsPreferred ? "★ Nguyện vọng ưu tiên" : "Nguyện vọng bình thường";
+                                                var tooltipText = $"{emp.EmployeeCode} - {emp.FullName}&#10;{posName}&#10;{levelName}&#10;{prefText}";
+
+                                                <span class="employee-chip @posClass" tabindex="0" title="@Html.Raw(tooltipText)">
+                                                    @if (emp.IsPreferred)
+                                                    {
+                                                        <span class="chip-star">★</span>
+                                                    }
+                                                    <span>@emp.EmployeeCode</span>
+                                                    @if (Model.CanEditAssignments)
+                                                    {
+                                                        <button type="button" class="btn btn-link text-danger p-0 ms-1 border-0" style="font-size: 0.7rem; line-height: 1;" onclick="removeEmployee(@Model.SchedulePeriodId, @emp.ShiftAssignmentId, this)" title="Xóa phân công @emp.EmployeeCode">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    }
+                                                </span>
+                                                @if (emp.HasApprovedLeave && emp.ApprovedLeaveRequestId.HasValue)
+                                                {
+                                                    <span class="badge bg-warning text-dark"
+                                                          style="font-size: 0.65rem;"
+                                                          title="Đã duyệt nghỉ">
+                                                        <i class="fa-solid fa-calendar-xmark me-1"></i>
+                                                        Nghỉ đã duyệt
+                                                    </span>
+                                                    <a asp-controller="LeaveRequest"
+                                                       asp-action="Details"
+                                                       asp-route-id="@emp.ApprovedLeaveRequestId.Value"
+                                                       class="btn btn-outline-warning text-dark"
+                                                       style="font-size: 0.65rem; padding: 0 4px;"
+                                                       title="Xử lý người thay">
+                                                        <i class="fa-solid fa-user-clock me-1"></i>
+                                                        Xử lý người thay
+                                                    </a>
+                                                }
+                                            }
+                                        </div>
+
+                                        @if (Model.CanEditAssignments)
+                                        {
+                                            <button type="button" class="btn btn-xs btn-outline-primary w-100 py-1 mt-1" onclick="openAssignModal(@Model.SchedulePeriodId, '@shift.WorkDate.ToString("yyyy-MM-dd")', @shift.ShiftTypeId, '@day.DayOfWeekName - @shift.ShiftName')">
+                                                <i class="fa-solid fa-plus me-1"></i>Thêm
+                                            </button>
+                                        }
                                     }
                                 </td>
                             }
@@ -170,71 +289,7 @@
     </div>
 </div>
 
-<!-- MODAL THÊM PHÂN CÔNG THỦ CÔNG -->
-<div class="modal fade" id="assignModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="assignModalTitle">Phân công nhân viên</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="assignModalAlert" class="alert alert-danger d-none"></div>
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Chọn nhân viên phù hợp</label>
-                    <select id="assignEmployeeSelect" class="form-select">
-                        <option value="">-- Đang tải nhân viên rảnh --</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary-custom" onclick="submitManualAssign(this)">Phân công</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL XEM TRƯỚC LỊCH ĐỀ XUẤT OR-TOOLS -->
-<div class="modal fade" id="orToolsModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-robot me-2"></i>Kết quả sinh lịch đề xuất tự động (Google OR-Tools)</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="orToolsLoading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted fw-semibold">Google OR-Tools CP-SAT đang giải bài toán lập lịch...</p>
-                </div>
-                <div id="orToolsContent" class="d-none">
-                    <div id="orToolsStatusBanner" class="alert alert-success mb-3"></div>
-                    <div class="card card-custom mb-3">
-                        <div class="card-header bg-light py-2 fw-bold small">Danh sách lượt phân công đề xuất</div>
-                        <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
-                            <table class="table table-sm table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Ngày</th>
-                                        <th>Ca</th>
-                                        <th>Nhân viên</th>
-                                        <th>Vị trí</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="orToolsTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer d-none" id="orToolsFooter">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Bỏ đề xuất</button>
-                <button type="button" class="btn btn-success" onclick="adoptOrToolsProposal(this)"><i class="fa-solid fa-check me-1"></i>Sử dụng đề xuất này</button>
-            </div>
-        </div>
-    </div>
-</div>
+<partial name="_EditModals" model="Model" />
 
 @section Scripts {
     @await Html.PartialAsync("_EditScripts", Model)

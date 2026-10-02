@@ -177,7 +177,7 @@ public sealed class RegistrationOpenedNotificationTests
         var clock = new FakeClock { UtcNow = new DateTime(2026, 8, 9, 0, 0, 0, DateTimeKind.Utc) };
 
         var period = CreateValidPeriodWith21Requirements();
-        // Deadline 08/08 while UtcNow is 09/08
+        // Hạn đăng ký là 08/08 trong khi thời điểm hiện tại đã sang 09/08.
         periodRepo.SchedulePeriods.Add(period);
 
         var service = new SchedulePeriodService(

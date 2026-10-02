@@ -3,6 +3,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Common.Auditing;
 
+// Tạo AuditLog theo một định dạng thống nhất để các Service chỉ truyền người thực hiện, hành động và dữ liệu trước/sau.
 public static class AuditLogFactory
 {
     public static AuditLog Create(

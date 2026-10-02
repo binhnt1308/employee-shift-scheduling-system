@@ -70,6 +70,7 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
             period, activeEmployees, fixedShifts, availabilities, approvedLeaves, staffingRequirements);
 
         var solver = new CpSolver { StringParameters = $"max_time_in_seconds:{timeoutSeconds}.0" };
+        // Chỉ trạng thái Feasible/Optimal mới được chuyển thành phương án; solver không ghi trực tiếp xuống database.
         var status = solver.Solve(model);
         var solveTime = (DateTime.UtcNow - startTime).TotalSeconds;
 
@@ -153,6 +154,8 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
         var leaveSet = approvedLeaves.Where(l => l.Status == LeaveRequestStatus.Approved).ToList();
         var reqMap = staffingRequirements.ToDictionary(r => (r.WorkDate, r.ShiftTypeId));
 
+        // x[e,d,s] là biến nhị phân: nhân viên e có được xếp vào ngày d, ca s hay không.
+        // Solver chỉ sinh phương án trong bộ nhớ; việc ghi xuống lịch nháp do WorkScheduleService quyết định.
         var model = new CpModel();
         int empCount = activeEmployees.Count;
         var x = new BoolVar[empCount, 7, 3];
@@ -177,8 +180,11 @@ public sealed partial class OrToolsSchedulingService : IOrToolsSchedulingService
         // BR-10: Hàm mục tiêu tối ưu hóa mềm:
         // 1. Phân bổ cân đối tổng giờ công thực tế (tính theo phút) giữa các nhân viên cùng loại hợp đồng (FT-FT, PT-PT).
         // 2. Tôn trọng mức nguyện vọng rảnh đã đăng ký (ưu tiên Preferred hơn Normal).
-        // 3. Hạn chế xếp ca tối (EVENING) liên tiếp giữa hai ngày kề cận trong kỳ.
-        AddWorkloadObjective(model, x, activeEmployees, fixedShifts, period, availabilities, eveningIdx);
+        // 3. Ưu tiên ghép ca liên tiếp cùng ngày cho nhân viên toàn thời gian (FT).
+        // 4. Hạn chế xếp ca tối (EVENING) liên tiếp giữa hai ngày kề cận trong kỳ.
+        AddWorkloadObjective(
+            model, x, activeEmployees, fixedShifts, period, availabilities,
+            morningIdx, afternoonIdx, eveningIdx);
 
         return (model, x);
     }

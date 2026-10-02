@@ -12,14 +12,11 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-01 - UC03 BR03 - Hệ thống có đúng ba ca cố định")]
     public async Task GetAllAsync_ReturnsThreeFixedShifts()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
 
-        // Thuc hien
         var result = await service.GetAllAsync();
 
-        // Kiem tra
         Assert.Equal(3, result.Count);
         Assert.Contains(result, s => s.ShiftCode == "MORNING");
         Assert.Contains(result, s => s.ShiftCode == "AFTERNOON");
@@ -29,14 +26,11 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-02 - UC03 BR03 - Ca sáng phải là 08:00-12:00")]
     public async Task GetEditAsync_MorningShift_HasFixedTime()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
 
-        // Thuc hien
         var result = await service.GetEditAsync(1);
 
-        // Kiem tra
         Assert.NotNull(result);
         Assert.Equal("MORNING", result!.ShiftCode);
         Assert.Equal(new TimeOnly(8, 0), result.StartTime);
@@ -46,14 +40,11 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-03 - UC03 BR03 - Ca chiều phải là 12:00-16:00")]
     public async Task GetEditAsync_AfternoonShift_HasFixedTime()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
 
-        // Thuc hien
         var result = await service.GetEditAsync(2);
 
-        // Kiem tra
         Assert.NotNull(result);
         Assert.Equal("AFTERNOON", result!.ShiftCode);
         Assert.Equal(new TimeOnly(12, 0), result.StartTime);
@@ -63,14 +54,11 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-04 - UC03 BR03 - Ca tối phải là 16:00-20:00")]
     public async Task GetEditAsync_EveningShift_HasFixedTime()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
 
-        // Thuc hien
         var result = await service.GetEditAsync(3);
 
-        // Kiem tra
         Assert.NotNull(result);
         Assert.Equal("EVENING", result!.ShiftCode);
         Assert.Equal(new TimeOnly(16, 0), result.StartTime);
@@ -80,7 +68,6 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-05 - UC03 BR03 - Từ chối thay đổi khung giờ ca cố định")]
     public async Task UpdateAsync_WhenChangingFixedTime_ReturnsInvalidTimeError()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
         var model = new ShiftTypeEditViewModel
@@ -94,10 +81,8 @@ public sealed class ShiftTypeServiceTests
             IsActive = true
         };
 
-        // Thuc hien
         var result = await service.UpdateAsync(1, model, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.ShiftTimeInvalid, result.ErrorCode);
     }
@@ -105,7 +90,6 @@ public sealed class ShiftTypeServiceTests
     [Fact(DisplayName = "TC03-06 - UC03 BR03 - Từ chối ngưng hoạt động ca cố định")]
     public async Task UpdateAsync_WhenDeactivatingFixedShift_ReturnsInvalidStatusError()
     {
-        // Sap xep
         var repository = CreateRepositoryWithThreeFixedShifts();
         var service = CreateService(repository, new FakeUnitOfWork());
         var model = new ShiftTypeEditViewModel
@@ -119,10 +103,8 @@ public sealed class ShiftTypeServiceTests
             IsActive = false
         };
 
-        // Thuc hien
         var result = await service.UpdateAsync(1, model, 1);
 
-        // Kiem tra
         Assert.False(result.Succeeded);
         Assert.Equal(ErrorCodes.ShiftTimeInvalid, result.ErrorCode);
     }

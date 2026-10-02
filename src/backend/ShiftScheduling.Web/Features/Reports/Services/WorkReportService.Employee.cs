@@ -36,8 +36,12 @@ public sealed partial class WorkReportService
             return null;
         }
 
-        var publishedSchedule = await _workScheduleRepository.GetPublishedByPeriodIdAsync(
-            schedulePeriodId, cancellationToken);
+        var publishedSchedule = await _workScheduleRepository.GetByPeriodIdAsync(
+            schedulePeriodId, true, true, cancellationToken);
+        if (publishedSchedule is not null && publishedSchedule.Status != ScheduleStatus.Published && publishedSchedule.Status != ScheduleStatus.Closed)
+        {
+            publishedSchedule = null;
+        }
 
         var approvedLeaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);

@@ -14,7 +14,7 @@ public sealed class AvailabilityConfiguration : IEntityTypeConfiguration<Availab
         entity.HasIndex(x => new { x.EmployeeId, x.SchedulePeriodId, x.WorkDate, x.ShiftTypeId }).IsUnique();
 
         // NC-02: Mức nguyện vọng, mặc định Normal=1 cho dữ liệu cũ (migration-safe).
-        // DB-09: status dùng enum, không dùng chuỗi tự do.
+        // DB-09: trạng thái dùng enum thay vì chuỗi tự do để tránh giá trị ngoài tập hợp cho phép.
         entity.Property(x => x.PreferenceLevel)
             .HasDefaultValue(AvailabilityPreferenceLevel.Normal)
             .HasConversion<int>();

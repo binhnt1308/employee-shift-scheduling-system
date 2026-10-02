@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Seed;
 
+// Tạo dữ liệu nền tối thiểu như tài khoản hệ thống và ba ca cố định trước khi chạy các kịch bản demo.
 public static class ModelSeed
 {
     public static void Apply(ModelBuilder modelBuilder)

@@ -3,6 +3,7 @@ using ShiftScheduling.Models.Results;
 
 namespace ShiftScheduling.Features.Notifications.Services;
 
+// Khai báo các ca sử dụng nghiệp vụ của chức năng thông báo để Controller không phụ thuộc implementation.
 public interface INotificationService
 {
     Task<NotificationIndexViewModel> GetMyNotificationsAsync(

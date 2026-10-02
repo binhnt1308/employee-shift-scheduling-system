@@ -7,14 +7,14 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Accounts.Controllers;
 
-// BR01: Chi quan tri vien duoc tao, khoa, mo khoa va phan quyen tai khoan.
+// BR01: Chỉ quản trị viên được tạo, khóa, mở khóa và phân quyền tài khoản.
 [Authorize(Roles = RoleNames.Admin)]
 public sealed class AccountController : AuthorizedController
 {
     private readonly IAccountService _accountService;
 
     /// <summary>
-    /// Khoi tao AccountController voi AccountService.
+    /// Khởi tạo AccountController với AccountService.
     /// </summary>
     public AccountController(IAccountService accountService)
     {
@@ -22,7 +22,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Lay danh sach tai khoan co tim kiem va phan trang.
+    /// Lấy danh sách tài khoản có tìm kiếm và phân trang.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -36,7 +36,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form tao moi tai khoan nguoi dung.
+    /// Hiển thị form tạo mới tài khoản người dùng.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Create(CancellationToken cancellationToken)
@@ -45,7 +45,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly tao moi tai khoan nguoi dung vao he thong.
+    /// Xử lý tạo mới tài khoản người dùng vào hệ thống.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -72,7 +72,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form cap nhat thong tin va vai tro tai khoan theo ID.
+    /// Hiển thị form cập nhật thông tin và vai trò tài khoản theo ID.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -82,7 +82,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly cap nhat thong tin va vai tro tai khoan theo ID.
+    /// Xử lý cập nhật thông tin và vai trò tài khoản theo ID.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -115,7 +115,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Thay doi trang thai Khoa / Mo khoa tai khoan nguoi dung.
+    /// Thay đổi trạng thái Khóa / Mở khóa tài khoản người dùng.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -132,7 +132,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form dat lai mat khau cho tai khoan.
+    /// Hiển thị form đặt lại mật khẩu cho tài khoản.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> ResetPassword(int id, CancellationToken cancellationToken)
@@ -142,7 +142,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly dat lai mat khau moi cho tai khoan.
+    /// Xử lý đặt lại mật khẩu mới cho tài khoản.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -177,7 +177,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Tai lai danh sach nhan vien cho dropdownlist khi tao tai khoan bi loi Validate.
+    /// Tải lại danh sách nhân viên cho dropdown khi form tạo tài khoản không hợp lệ.
     /// </summary>
     private async Task ReloadEmployeeOptionsAsync(
         AccountCreateViewModel model,
@@ -187,7 +187,7 @@ public sealed class AccountController : AuthorizedController
     }
 
     /// <summary>
-    /// Tai lai danh sach nhan vien cho dropdownlist khi cap nhat tai khoan bi loi Validate.
+    /// Tải lại danh sách nhân viên cho dropdown khi form cập nhật tài khoản không hợp lệ.
     /// </summary>
     private async Task ReloadEditOptionsAsync(
         AccountEditViewModel model,

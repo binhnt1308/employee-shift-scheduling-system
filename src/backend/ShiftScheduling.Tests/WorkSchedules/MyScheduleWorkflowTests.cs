@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Logging.Abstractions;
-using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Models.Entities;
 using ShiftScheduling.Models.Enums;
-using ShiftScheduling.Tests.Fakes;
 using Xunit;
 
 namespace ShiftScheduling.Tests.WorkSchedules;
@@ -14,7 +11,7 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-01: Có Published schedule bao phủ today + có Published schedule tương lai publish mới hơn -> mặc định trả lịch bao phủ today")]
     public async Task MS01_WhenCurrentAndFuturePublishedExist_ReturnsCurrentPeriodCoveringToday()
     {
-        var fixture = CreateFixture(Today);
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today);
 
         // Kỳ 1: Tuần hiện tại bao phủ today (07/09/2026 - 13/09/2026), publish lúc 05/09/2026
         var currentPeriod = fixture.CreatePeriod(1, "Tuần hiện tại", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
@@ -38,15 +35,15 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-02: Không có lịch current + có nhiều lịch Published tương lai -> trả lịch tương lai có WeekStartDate gần nhất")]
     public async Task MS02_WhenNoCurrentSchedule_ReturnsNearestFuturePublishedSchedule()
     {
-        var fixture = CreateFixture(Today); // 08/09/2026
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today); // 08/09/2026
 
         // Kỳ xa hơn: 21/09 - 27/09
         var farFuturePeriod = fixture.CreatePeriod(2, "Tuần xa hơn", new DateOnly(2026, 9, 21), new DateOnly(2026, 9, 27));
-        var farFutureSchedule = fixture.CreateSchedule(2, farFuturePeriod, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc));
+        fixture.CreateSchedule(2, farFuturePeriod, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc));
 
         // Kỳ gần hơn: 14/09 - 20/09 (WeekStartDate gần nhất)
         var nearFuturePeriod = fixture.CreatePeriod(1, "Tuần tới gần nhất", new DateOnly(2026, 9, 14), new DateOnly(2026, 9, 20));
-        var nearFutureSchedule = fixture.CreateSchedule(1, nearFuturePeriod, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 4, 0, 0, 0, DateTimeKind.Utc));
+        fixture.CreateSchedule(1, nearFuturePeriod, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 4, 0, 0, 0, DateTimeKind.Utc));
 
         var result = await fixture.Service.GetEmployeeMyScheduleAsync(fixture.CurrentAccount.UserAccountId, schedulePeriodId: null);
 
@@ -58,7 +55,7 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-03: Không có current/future + có lịch Published quá khứ -> trả lịch quá khứ gần nhất")]
     public async Task MS03_WhenNoCurrentOrFuture_ReturnsNearestPastPublishedSchedule()
     {
-        var fixture = CreateFixture(Today); // 08/09/2026
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today); // 08/09/2026
 
         // Kỳ quá khứ xa: 24/08 - 30/08
         var olderPastPeriod = fixture.CreatePeriod(1, "Tuần quá khứ cũ", new DateOnly(2026, 8, 24), new DateOnly(2026, 8, 30));
@@ -78,7 +75,7 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-04: Truyền schedulePeriodId cụ thể -> trả đúng Published schedule của period đó")]
     public async Task MS04_WhenPeriodIdSpecified_ReturnsRequestedPublishedScheduleDirectly()
     {
-        var fixture = CreateFixture(Today);
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today);
 
         // Kỳ 1 (tuần hiện tại)
         var currentPeriod = fixture.CreatePeriod(1, "Tuần hiện tại", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
@@ -99,7 +96,7 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-05: Employee chỉ thấy assignments của chính mình")]
     public async Task MS05_EmployeeOnlySeesTheirOwnAssignmentsInGrid()
     {
-        var fixture = CreateFixture(Today);
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today);
         var period = fixture.CreatePeriod(1, "Tuần hiện tại", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
         var schedule = fixture.CreateSchedule(1, period, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc));
 
@@ -126,7 +123,7 @@ public sealed class MyScheduleWorkflowTests
 
         Assert.NotNull(result);
 
-        // Kiểm tra Thứ Ba (08/09) có ca của CurrentEmployee
+        // Ngày 08/09 phải chứa đúng ca của nhân viên đang đăng nhập, không lẫn ca người khác.
         var tuesday = result.Days.First(d => d.WorkDate == new DateOnly(2026, 9, 8));
         var tuesdayMorningShift = tuesday.Shifts.First(s => s.ShiftTypeId == 1);
         Assert.Single(tuesdayMorningShift.AssignedEmployees);
@@ -141,7 +138,7 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-06: Draft/Proposed không được dùng làm MySchedule")]
     public async Task MS06_DraftOrProposedScheduleIsNotReturnedAsMySchedule()
     {
-        var fixture = CreateFixture(Today);
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today);
 
         // Kỳ chỉ có lịch ở trạng thái Draft
         var period = fixture.CreatePeriod(1, "Tuần nháp", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
@@ -160,96 +157,9 @@ public sealed class MyScheduleWorkflowTests
     [Fact(DisplayName = "MS-07: Kỳ lịch dùng versioned ShiftTypes (7, 8, 9) thay vì bộ cũ (1, 2, 3) -> MySchedule hiển thị đúng ca chiều của nhân viên")]
     public async Task MS07_WhenPeriodUsesVersionedShiftTypes_DisplaysEmployeeAssignmentsCorrectly()
     {
-        var fixture = CreateFixture(Today);
-
-        // Versioned ShiftTypes mới: Morning=7, Afternoon=8, Evening=9
-        var v2Morning = new ShiftType
-        {
-            ShiftTypeId = 7,
-            ShiftCode = "MORNING",
-            ShiftName = "Ca Sáng V2",
-            StartTime = new TimeOnly(8, 0),
-            EndTime = new TimeOnly(12, 0),
-            DisplayOrder = 1,
-            IsActive = true
-        };
-        var v2Afternoon = new ShiftType
-        {
-            ShiftTypeId = 8,
-            ShiftCode = "AFTERNOON",
-            ShiftName = "Ca Chiều V2",
-            StartTime = new TimeOnly(12, 0),
-            EndTime = new TimeOnly(16, 0),
-            DisplayOrder = 2,
-            IsActive = true
-        };
-        var v2Evening = new ShiftType
-        {
-            ShiftTypeId = 9,
-            ShiftCode = "EVENING",
-            ShiftName = "Ca Tối V2",
-            StartTime = new TimeOnly(16, 0),
-            EndTime = new TimeOnly(20, 0),
-            DisplayOrder = 3,
-            IsActive = true
-        };
-        // Trong repo có cả bộ cũ (1, 2, 3) và bộ mới (7, 8, 9)
-        fixture.ShiftTypeRepo.ShiftTypes.AddRange([v2Morning, v2Afternoon, v2Evening]);
-
-        // Tạo period bao phủ Today (07/09/2026 - 13/09/2026) với StaffingRequirements dùng ca 7, 8, 9
-        var period = fixture.CreatePeriod(1002, "kỳ lịch test", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
-        for (int i = 0; i < 7; i++)
-        {
-            var date = period.WeekStartDate.AddDays(i);
-            period.StaffingRequirements.Add(new StaffingRequirement
-            {
-                StaffingRequirementId = (i * 3) + 1,
-                SchedulePeriodId = period.SchedulePeriodId,
-                WorkDate = date,
-                ShiftTypeId = 7,
-                ShiftType = v2Morning,
-                RequiredSalesStaff = 1,
-                RequiredCashiers = 1
-            });
-            period.StaffingRequirements.Add(new StaffingRequirement
-            {
-                StaffingRequirementId = (i * 3) + 2,
-                SchedulePeriodId = period.SchedulePeriodId,
-                WorkDate = date,
-                ShiftTypeId = 8,
-                ShiftType = v2Afternoon,
-                RequiredSalesStaff = 1,
-                RequiredCashiers = 1
-            });
-            period.StaffingRequirements.Add(new StaffingRequirement
-            {
-                StaffingRequirementId = (i * 3) + 3,
-                SchedulePeriodId = period.SchedulePeriodId,
-                WorkDate = date,
-                ShiftTypeId = 9,
-                ShiftType = v2Evening,
-                RequiredSalesStaff = 1,
-                RequiredCashiers = 1
-            });
-        }
-
-        var schedule = fixture.CreateSchedule(2, period, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 8, 9, 0, 0, DateTimeKind.Utc));
-
-        // Phân công cho NV02 (CurrentEmployee) ca chiều (ShiftTypeId = 8) vào Thứ Hai 07/09/2026
+        var fixture = MyScheduleTestFixtureFactory.CreateFixture(Today);
         var monday = new DateOnly(2026, 9, 7);
-        var assignment = new ShiftAssignment
-        {
-            ShiftAssignmentId = 1124,
-            WorkScheduleId = schedule.WorkScheduleId,
-            WorkSchedule = schedule,
-            EmployeeId = fixture.CurrentEmployee.EmployeeId,
-            Employee = fixture.CurrentEmployee,
-            WorkDate = monday,
-            ShiftTypeId = 8,
-            ShiftType = v2Afternoon,
-            Source = AssignmentSource.Manual
-        };
-        schedule.ShiftAssignments.Add(assignment);
+        SetupVersionedShiftPeriod(fixture, monday);
 
         // 1. Gọi mặc định (schedulePeriodId = null) -> giải quyết kỳ bao phủ today
         var resultDefault = await fixture.Service.GetEmployeeMyScheduleAsync(fixture.CurrentAccount.UserAccountId, schedulePeriodId: null);
@@ -273,194 +183,34 @@ public sealed class MyScheduleWorkflowTests
         Assert.Equal(fixture.CurrentEmployee.EmployeeId, afternoonShiftSpecific.AssignedEmployees[0].EmployeeId);
     }
 
-    // ============================================================
-    // FIXTURE SETUP HELPER
-    // ============================================================
-
-    private static MyScheduleFixture CreateFixture(DateOnly today)
+    private static void SetupVersionedShiftPeriod(MyScheduleFixture fixture, DateOnly monday)
     {
-        var workScheduleRepo = new FakeWorkScheduleRepository();
-        var periodRepo = new FakeSchedulePeriodRepository();
-        var shiftTypeRepo = new FakeShiftTypeRepository();
-        var employeeRepo = new FakeEmployeeRepository();
-        var availRepo = new FakeAvailabilityRepository();
-        var leaveRepo = new FakeLeaveRequestRepository();
-        var notificationRepo = new FakeNotificationRepository();
-        var auditLogRepo = new FakeAuditLogRepository();
-        var unitOfWork = new FakeUnitOfWork();
-        var emailSender = new FakeEmailSender();
-        var clock = new FakeClock(today.ToDateTime(new TimeOnly(2, 0, 0), DateTimeKind.Utc));
+        var v2Morning = new ShiftType { ShiftTypeId = 7, ShiftCode = "MORNING", ShiftName = "Ca Sáng V2", StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DisplayOrder = 1, IsActive = true };
+        var v2Afternoon = new ShiftType { ShiftTypeId = 8, ShiftCode = "AFTERNOON", ShiftName = "Ca Chiều V2", StartTime = new TimeOnly(12, 0), EndTime = new TimeOnly(16, 0), DisplayOrder = 2, IsActive = true };
+        var v2Evening = new ShiftType { ShiftTypeId = 9, ShiftCode = "EVENING", ShiftName = "Ca Tối V2", StartTime = new TimeOnly(16, 0), EndTime = new TimeOnly(20, 0), DisplayOrder = 3, IsActive = true };
+        fixture.ShiftTypeRepo.ShiftTypes.AddRange([v2Morning, v2Afternoon, v2Evening]);
 
-        var currentAccount = new UserAccount
+        var period = fixture.CreatePeriod(1002, "kỳ lịch test", new DateOnly(2026, 9, 7), new DateOnly(2026, 9, 13));
+        for (int i = 0; i < 7; i++)
         {
-            UserAccountId = 10,
-            Username = "nhanvien1",
-            Role = UserRole.Employee,
-            IsLocked = false
-        };
-        var currentEmployee = new Employee
-        {
-            EmployeeId = 1,
-            UserAccountId = 10,
-            EmployeeCode = "NV01",
-            FullName = "Nguyễn Văn Một",
-            Email = "nv1@example.com",
-            Position = EmployeePosition.Sales,
-            EmploymentType = EmploymentType.FullTime,
-            Level = EmployeeLevel.Level2,
-            IsActive = true
-        };
-        employeeRepo.Employees.Add(currentEmployee);
-
-        var morning = new ShiftType
-        {
-            ShiftTypeId = 1,
-            ShiftCode = "MORNING",
-            ShiftName = "Ca Sáng",
-            StartTime = new TimeOnly(8, 0),
-            EndTime = new TimeOnly(12, 0),
-            DisplayOrder = 1,
-            IsActive = true
-        };
-        var afternoon = new ShiftType
-        {
-            ShiftTypeId = 2,
-            ShiftCode = "AFTERNOON",
-            ShiftName = "Ca Chiều",
-            StartTime = new TimeOnly(12, 0),
-            EndTime = new TimeOnly(16, 0),
-            DisplayOrder = 2,
-            IsActive = true
-        };
-        var evening = new ShiftType
-        {
-            ShiftTypeId = 3,
-            ShiftCode = "EVENING",
-            ShiftName = "Ca Tối",
-            StartTime = new TimeOnly(16, 0),
-            EndTime = new TimeOnly(20, 0),
-            DisplayOrder = 3,
-            IsActive = true
-        };
-        shiftTypeRepo.ShiftTypes.AddRange([morning, afternoon, evening]);
-
-        var validationService = new SchedulingValidationService();
-        var orToolsService = new OrToolsSchedulingService(validationService, NullLogger<OrToolsSchedulingService>.Instance);
-
-        var service = new WorkScheduleService(
-            workScheduleRepo,
-            periodRepo,
-            shiftTypeRepo,
-            employeeRepo,
-            availRepo,
-            leaveRepo,
-            validationService,
-            orToolsService,
-            notificationRepo,
-            auditLogRepo,
-            unitOfWork,
-            clock,
-            NullLogger<WorkScheduleService>.Instance,
-            emailSender);
-
-        return new MyScheduleFixture(
-            service,
-            workScheduleRepo,
-            periodRepo,
-            shiftTypeRepo,
-            employeeRepo,
-            currentAccount,
-            currentEmployee,
-            morning,
-            afternoon,
-            evening);
-    }
-
-    private sealed class MyScheduleFixture
-    {
-        public WorkScheduleService Service { get; }
-        public FakeWorkScheduleRepository WorkScheduleRepo { get; }
-        public FakeSchedulePeriodRepository PeriodRepo { get; }
-        public FakeShiftTypeRepository ShiftTypeRepo { get; }
-        public FakeEmployeeRepository EmployeeRepo { get; }
-        public UserAccount CurrentAccount { get; }
-        public Employee CurrentEmployee { get; }
-        public ShiftType Morning { get; }
-        public ShiftType Afternoon { get; }
-        public ShiftType Evening { get; }
-
-        public MyScheduleFixture(
-            WorkScheduleService service,
-            FakeWorkScheduleRepository workScheduleRepo,
-            FakeSchedulePeriodRepository periodRepo,
-            FakeShiftTypeRepository shiftTypeRepo,
-            FakeEmployeeRepository employeeRepo,
-            UserAccount currentAccount,
-            Employee currentEmployee,
-            ShiftType morning,
-            ShiftType afternoon,
-            ShiftType evening)
-        {
-            Service = service;
-            WorkScheduleRepo = workScheduleRepo;
-            PeriodRepo = periodRepo;
-            ShiftTypeRepo = shiftTypeRepo;
-            EmployeeRepo = employeeRepo;
-            CurrentAccount = currentAccount;
-            CurrentEmployee = currentEmployee;
-            Morning = morning;
-            Afternoon = afternoon;
-            Evening = evening;
+            var date = period.WeekStartDate.AddDays(i);
+            period.StaffingRequirements.Add(new StaffingRequirement { StaffingRequirementId = (i * 3) + 1, SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 7, ShiftType = v2Morning, RequiredSalesStaff = 1, RequiredCashiers = 1 });
+            period.StaffingRequirements.Add(new StaffingRequirement { StaffingRequirementId = (i * 3) + 2, SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 8, ShiftType = v2Afternoon, RequiredSalesStaff = 1, RequiredCashiers = 1 });
+            period.StaffingRequirements.Add(new StaffingRequirement { StaffingRequirementId = (i * 3) + 3, SchedulePeriodId = period.SchedulePeriodId, WorkDate = date, ShiftTypeId = 9, ShiftType = v2Evening, RequiredSalesStaff = 1, RequiredCashiers = 1 });
         }
 
-        public SchedulePeriod CreatePeriod(int id, string name, DateOnly startDate, DateOnly endDate)
+        var schedule = fixture.CreateSchedule(2, period, ScheduleStatus.Published, publishedAt: new DateTime(2026, 9, 8, 9, 0, 0, DateTimeKind.Utc));
+        schedule.ShiftAssignments.Add(new ShiftAssignment
         {
-            var period = new SchedulePeriod
-            {
-                SchedulePeriodId = id,
-                PeriodName = name,
-                WeekStartDate = startDate,
-                WeekEndDate = endDate,
-                AvailabilityDeadline = startDate.ToDateTime(new TimeOnly(0, 0)).AddDays(-1),
-                RegistrationStatus = RegistrationStatus.Closed,
-                StaffingRequirements = new List<StaffingRequirement>()
-            };
-            PeriodRepo.SchedulePeriods.Add(period);
-            return period;
-        }
-
-        public WorkSchedule CreateSchedule(int id, SchedulePeriod period, ScheduleStatus status, DateTime? publishedAt)
-        {
-            var schedule = new WorkSchedule
-            {
-                WorkScheduleId = id,
-                SchedulePeriodId = period.SchedulePeriodId,
-                SchedulePeriod = period,
-                ScheduleName = $"Lịch {period.PeriodName}",
-                Status = status,
-                PublishedAt = publishedAt,
-                PublishedByAccountId = status == ScheduleStatus.Published ? 2 : null,
-                ShiftAssignments = new List<ShiftAssignment>()
-            };
-            WorkScheduleRepo.Schedules.Add(schedule);
-            return schedule;
-        }
-
-        public void AddAssignment(WorkSchedule schedule, Employee emp, DateOnly date, int shiftTypeId)
-        {
-            var assignment = new ShiftAssignment
-            {
-                ShiftAssignmentId = schedule.ShiftAssignments.Count + 1,
-                WorkScheduleId = schedule.WorkScheduleId,
-                WorkSchedule = schedule,
-                EmployeeId = emp.EmployeeId,
-                Employee = emp,
-                WorkDate = date,
-                ShiftTypeId = shiftTypeId,
-                ShiftType = shiftTypeId == 1 ? Morning : (shiftTypeId == 2 ? Afternoon : Evening),
-                Source = AssignmentSource.Manual
-            };
-            schedule.ShiftAssignments.Add(assignment);
-        }
+            ShiftAssignmentId = 1124,
+            WorkScheduleId = schedule.WorkScheduleId,
+            WorkSchedule = schedule,
+            EmployeeId = fixture.CurrentEmployee.EmployeeId,
+            Employee = fixture.CurrentEmployee,
+            WorkDate = monday,
+            ShiftTypeId = 8,
+            ShiftType = v2Afternoon,
+            Source = AssignmentSource.Manual
+        });
     }
 }

@@ -9,7 +9,7 @@ using ShiftScheduling.Models.Enums;
 namespace ShiftScheduling.Features.Reports.Controllers;
 
 /// <summary>
-/// Controller tong hop va bao cao so ca, so ngay, tong gio lam (UC11).
+/// Controller tổng hợp báo cáo số ca, số ngày và tổng giờ làm (UC11).
 /// </summary>
 public sealed class ReportController : AuthorizedController
 {
@@ -21,7 +21,7 @@ public sealed class ReportController : AuthorizedController
     }
 
     /// <summary>
-    /// Man hinh Quan ly xem va loc bao cao tong hop (UC11).
+    /// Màn hình Quản lý xem và lọc báo cáo tổng hợp (UC11).
     /// </summary>
     [Authorize(Roles = RoleNames.Manager)]
     [HttpGet]
@@ -44,7 +44,7 @@ public sealed class ReportController : AuthorizedController
     }
 
     /// <summary>
-    /// Man hinh Nhan vien xem bao cao ca nhan cua ban than (UC11).
+    /// Màn hình Nhân viên xem báo cáo cá nhân của bản thân (UC11).
     /// </summary>
     [Authorize(Roles = RoleNames.Employee)]
     [HttpGet]
@@ -64,7 +64,7 @@ public sealed class ReportController : AuthorizedController
     }
 
     /// <summary>
-    /// Xuat file bao cao dạng CSV theo ky lich va dieu kien loc (UC11).
+    /// Xuat file báo cáo dạng CSV theo kỳ lịch va dieu kien loc (UC11).
     /// </summary>
     [Authorize(Roles = RoleNames.Manager)]
     [HttpGet]
@@ -83,7 +83,7 @@ public sealed class ReportController : AuthorizedController
     }
 
     /// <summary>
-    /// Dieu chinh hoac dat lai gio cong thuc te cua phan cong ca lam viec (NC-07).
+    /// Điều chỉnh hoặc đặt lại giờ công thực tế của phân công ca làm việc (NC-07).
     /// </summary>
     [Authorize(Roles = RoleNames.Manager)]
     [HttpPost]

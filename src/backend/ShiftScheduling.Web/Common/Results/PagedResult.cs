@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Models.ViewModels;
 
+// Đóng gói một trang dữ liệu cùng thông tin phân trang dùng chung giữa Service và ViewModel.
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,
     int Page,

@@ -532,7 +532,7 @@ public sealed class SchedulingValidationServiceTests
             new ShiftType { ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối (cũ)", StartTime = new(16, 0), EndTime = new(20, 0), DurationHours = 4m, ConfigurationVersion = 1, IsActive = false, DisplayOrder = 3, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false }
         };
 
-        // Active version mới có Max=1
+        // Phiên bản đang hoạt động mới đặt giới hạn tối đa 1 ca/ngày.
         var newShifts = new List<ShiftType>
         {
             new ShiftType { ShiftTypeId = 4, ShiftCode = "MORNING", ShiftName = "Ca sáng (mới)", StartTime = new(8, 0), EndTime = new(12, 0), DurationHours = 4m, ConfigurationVersion = 2, IsActive = true, DisplayOrder = 1, MaxShiftsPerEmployeePerDay = 1, AllowSplitShift = false },

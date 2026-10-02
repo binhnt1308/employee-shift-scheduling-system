@@ -415,7 +415,7 @@ public sealed class WorkScheduleIntegrationTests
         var period = CreateStandardPeriod();
         _periodRepo.Add(period);
 
-        // Version 1 (cũ): IsActive = false
+        // Phiên bản 1 là bản lịch sử nên IsActive = false.
         var oldMorning = CreateShiftType(1, "MORNING", "Ca Sáng (cũ)", 8, 12);
         oldMorning.IsActive = false;
         var oldAfternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều (cũ)", 12, 16);
@@ -423,7 +423,7 @@ public sealed class WorkScheduleIntegrationTests
         var oldEvening = CreateShiftType(3, "EVENING", "Ca Tối (cũ)", 16, 20);
         oldEvening.IsActive = false;
 
-        // Version 2 (mới): IsActive = true
+        // Phiên bản 2 là bản hiện hành nên IsActive = true.
         var newMorning = CreateShiftType(4, "MORNING", "Ca Sáng (mới)", 7, 11);
         newMorning.IsActive = true;
         var newAfternoon = CreateShiftType(5, "AFTERNOON", "Ca Chiều (mới)", 11, 15);
@@ -490,7 +490,7 @@ public sealed class WorkScheduleIntegrationTests
         var period = CreateStandardPeriod();
         _periodRepo.Add(period);
 
-        // Version 1 (cũ): IsActive = false
+        // Phiên bản 1 là bản lịch sử nên IsActive = false.
         var oldMorning = CreateShiftType(1, "MORNING", "Ca Sáng (cũ)", 8, 12);
         oldMorning.IsActive = false;
         var oldAfternoon = CreateShiftType(2, "AFTERNOON", "Ca Chiều (cũ)", 12, 16);
@@ -498,7 +498,7 @@ public sealed class WorkScheduleIntegrationTests
         var oldEvening = CreateShiftType(3, "EVENING", "Ca Tối (cũ)", 16, 20);
         oldEvening.IsActive = false;
 
-        // Version 2 (mới): IsActive = true
+        // Phiên bản 2 là bản hiện hành nên IsActive = true.
         var newMorning = CreateShiftType(4, "MORNING", "Ca Sáng (mới)", 7, 11);
         newMorning.IsActive = true;
         var newAfternoon = CreateShiftType(5, "AFTERNOON", "Ca Chiều (mới)", 11, 15);

@@ -17,63 +17,148 @@ public sealed partial class AvailabilityService
         int? shiftTypeIdFilter = null,
         CancellationToken cancellationToken = default)
     {
-        var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
+        var period = await ResolveOverviewPeriodAsync(
+            schedulePeriodId,
+            cancellationToken);
+
         if (period is null)
         {
-            var allPeriods = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
-            var firstPeriod = allPeriods.Items.OrderByDescending(p => p.SchedulePeriodId).FirstOrDefault();
-            if (firstPeriod is null)
-            {
-                return new ManagerAvailabilityOverviewViewModel
-                {
-                    PeriodOptions = new List<SchedulePeriodOptionViewModel>(),
-                    EmployeeOptions = new List<EmployeeOptionViewModel>(),
-                    ShiftOptions = new List<ShiftTypeOptionViewModel>(),
-                    Days = new List<AvailabilityDayOverviewViewModel>()
-                };
-            }
-
-            schedulePeriodId = firstPeriod.SchedulePeriodId;
-            period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
-            if (period is null)
-            {
-                return new ManagerAvailabilityOverviewViewModel
-                {
-                    PeriodOptions = new List<SchedulePeriodOptionViewModel>(),
-                    EmployeeOptions = new List<EmployeeOptionViewModel>(),
-                    ShiftOptions = new List<ShiftTypeOptionViewModel>(),
-                    Days = new List<AvailabilityDayOverviewViewModel>()
-                };
-            }
+            return CreateEmptyOverview();
         }
 
-        var allPeriodsResult = await _periodRepository.GetPagedAsync(1, 100, cancellationToken);
-        var periodOptions = allPeriodsResult.Items.Select(p => new SchedulePeriodOptionViewModel
-        {
-            SchedulePeriodId = p.SchedulePeriodId,
-            PeriodName = p.PeriodName
-        }).ToList();
-
-        var employees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
-        var employeeOptions = employees.Select(e => new EmployeeOptionViewModel
-        {
-            EmployeeId = e.EmployeeId,
-            DisplayName = $"{e.EmployeeCode} - {e.FullName}"
-        }).ToList();
-
+        var periodOptions = await BuildPeriodOptionsAsync(cancellationToken);
+        var employeeOptions = await BuildEmployeeOptionsAsync(cancellationToken);
         var fixedShifts = await ResolveFixedShiftsAsync(period, cancellationToken);
-
-        var shiftOptions = fixedShifts.Select(s => new ShiftTypeOptionViewModel
-        {
-            ShiftTypeId = s.ShiftTypeId,
-            ShiftName = s.ShiftName
-        }).ToList();
+        var shiftOptions = BuildShiftOptions(fixedShifts);
 
         var avails = await _availabilityRepository.GetByPeriodWithDetailsAsync(
-            schedulePeriodId, employeeIdFilter, positionFilter, dateFilter, shiftTypeIdFilter, cancellationToken);
+            period.SchedulePeriodId,
+            employeeIdFilter,
+            positionFilter,
+            dateFilter,
+            shiftTypeIdFilter,
+            cancellationToken);
 
-        var days = BuildOverviewDays(period, fixedShifts, avails, dateFilter, shiftTypeIdFilter);
+        var days = BuildOverviewDays(
+            period,
+            fixedShifts,
+            avails,
+            dateFilter,
+            shiftTypeIdFilter);
 
+        return CreateOverviewModel(
+            period,
+            employeeIdFilter,
+            positionFilter,
+            dateFilter,
+            shiftTypeIdFilter,
+            periodOptions,
+            employeeOptions,
+            shiftOptions,
+            days);
+    }
+
+    private async Task<SchedulePeriod?> ResolveOverviewPeriodAsync(
+        int schedulePeriodId,
+        CancellationToken cancellationToken)
+    {
+        var period = await _periodRepository.GetByIdAsync(
+            schedulePeriodId,
+            true,
+            true,
+            cancellationToken);
+
+        if (period is not null)
+        {
+            return period;
+        }
+
+        var allPeriods = await _periodRepository.GetPagedAsync(
+            1,
+            100,
+            cancellationToken);
+
+        var latestPeriod = allPeriods.Items
+            .OrderByDescending(item => item.SchedulePeriodId)
+            .FirstOrDefault();
+
+        if (latestPeriod is null)
+        {
+            return null;
+        }
+
+        return await _periodRepository.GetByIdAsync(
+            latestPeriod.SchedulePeriodId,
+            true,
+            true,
+            cancellationToken);
+    }
+
+    private static ManagerAvailabilityOverviewViewModel CreateEmptyOverview()
+    {
+        return new ManagerAvailabilityOverviewViewModel
+        {
+            PeriodOptions = new List<SchedulePeriodOptionViewModel>(),
+            EmployeeOptions = new List<EmployeeOptionViewModel>(),
+            ShiftOptions = new List<ShiftTypeOptionViewModel>(),
+            Days = new List<AvailabilityDayOverviewViewModel>()
+        };
+    }
+
+    private async Task<List<SchedulePeriodOptionViewModel>> BuildPeriodOptionsAsync(
+        CancellationToken cancellationToken)
+    {
+        var periods = await _periodRepository.GetPagedAsync(
+            1,
+            100,
+            cancellationToken);
+
+        return periods.Items
+            .Select(period => new SchedulePeriodOptionViewModel
+            {
+                SchedulePeriodId = period.SchedulePeriodId,
+                PeriodName = period.PeriodName
+            })
+            .ToList();
+    }
+
+    private async Task<List<EmployeeOptionViewModel>> BuildEmployeeOptionsAsync(
+        CancellationToken cancellationToken)
+    {
+        var employees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
+
+        return employees
+            .Select(employee => new EmployeeOptionViewModel
+            {
+                EmployeeId = employee.EmployeeId,
+                DisplayName = $"{employee.EmployeeCode} - {employee.FullName}"
+            })
+            .ToList();
+    }
+
+    private static List<ShiftTypeOptionViewModel> BuildShiftOptions(
+        IEnumerable<ShiftType> fixedShifts)
+    {
+        return fixedShifts
+            .Select(shift => new ShiftTypeOptionViewModel
+            {
+                ShiftTypeId = shift.ShiftTypeId,
+                ShiftName = shift.ShiftName
+            })
+            .ToList();
+    }
+
+    private static ManagerAvailabilityOverviewViewModel CreateOverviewModel(
+        SchedulePeriod period,
+        int? employeeIdFilter,
+        EmployeePosition? positionFilter,
+        DateOnly? dateFilter,
+        int? shiftTypeIdFilter,
+        List<SchedulePeriodOptionViewModel> periodOptions,
+        List<EmployeeOptionViewModel> employeeOptions,
+        List<ShiftTypeOptionViewModel> shiftOptions,
+        List<AvailabilityDayOverviewViewModel> days)
+    {
         return new ManagerAvailabilityOverviewViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -94,7 +179,7 @@ public sealed partial class AvailabilityService
     // ── private helpers ───────────────────────────────────────────────
 
     /// <summary>
-    /// Lấy 3 ca cố định từ kỳ lịch hoặc fallback sang danh sách active.
+    /// Lấy ba ca cố định từ kỳ lịch; nếu kỳ chưa có dữ liệu thì dùng danh sách ca đang hoạt động.
     /// Dùng chung cho Registration và Mapping partial.
     /// </summary>
     internal async Task<List<ShiftType>> ResolveFixedShiftsAsync(
@@ -146,60 +231,91 @@ public sealed partial class AvailabilityService
         var viCulture = new CultureInfo("vi-VN");
         var days = new List<AvailabilityDayOverviewViewModel>();
 
-        for (int i = 0; i < 7; i++)
+        for (var dayOffset = 0; dayOffset < 7; dayOffset++)
         {
-            var date = period.WeekStartDate.AddDays(i);
+            var date = period.WeekStartDate.AddDays(dayOffset);
             if (dateFilter.HasValue && dateFilter.Value != date)
             {
                 continue;
             }
 
-            var dayName = date.ToString("dddd (dd/MM)", viCulture);
-            var shiftCells = new List<ManagerAvailabilityCellViewModel>();
-
-            foreach (var shift in fixedShifts)
-            {
-                if (shiftTypeIdFilter.HasValue
-                    && shiftTypeIdFilter.Value > 0
-                    && shift.ShiftTypeId != shiftTypeIdFilter.Value)
-                {
-                    continue;
-                }
-
-                var shiftAvails = avails
-                    .Where(a => a.WorkDate == date && a.ShiftTypeId == shift.ShiftTypeId)
-                    .ToList();
-
-                var empItems = shiftAvails.Select(a => new ManagerAvailabilityEmployeeItem
-                {
-                    EmployeeId = a.Employee.EmployeeId,
-                    EmployeeCode = a.Employee.EmployeeCode,
-                    FullName = a.Employee.FullName,
-                    Position = a.Employee.Position,
-                    EmploymentType = a.Employee.EmploymentType,
-                    Level = a.Employee.Level,
-                    // NC-02: Manager phân biệt Normal/Preferred.
-                    PreferenceLevel = a.PreferenceLevel
-                }).OrderBy(e => e.Position).ThenBy(e => e.FullName).ToList();
-
-                shiftCells.Add(new ManagerAvailabilityCellViewModel
-                {
-                    WorkDate = date,
-                    ShiftTypeId = shift.ShiftTypeId,
-                    ShiftCode = shift.ShiftCode,
-                    ShiftName = shift.ShiftName,
-                    AvailableEmployees = empItems
-                });
-            }
-
             days.Add(new AvailabilityDayOverviewViewModel
             {
                 WorkDate = date,
-                DayOfWeekName = dayName,
-                Shifts = shiftCells
+                DayOfWeekName = date.ToString("dddd (dd/MM)", viCulture),
+                Shifts = BuildOverviewShiftCells(
+                    date,
+                    fixedShifts,
+                    avails,
+                    shiftTypeIdFilter)
             });
         }
 
         return days;
+    }
+
+    private static List<ManagerAvailabilityCellViewModel> BuildOverviewShiftCells(
+        DateOnly date,
+        IEnumerable<ShiftType> fixedShifts,
+        IEnumerable<Availability> avails,
+        int? shiftTypeIdFilter)
+    {
+        var shiftCells = new List<ManagerAvailabilityCellViewModel>();
+
+        foreach (var shift in fixedShifts)
+        {
+            if (!ShouldIncludeShift(shift, shiftTypeIdFilter))
+            {
+                continue;
+            }
+
+            shiftCells.Add(new ManagerAvailabilityCellViewModel
+            {
+                WorkDate = date,
+                ShiftTypeId = shift.ShiftTypeId,
+                ShiftCode = shift.ShiftCode,
+                ShiftName = shift.ShiftName,
+                AvailableEmployees = BuildAvailableEmployeeItems(
+                    date,
+                    shift.ShiftTypeId,
+                    avails)
+            });
+        }
+
+        return shiftCells;
+    }
+
+    private static bool ShouldIncludeShift(
+        ShiftType shift,
+        int? shiftTypeIdFilter)
+    {
+        return !shiftTypeIdFilter.HasValue
+            || shiftTypeIdFilter.Value <= 0
+            || shift.ShiftTypeId == shiftTypeIdFilter.Value;
+    }
+
+    private static List<ManagerAvailabilityEmployeeItem> BuildAvailableEmployeeItems(
+        DateOnly date,
+        int shiftTypeId,
+        IEnumerable<Availability> avails)
+    {
+        return avails
+            .Where(availability =>
+                availability.WorkDate == date
+                && availability.ShiftTypeId == shiftTypeId)
+            .Select(availability => new ManagerAvailabilityEmployeeItem
+            {
+                EmployeeId = availability.Employee.EmployeeId,
+                EmployeeCode = availability.Employee.EmployeeCode,
+                FullName = availability.Employee.FullName,
+                Position = availability.Employee.Position,
+                EmploymentType = availability.Employee.EmploymentType,
+                Level = availability.Employee.Level,
+                // NC-02: Quản lý cần phân biệt mức nguyện vọng Normal và Preferred.
+                PreferenceLevel = availability.PreferenceLevel
+            })
+            .OrderBy(employee => employee.Position)
+            .ThenBy(employee => employee.FullName)
+            .ToList();
     }
 }

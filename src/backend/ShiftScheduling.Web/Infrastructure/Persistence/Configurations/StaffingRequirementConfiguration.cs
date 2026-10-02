@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho định mức nhân sự theo ngày và ca trong kỳ lịch.
 public sealed class StaffingRequirementConfiguration : IEntityTypeConfiguration<StaffingRequirement>
 {
     public void Configure(EntityTypeBuilder<StaffingRequirement> entity)

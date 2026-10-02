@@ -5,11 +5,12 @@ using ShiftScheduling.Features.WorkSchedules.Services;
 using ShiftScheduling.Features.WorkSchedules.ViewModels;
 using ShiftScheduling.Models.Constants;
 using ShiftScheduling.Models.Enums;
+using ShiftScheduling.Models.Errors;
 
 namespace ShiftScheduling.Features.WorkSchedules.Controllers;
 
 /// <summary>
-/// Controller quan ly phan cong ca (UC05), OR-Tools (UC06) va cong bo lich (UC07).
+/// Controller quản lý phân công ca (UC05), OR-Tools (UC06) và công bố lịch (UC07).
 /// </summary>
 [Authorize(Roles = RoleNames.Manager)]
 public sealed class WorkScheduleController : AuthorizedController
@@ -22,7 +23,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Danh sach cac ky lich va trang thai phan cong.
+    /// Danh sách các kỳ lịch và trạng thái phân công.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -35,7 +36,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Man hinh phan cong ca thu cong (Grid 7x3) va sinh lich OR-Tools.
+    /// Màn hình phân công ca thủ công (lưới 7x3) và sinh lịch bằng OR-Tools.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -50,7 +51,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Lay danh sach nhan vien du dieu kien cho ca lam viec de phan cong.
+    /// Lấy danh sách nhân viên đủ điều kiện cho ca làm việc để phân công.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetEligibleEmployees(
@@ -65,7 +66,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly phan cong hoac thay the nhan vien vao ca thu cong (AJAX / Form).
+    /// Xử lý phân công hoặc thay thế nhân viên vào ca thủ công.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -83,7 +84,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly xoa nhan vien khoi ca phan cong thu cong.
+    /// Xử lý gỡ nhân viên khỏi ca phân công thủ công.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -101,7 +102,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Luu lich nhap (BR14: Cho phep luu lich nhap chua hoan chinh).
+    /// Lưu lịch nháp; BR14 cho phép lịch nháp chưa hoàn chỉnh.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -121,7 +122,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Sinh lich de xuat tu dong bang Google OR-Tools CP-SAT (UC06/BR15).
+    /// Sinh lịch đề xuất tự động bằng Google OR-Tools CP-SAT (UC06/BR15).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -132,7 +133,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Ghi de phuong an de xuat OR-Tools vao lich nhap (UC06).
+    /// Ghi đè phương án OR-Tools vào lịch nháp (UC06).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -152,7 +153,7 @@ public sealed class WorkScheduleController : AuthorizedController
     }
 
     /// <summary>
-    /// Duyet va cong bo lich chinh thuc (UC07/BR14/BR16).
+    /// Duyệt và công bố lịch chính thức (UC07/BR14/BR16).
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -167,5 +168,155 @@ public sealed class WorkScheduleController : AuthorizedController
 
         TempData["Success"] = "Đã duyệt và công bố chính thức lịch làm việc cho kỳ lịch.";
         return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    /// <summary>
+    /// Chốt kỳ làm việc (khóa lịch và giờ công).
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Close(int id, string? rowVersion, CancellationToken cancellationToken)
+    {
+        var result = await _workScheduleService.CloseScheduleAsync(
+            id, rowVersion, CurrentAccountId, cancellationToken);
+        if (!result.Succeeded)
+        {
+            if (result.ErrorCode == ErrorCodes.ConcurrencyConflict)
+            {
+                return StatusCode(409, result.ErrorMessage);
+            }
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(Edit), new { id });
+        }
+
+        TempData["Success"] = "Đã chốt kỳ làm việc. Lịch và giờ công của kỳ này không thể tiếp tục điều chỉnh.";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    /// <summary>
+    /// Hiển thị màn hình gợi ý và xếp người thay thế cho ca thiếu nhân sự khi đơn nghỉ được duyệt.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> LeaveReplacement(int leaveRequestId, CancellationToken cancellationToken)
+    {
+        var model = await _workScheduleService.GetLeaveReplacementAsync(leaveRequestId, cancellationToken);
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        if (model.AffectedAssignments.Count == 0)
+        {
+            TempData.Remove("Error");
+        }
+
+        return View(model);
+    }
+
+    /// <summary>
+    /// Hiển thị màn hình gợi ý và bố trí người thay thế trước khi duyệt đơn xin nghỉ (Pending).
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> LeaveReplacementPreview(int leaveRequestId, CancellationToken cancellationToken)
+    {
+        var model = await _workScheduleService.GetLeaveReplacementPreviewAsync(leaveRequestId, cancellationToken);
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        if (model.AffectedAssignments.Count == 0)
+        {
+            TempData.Remove("Error");
+        }
+
+        return View("LeaveReplacement", model);
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận xếp người thay thế cho ca thiếu nhân sự trên lịch đã công bố.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReplaceApprovedLeaveAssignment(
+        LeaveReplacementRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu yêu cầu thay thế không hợp lệ.";
+            return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ReplaceApprovedLeaveAssignmentAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(LeaveReplacement), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        TempData["Success"] = "Đã bố trí người thay thành công. Lịch làm việc đã công bố đã được cập nhật.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận bố trí người thay thế và duyệt đơn xin nghỉ trong 1 thao tác nguyên tử.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveLeaveWithReplacement(
+        ApproveLeaveWithReplacementRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu yêu cầu thay thế không hợp lệ.";
+            return RedirectToAction(nameof(LeaveReplacementPreview), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ApproveLeaveWithReplacementAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(LeaveReplacementPreview), new { leaveRequestId = model.LeaveRequestId });
+        }
+
+        TempData["Success"] = result.SuccessMessage ?? "Đã duyệt đơn nghỉ và bố trí người thay thành công.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
+    }
+
+    /// <summary>
+    /// Quản lý xác nhận duyệt nghỉ khẩn cấp khi không có nhân viên thay thế phù hợp.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Manager)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveEmergencyLeave(
+        ApproveEmergencyLeaveRequestViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Dữ liệu duyệt nghỉ khẩn cấp không hợp lệ.";
+            return RedirectToAction("Review", "LeaveRequest", new { id = model.LeaveRequestId });
+        }
+
+        var result = await _workScheduleService.ApproveEmergencyLeaveAsync(
+            model, CurrentAccountId, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction("Review", "LeaveRequest", new { id = model.LeaveRequestId });
+        }
+
+        TempData["Success"] = result.SuccessMessage ?? "Đã duyệt nghỉ khẩn cấp thành công.";
+        return RedirectToAction("Details", "LeaveRequest", new { id = model.LeaveRequestId });
     }
 }

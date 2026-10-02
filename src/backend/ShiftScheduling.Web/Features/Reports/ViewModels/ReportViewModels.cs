@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Mvc;
+using ShiftScheduling.Features.Reports.ModelBinders;
 using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Features.Reports.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng báo cáo ca và giờ làm.
 public sealed class WorkReportRowItemViewModel
 {
     public int Index { get; set; }
@@ -108,6 +111,7 @@ public sealed class WorkdayDetailItemViewModel
         ? "Quản lý điều chỉnh"
         : (HasApprovedLeave ? "Nghỉ đã duyệt — tự động 0 giờ" : "Theo lịch");
     public bool CanAdjust { get; set; }
+    public bool IsScheduleClosed { get; set; }
     public string FormattedPlannedHours => $"{PlannedHours:0.##} h";
     public string FormattedEffectiveWorkedHours => $"{EffectiveWorkedHours:0.##} h";
 }
@@ -116,7 +120,10 @@ public sealed class AdjustWorkdayHoursRequest
 {
     public int SchedulePeriodId { get; set; }
     public int ShiftAssignmentId { get; set; }
+
+    [ModelBinder(typeof(WorkdayHoursModelBinder))]
     public decimal? ActualWorkedHours { get; set; }
+
     public string? WorkdayAdjustmentReason { get; set; }
     public bool IsReset { get; set; }
     public int? ReturnEmployeeId { get; set; }

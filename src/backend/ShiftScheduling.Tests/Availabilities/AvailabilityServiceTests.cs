@@ -292,6 +292,23 @@ public sealed class AvailabilityServiceTests
                     a.EmployeeId == employeeId && a.SchedulePeriodId == schedulePeriodId).ToList());
         }
 
+        public Task<IReadOnlyDictionary<int, int>> GetCountsByEmployeeAndPeriodIdsAsync(
+            int employeeId,
+            IReadOnlyCollection<int> schedulePeriodIds,
+            CancellationToken cancellationToken = default)
+        {
+            var periodIdSet = schedulePeriodIds.ToHashSet();
+
+            IReadOnlyDictionary<int, int> counts = Availabilities
+                .Where(availability =>
+                    availability.EmployeeId == employeeId
+                    && periodIdSet.Contains(availability.SchedulePeriodId))
+                .GroupBy(availability => availability.SchedulePeriodId)
+                .ToDictionary(group => group.Key, group => group.Count());
+
+            return Task.FromResult(counts);
+        }
+
         public Task<List<Availability>> GetByPeriodWithDetailsAsync(
             int schedulePeriodId,
             int? employeeIdFilter = null,

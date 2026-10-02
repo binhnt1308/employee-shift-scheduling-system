@@ -4,6 +4,7 @@ using ShiftScheduling.Models.Entities;
 
 namespace ShiftScheduling.Infrastructure.Persistence.Configurations;
 
+// Ánh xạ EF Core cho lịch làm việc của một kỳ và vòng đời trạng thái của lịch.
 public sealed class WorkScheduleConfiguration : IEntityTypeConfiguration<WorkSchedule>
 {
     public void Configure(EntityTypeBuilder<WorkSchedule> entity)

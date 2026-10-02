@@ -22,7 +22,7 @@ using ShiftScheduling.Models.Results;
 namespace ShiftScheduling.Features.WorkSchedules.Services;
 
 /// <summary>
-/// Service ho tro phan cong (UC05), sinh lich OR-Tools (UC06) va cong bo lich (UC07).
+/// Service hỗ trợ phân công (UC05), sinh lịch OR-Tools (UC06) và công bố lịch (UC07).
 /// </summary>
 public partial class WorkScheduleService : IWorkScheduleService
 {
@@ -143,21 +143,14 @@ public partial class WorkScheduleService : IWorkScheduleService
         CancellationToken cancellationToken = default)
     {
         var period = await _periodRepository.GetByIdAsync(schedulePeriodId, true, true, cancellationToken);
-        if (period is null)
-        {
-            return null;
-        }
+        if (period is null) return null;
 
         var schedule = await _workScheduleRepository.GetByPeriodIdAsync(
             schedulePeriodId, true, true, cancellationToken);
-
         var now = _clock.UtcNow;
         var currentDate = DateOnly.FromDateTime(_clock.ToVietnamTime(now));
 
-        if (!CanSchedulePeriod(period, schedule, now, currentDate))
-        {
-            return null;
-        }
+        if (!CanSchedulePeriod(period, schedule, now, currentDate)) return null;
 
         if (schedule is null)
         {
@@ -166,11 +159,7 @@ public partial class WorkScheduleService : IWorkScheduleService
             schedule = await _workScheduleRepository.GetByPeriodIdAsync(
                 schedulePeriodId, true, true, cancellationToken);
         }
-
-        if (schedule is null)
-        {
-            return null;
-        }
+        if (schedule is null) return null;
 
         var activeEmployees = await _employeeRepository.GetAllActiveAsync(cancellationToken);
         var availabilities = await _availabilityRepository.GetByPeriodWithDetailsAsync(
@@ -178,22 +167,38 @@ public partial class WorkScheduleService : IWorkScheduleService
         var leaves = await _leaveRequestRepository.GetApprovedLeavesByPeriodAsync(
             schedulePeriodId, cancellationToken);
         var allShifts = await _shiftTypeRepository.GetAllAsync(true, cancellationToken);
+        var fixedShifts = ResolveFixedShifts(period, allShifts);
+
+        var validationResult = _validationService.ValidateSchedule(
+            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
+            schedule.ShiftAssignments.ToList(), allShifts);
+        var days = BuildGridDays(
+            period, fixedShifts, period.StaffingRequirements.ToList(),
+            schedule.ShiftAssignments.ToList(), activeEmployees, availabilities, leaves);
+
+        return CreateEditViewModel(period, schedule, validationResult, days, now, currentDate);
+    }
+
+    private static List<ShiftType> ResolveFixedShifts(SchedulePeriod period, IReadOnlyList<ShiftType> allShifts)
+    {
         var periodShifts = period.StaffingRequirements
             .Select(r => r.ShiftType)
             .Where(st => st != null)
             .DistinctBy(st => st.ShiftTypeId)
             .OrderBy(st => st.DisplayOrder)
             .ToList();
-        var fixedShifts = periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+        return periodShifts.Count == 3 ? periodShifts : GetFixedThreeShifts(allShifts);
+    }
 
-        var validationResult = _validationService.ValidateSchedule(
-            period, activeEmployees, availabilities, leaves, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), allShifts);
-
-        var days = BuildGridDays(
-            period, fixedShifts, period.StaffingRequirements.ToList(),
-            schedule.ShiftAssignments.ToList(), activeEmployees);
-
+    private static WorkScheduleEditViewModel CreateEditViewModel(
+        SchedulePeriod period,
+        WorkSchedule schedule,
+        ScheduleValidationResultViewModel validationResult,
+        List<SchedulingDayGridViewModel> days,
+        DateTime now,
+        DateOnly currentDate)
+    {
+        var statusResult = SchedulePeriodStatusHelper.CalculateEffectiveStatus(period, schedule, now, currentDate);
         return new WorkScheduleEditViewModel
         {
             SchedulePeriodId = period.SchedulePeriodId,
@@ -203,7 +208,12 @@ public partial class WorkScheduleService : IWorkScheduleService
             RegistrationStatus = period.RegistrationStatus,
             WorkScheduleId = schedule.WorkScheduleId,
             Status = schedule.Status,
+            EffectiveStatusName = statusResult.StatusName,
+            DisplayBadgeClass = statusResult.DisplayBadgeClass,
             IsGeneratedByORTools = schedule.IsGeneratedByORTools,
+            CanEditAssignments = schedule.Status == ScheduleStatus.Draft,
+            CanClose = SchedulePeriodStatusHelper.CanCloseSchedule(period, schedule, currentDate),
+            RowVersion = schedule.RowVersion != null ? Convert.ToBase64String(schedule.RowVersion) : string.Empty,
             Days = days,
             ValidationResult = validationResult
         };
@@ -214,78 +224,79 @@ public partial class WorkScheduleService : IWorkScheduleService
         List<ShiftType> fixedShifts,
         List<StaffingRequirement> requirements,
         List<ShiftAssignment> assignments,
-        IReadOnlyList<Employee> activeEmployees)
+        IReadOnlyList<Employee> activeEmployees,
+        IReadOnlyList<Availability>? availabilities = null,
+        IReadOnlyList<LeaveRequest>? approvedLeaves = null)
     {
         var empMap = activeEmployees.ToDictionary(e => e.EmployeeId);
+        var preferredSet = availabilities?
+            .Where(a => a.PreferenceLevel == AvailabilityPreferenceLevel.Preferred)
+            .Select(a => (a.EmployeeId, a.WorkDate, a.ShiftTypeId))
+            .ToHashSet();
         var viCulture = new CultureInfo("vi-VN");
-        var days = new List<SchedulingDayGridViewModel>();
+        var days = new List<SchedulingDayGridViewModel>(7);
 
         for (int i = 0; i < 7; i++)
         {
             var date = period.WeekStartDate.AddDays(i);
-            var dayName = date.ToString("dddd (dd/MM)", viCulture);
-            var shiftCells = new List<SchedulingShiftCellViewModel>();
-
-            foreach (var shift in fixedShifts)
-            {
-                var req = requirements.FirstOrDefault(r => r.WorkDate == date && r.ShiftTypeId == shift.ShiftTypeId);
-                int reqSales = req?.RequiredSalesStaff ?? 0;
-                int reqCashier = req?.RequiredCashiers ?? 0;
-
-                var shiftAssigns = assignments
-                    .Where(a => a.WorkDate == date && a.ShiftTypeId == shift.ShiftTypeId)
-                    .ToList();
-                var assignedItems = shiftAssigns.Select(a =>
-                {
-                    empMap.TryGetValue(a.EmployeeId, out var emp);
-                    return new AssignedEmployeeItemViewModel
-                    {
-                        ShiftAssignmentId = a.ShiftAssignmentId,
-                        EmployeeId = a.EmployeeId,
-                        EmployeeCode = emp?.EmployeeCode ?? a.Employee?.EmployeeCode ?? string.Empty,
-                        FullName = emp?.FullName ?? a.Employee?.FullName ?? string.Empty,
-                        Position = emp?.Position ?? a.Employee?.Position ?? EmployeePosition.Sales,
-                        EmploymentType = emp?.EmploymentType ?? a.Employee?.EmploymentType ?? EmploymentType.PartTime,
-                        Level = emp?.Level ?? a.Employee?.Level ?? EmployeeLevel.Level1,
-                        Source = a.Source
-                    };
-                }).OrderBy(e => e.Position).ThenBy(e => e.FullName).ToList();
-
-                int assignedSales = assignedItems.Count(e => e.Position == EmployeePosition.Sales);
-                int assignedCashier = assignedItems.Count(e => e.Position == EmployeePosition.Cashier);
-                bool hasLevel2Plus = assignedItems.Any(e => e.Level >= EmployeeLevel.Level2);
-
-                shiftCells.Add(new SchedulingShiftCellViewModel
-                {
-                    WorkDate = date,
-                    ShiftTypeId = shift.ShiftTypeId,
-                    ShiftCode = shift.ShiftCode,
-                    ShiftName = shift.ShiftName,
-                    StartTime = shift.StartTime,
-                    EndTime = shift.EndTime,
-                    RequiredSales = reqSales,
-                    RequiredCashier = reqCashier,
-                    AssignedSales = assignedSales,
-                    AssignedCashier = assignedCashier,
-                    MissingSales = Math.Max(0, reqSales - assignedSales),
-                    MissingCashier = Math.Max(0, reqCashier - assignedCashier),
-                    HasLevel2Plus = hasLevel2Plus,
-                    IsSatisfied = assignedSales == reqSales
-                        && assignedCashier == reqCashier
-                        && (hasLevel2Plus || reqSales + reqCashier == 0),
-                    AssignedEmployees = assignedItems
-                });
-            }
+            var shiftCells = fixedShifts
+                .Select(s => BuildShiftCell(date, s, requirements, assignments, empMap, preferredSet, approvedLeaves))
+                .ToList();
 
             days.Add(new SchedulingDayGridViewModel
             {
                 WorkDate = date,
-                DayOfWeekName = dayName,
+                DayOfWeekName = date.ToString("dddd (dd/MM)", viCulture),
                 Shifts = shiftCells
             });
         }
 
         return days;
+    }
+
+    private static SchedulingShiftCellViewModel BuildShiftCell(
+        DateOnly date, ShiftType shift, List<StaffingRequirement> requirements,
+        List<ShiftAssignment> assignments, Dictionary<int, Employee> empMap,
+        HashSet<(int, DateOnly, int)>? preferredSet, IReadOnlyList<LeaveRequest>? approvedLeaves)
+    {
+        var req = requirements.FirstOrDefault(r => r.WorkDate == date && r.ShiftTypeId == shift.ShiftTypeId);
+        int reqSales = req?.RequiredSalesStaff ?? 0, reqCashier = req?.RequiredCashiers ?? 0;
+        var shiftAssigns = assignments.Where(a => a.WorkDate == date && a.ShiftTypeId == shift.ShiftTypeId).ToList();
+        var assignedItems = shiftAssigns.Select(a =>
+        {
+            empMap.TryGetValue(a.EmployeeId, out var emp);
+            var leave = approvedLeaves?.FirstOrDefault(l => l.EmployeeId == a.EmployeeId
+                && l.LeaveDate == a.WorkDate && (!l.ShiftTypeId.HasValue || l.ShiftTypeId.Value == a.ShiftTypeId));
+            return new AssignedEmployeeItemViewModel
+            {
+                ShiftAssignmentId = a.ShiftAssignmentId, EmployeeId = a.EmployeeId,
+                EmployeeCode = emp?.EmployeeCode ?? a.Employee?.EmployeeCode ?? string.Empty,
+                FullName = emp?.FullName ?? a.Employee?.FullName ?? string.Empty,
+                Position = emp?.Position ?? a.Employee?.Position ?? EmployeePosition.Sales,
+                EmploymentType = emp?.EmploymentType ?? a.Employee?.EmploymentType ?? EmploymentType.PartTime,
+                Level = emp?.Level ?? a.Employee?.Level ?? EmployeeLevel.Level1, Source = a.Source,
+                IsPreferred = preferredSet?.Contains((a.EmployeeId, a.WorkDate, a.ShiftTypeId)) ?? false,
+                HasApprovedLeave = leave != null, ApprovedLeaveRequestId = leave?.LeaveRequestId
+            };
+        }).OrderBy(e => e.Position).ThenBy(e => e.FullName).ToList();
+
+        int assignedSales = assignedItems.Count(e => e.Position == EmployeePosition.Sales);
+        int assignedCashier = assignedItems.Count(e => e.Position == EmployeePosition.Cashier);
+        bool hasLevel2Plus = assignedItems.Any(e => e.Level >= EmployeeLevel.Level2);
+
+        return new SchedulingShiftCellViewModel
+        {
+            WorkDate = date, ShiftTypeId = shift.ShiftTypeId, ShiftCode = shift.ShiftCode,
+            ShiftName = shift.ShiftName, StartTime = shift.StartTime, EndTime = shift.EndTime,
+            RequiredSales = reqSales, RequiredCashier = reqCashier,
+            AssignedSales = assignedSales, AssignedCashier = assignedCashier,
+            MissingSales = Math.Max(0, reqSales - assignedSales),
+            MissingCashier = Math.Max(0, reqCashier - assignedCashier),
+            HasLevel2Plus = hasLevel2Plus,
+            IsSatisfied = assignedSales == reqSales && assignedCashier == reqCashier
+                && (hasLevel2Plus || reqSales + reqCashier == 0),
+            AssignedEmployees = assignedItems
+        };
     }
 
     private static List<ShiftType> GetFixedThreeShifts(IReadOnlyList<ShiftType> allShiftTypes)

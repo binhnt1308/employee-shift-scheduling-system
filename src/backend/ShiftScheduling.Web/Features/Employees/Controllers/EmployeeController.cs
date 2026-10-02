@@ -7,14 +7,14 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.Employees.Controllers;
 
-// BR01: Chi quan tri vien hoac quan ly duoc quan ly ho so nhan vien.
+// BR01: Chỉ quản trị viên hoặc quản lý được quản lý hồ sơ nhân viên.
 [Authorize(Roles = RoleNames.AdminOrManager)]
 public sealed class EmployeeController : AuthorizedController
 {
     private readonly IEmployeeService _employeeService;
 
     /// <summary>
-    /// Khoi tao EmployeeController voi EmployeeService.
+    /// Khởi tạo EmployeeController với EmployeeService.
     /// </summary>
     public EmployeeController(IEmployeeService employeeService)
     {
@@ -22,7 +22,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Lay danh sach nhan vien co tim kiem theo tu khoa va phan trang.
+    /// Lấy danh sách nhân viên có tìm kiếm theo từ khóa và phân trang.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -36,7 +36,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form tao moi ho so nhan vien.
+    /// Hiển thị form tạo mới hồ sơ nhân viên.
     /// </summary>
     [HttpGet]
     public IActionResult Create()
@@ -45,7 +45,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly luu ho so nhan vien moi vao co so du lieu.
+    /// Xử lý lưu hồ sơ nhân viên mới vào cơ sở dữ liệu.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -70,7 +70,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Hien thi form cap nhat thong tin nhan vien theo ID.
+    /// Hiển thị form cập nhật thông tin nhân viên theo ID.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
@@ -80,7 +80,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Xu ly cap nhat thong tin nhan vien theo ID.
+    /// Xử lý cập nhật thông tin nhân viên theo ID.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -111,7 +111,7 @@ public sealed class EmployeeController : AuthorizedController
     }
 
     /// <summary>
-    /// Thay doi trang thai hoat dong (Kich hoat / Ngung hoat dong) cua nhan vien.
+    /// Thay đổi trạng thái hoạt động (Kích hoạt / Ngừng hoạt động) của nhân viên.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]

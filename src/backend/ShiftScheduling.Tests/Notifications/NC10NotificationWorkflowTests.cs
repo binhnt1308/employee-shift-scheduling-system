@@ -19,7 +19,7 @@ namespace ShiftScheduling.Tests.Notifications;
 public sealed class NC10NotificationWorkflowTests
 {
     // ============================================================
-    // N10-01 & N10-E01: SCHEDULE PUBLISHED (INTERNAL + EMAIL)
+    // N10-01 & N10-E01: công bố lịch, tạo thông báo nội bộ và gửi email.
     // ============================================================
 
     [Fact(DisplayName = "N10-01 - PublishScheduleAsync thành công -> tạo thông báo nội bộ SchedulePublished đúng recipient")]
@@ -69,7 +69,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // N10-02 & N10-05 & N10-E02: SHIFT TRANSFER APPROVED (SCHEDULE CHANGED)
+    // N10-02, N10-05 & N10-E02: duyệt chuyển ca, cập nhật lịch và gửi thông báo.
     // ============================================================
 
     [Fact(DisplayName = "N10-02 - Shift Transfer Approved -> Sender và Receiver nhận duy nhất 1 notification ScheduleChanged")]
@@ -142,7 +142,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // N10-06 & N10-E06: SHIFT TRANSFER REJECTED (SHIFT TRANSFER RESULT)
+    // N10-06 & N10-E06: từ chối chuyển ca và thông báo kết quả.
     // ============================================================
 
     [Fact(DisplayName = "N10-06 - Shift Transfer Rejected -> Sender và Receiver nhận ShiftTransferResult thể hiện bị từ chối")]
@@ -198,7 +198,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // N10-03 & N10-E03: LEAVE APPROVED
+    // N10-03 & N10-E03: duyệt đơn nghỉ và gửi thông báo.
     // ============================================================
 
     [Fact(DisplayName = "N10-03 - Leave Approved -> LeaveRequestResult đúng recipient")]
@@ -236,7 +236,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // N10-04 & N10-E04: LEAVE REJECTED
+    // N10-04 & N10-E04: từ chối đơn nghỉ và gửi thông báo.
     // ============================================================
 
     [Fact(DisplayName = "N10-04 - Leave Rejected -> LeaveRequestResult đúng recipient và nội dung từ chối")]
@@ -272,7 +272,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // FAULT TOLERANCE: N10-F01 & N10-F02
+    // Khả năng chịu lỗi N10-F01 & N10-F02: lỗi thông báo không được làm hỏng nghiệp vụ chính.
     // ============================================================
 
     [Fact(DisplayName = "N10-F01 - Employee.Email null -> Business thành công, internal notification vẫn có, không gọi send email")]
@@ -306,7 +306,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // IDEMPOTENCY: N10-F03
+    // Tính lặp an toàn N10-F03: không tạo thông báo trùng khi cùng sự kiện được xử lý lại.
     // ============================================================
 
     [Fact(DisplayName = "N10-F03 - Thao tác đã hoàn tất gọi lại -> Guard chặn, không phát sinh email/notification duplicate")]
@@ -344,7 +344,7 @@ public sealed class NC10NotificationWorkflowTests
     }
 
     // ============================================================
-    // HELPER FIXTURES
+    // Các fixture hỗ trợ dựng dữ liệu kiểm thử.
     // ============================================================
 
     private static WorkScheduleFixture CreateWorkScheduleFixture()

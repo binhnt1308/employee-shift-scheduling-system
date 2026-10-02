@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using ShiftScheduling.Common.Constants;
 using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng hồ sơ nhân viên.
 public sealed class EmployeeFormViewModel
 {
     public int EmployeeId { get; set; }
@@ -65,6 +67,10 @@ public sealed class EmployeeListItemViewModel
     public bool IsActive { get; init; }
 
     public int ExpectedWeeklyHours => EmploymentType == EmploymentType.FullTime ? 48 : 20;
+
+    public decimal MaxWeeklyHours => EmploymentType == EmploymentType.FullTime
+        ? SchedulingRuleConstants.FullTimeMaxWeeklyWorkHours
+        : SchedulingRuleConstants.PartTimeMaxWeeklyWorkHours;
 }
 
 public sealed class EmployeeIndexViewModel

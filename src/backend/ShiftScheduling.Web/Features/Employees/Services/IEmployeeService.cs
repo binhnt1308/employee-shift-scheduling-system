@@ -6,7 +6,7 @@ namespace ShiftScheduling.Features.Employees.Services;
 public interface IEmployeeService
 {
     /// <summary>
-    /// Lay danh sach nhan vien co tim kiem va phan trang.
+    /// Lấy danh sách nhân viên có tìm kiếm và phân trang.
     /// </summary>
     Task<EmployeeIndexViewModel> GetIndexAsync(
         string? keyword,
@@ -15,14 +15,14 @@ public interface IEmployeeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lay du lieu nhan vien de hien thi tren man hinh cap nhat.
+    /// Lấy dữ liệu nhân viên để hiển thị trên màn hình cập nhật.
     /// </summary>
     Task<EmployeeFormViewModel?> GetFormAsync(
         int employeeId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tao ho so nhan vien sau khi kiem tra quy tac nghiep vu.
+    /// Tạo hồ sơ nhân viên sau khi kiểm tra quy tắc nghiệp vụ.
     /// </summary>
     Task<ServiceResult> CreateAsync(
         EmployeeFormViewModel model,
@@ -30,7 +30,7 @@ public interface IEmployeeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Cap nhat ho so nhan vien va ghi nhat ky thao tac.
+    /// Cập nhật hồ sơ nhân viên và ghi nhật ký thao tác.
     /// </summary>
     Task<ServiceResult> UpdateAsync(
         int employeeId,
@@ -39,7 +39,7 @@ public interface IEmployeeService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Chuyen trang thai hoat dong ma khong xoa du lieu lich su.
+    /// Chuyển trạng thái hoạt động mà không xóa dữ liệu lịch sử.
     /// </summary>
     Task<ServiceResult> SetActiveAsync(
         int employeeId,

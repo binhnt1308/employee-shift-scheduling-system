@@ -15,11 +15,11 @@ public sealed record AuthenticatedAccount(
 public interface IAuthenticationService
 {
     /// <summary>
-    /// Xac thuc tai khoan dang hoat dong bang ten dang nhap va mat khau.
+    /// Xác thực tài khoản đang hoạt động bằng tên đăng nhập và mật khẩu.
     /// </summary>
-    /// <param name="username">Ten dang nhap do nguoi dung nhap.</param>
-    /// <param name="password">Mat khau dang ro chi ton tai trong bo nho luc xac thuc.</param>
-    /// <returns>Thong tin toi thieu de tao cookie, hoac null neu xac thuc that bai.</returns>
+    /// <param name="username">Tên đăng nhập do người dùng nhập.</param>
+    /// <param name="password">Mật khẩu dạng rõ chỉ tồn tại trong bộ nhớ trong lúc xác thực.</param>
+    /// <returns>Thông tin tối thiểu để tạo cookie, hoặc null nếu xác thực thất bại.</returns>
     Task<AuthenticatedAccount?> AuthenticateAsync(
         string username,
         string password,

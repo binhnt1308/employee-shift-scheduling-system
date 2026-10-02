@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu tài khoản đăng nhập, vai trò và liên kết với hồ sơ nhân viên.
 public class UserAccount
 {
     public int UserAccountId { get; set; }

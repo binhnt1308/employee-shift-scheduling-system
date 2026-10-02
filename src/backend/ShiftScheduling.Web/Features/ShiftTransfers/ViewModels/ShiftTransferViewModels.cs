@@ -4,6 +4,7 @@ using ShiftScheduling.Models.ViewModels;
 
 namespace ShiftScheduling.Features.ShiftTransfers.ViewModels;
 
+// Chứa các ViewModel dùng để trao đổi dữ liệu giữa Controller và View của chức năng chuyển ca.
 public enum ShiftTransferStatusFilter
 {
     WaitingReceiver = 1,

@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu một phân công nhân viên vào ngày và ca cụ thể trong cơ sở dữ liệu.
 public class ShiftAssignment
 {
     public int ShiftAssignmentId { get; set; }

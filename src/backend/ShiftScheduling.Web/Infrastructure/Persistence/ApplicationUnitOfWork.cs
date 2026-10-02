@@ -27,7 +27,7 @@ public sealed class ApplicationUnitOfWork : IUnitOfWork
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
-            // DB-13: UNIQUE constraint la lop bao ve cuoi cung khi hai request den cung luc.
+            // DB-13: Ràng buộc UNIQUE là lớp bảo vệ cuối cùng khi hai request đến đồng thời.
             throw new DataConflictException(
                 "Du lieu bi trung voi ban ghi khac.",
                 exception);

@@ -1,5 +1,6 @@
 namespace ShiftScheduling.Common.Email;
 
+// Nhóm cấu hình SMTP được bind từ appsettings hoặc biến môi trường.
 public sealed class SmtpSettings
 {
     public const string SectionName = "Smtp";

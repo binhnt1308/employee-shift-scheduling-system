@@ -134,7 +134,7 @@ public sealed class WeeklyPatternServiceTests
         empRepo.Add(new Employee { EmployeeId = 1, UserAccountId = 100, EmployeeCode = "NV001", IsActive = true });
         empRepo.Add(new Employee { EmployeeId = 2, UserAccountId = 200, EmployeeCode = "NV002", IsActive = true });
 
-        // Employee B có mẫu sẵn
+        // Nhân viên B đã có mẫu tuần từ trước để kiểm tra dữ liệu của người khác không bị ảnh hưởng.
         weeklyRepo.Patterns.Add(new WeeklyAvailabilityPattern
         {
             EmployeeId = 2,
@@ -143,7 +143,7 @@ public sealed class WeeklyPatternServiceTests
             PreferenceLevel = AvailabilityPreferenceLevel.Preferred
         });
 
-        // Employee A lưu mẫu của mình
+        // Nhân viên A lưu mẫu của mình; thao tác không được sửa mẫu của nhân viên B.
         var result = await service.SaveWeeklyPatternAsync(100, new List<WeeklyPatternEntryInputViewModel>
         {
             new() { DayOfWeek = 1, ShiftCode = "MORNING", PreferenceLevel = AvailabilityPreferenceLevel.Normal }
@@ -222,7 +222,7 @@ public sealed class WeeklyPatternServiceTests
         Assert.Equal(ErrorCodes.InvalidEnumValue, result.ErrorCode);
     }
 
-    // ── Availability Registration Tests (Strict Validation) ──────────────────────────
+    // ── Kiểm thử đăng ký lịch rảnh với kiểm tra dữ liệu nghiêm ngặt ─────────────────
 
     [Fact(DisplayName = "TC-NC02-09 - Preference key thừa (không nằm trong selectedShiftKeys) -> Trả Failure và KHÔNG lưu DB")]
     public async Task SaveEmployeeAvailabilityAsync_UnselectedPreferenceKey_ReturnsFailure()

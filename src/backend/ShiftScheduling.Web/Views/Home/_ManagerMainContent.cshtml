@@ -1,0 +1,186 @@
+@model DashboardViewModel
+
+<!-- 3. MAIN CONTENT: Ca làm việc (col-lg-6) & Thao tác nhanh (col-lg-6) -->
+<div class="row g-4">
+    <!-- Danh sách ca làm việc -->
+    <div class="col-lg-6">
+        <div class="card card-custom h-100 border-0 shadow-sm">
+            <div class="card-header-custom d-flex justify-content-between align-items-center py-3 px-4">
+                <span class="fw-bold d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center justify-content-center rounded-2" style="width: 28px; height: 28px; background: rgba(79, 70, 229, 0.10); color: var(--primary); font-size: 0.9rem;">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                    <span>Danh sách ca làm việc</span>
+                </span>
+                <a asp-controller="ShiftType" asp-action="Index" class="btn btn-sm btn-link text-decoration-none text-primary p-0 fw-semibold">
+                    Cấu hình ca <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="card-body p-3">
+                <div class="list-group list-group-flush">
+                    @if (Model.ShiftTypes.Count == 0)
+                    {
+                        <div class="list-group-item text-center text-muted py-4 border-0">
+                            Chưa có ca làm việc nào trong hệ thống.
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var shift in Model.ShiftTypes)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-2">
+                                <div>
+                                    <strong class="text-dark">@shift.ShiftName</strong>
+                                    <div class="text-muted font-monospace small">
+                                        @shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")
+                                    </div>
+                                </div>
+
+                                <span class="badge badge-custom badge-active">
+                                    <i class="fa-solid fa-circle-check me-1"></i>Đang áp dụng
+                                </span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thao tác nhanh: 8 chức năng vận hành dành cho Quản lý -->
+    <div class="col-lg-6">
+        <div class="card card-custom h-100 border-0 shadow-sm">
+            <div class="card-header-custom py-3 px-4 d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center justify-content-center rounded-2" style="width: 28px; height: 28px; background: rgba(79, 70, 229, 0.10); color: var(--primary); font-size: 0.9rem;">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span class="fw-bold">Thao tác nhanh</span>
+            </div>
+
+            <div class="card-body p-3">
+                <div class="row g-2">
+                    <!-- 1. Phân công lịch -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="WorkSchedule"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Phân công lịch</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Tự động & thủ công</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 2. Quản lý kỳ lịch -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="SchedulePeriod"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Kỳ lịch</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Thiết lập & đăng ký</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-calendar-week"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 3. Lịch rảnh NV -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="Availability"
+                           asp-action="Overview"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Lịch rảnh NV</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Theo dõi đăng ký</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-users-viewfinder"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 4. Báo cáo tổng hợp -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="Report"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Báo cáo</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Tổng hợp ca & giờ</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-chart-column"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 5. Quản lý nhân viên -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="Employee"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Nhân viên</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Hồ sơ & hợp đồng</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 6. Cấu hình ca làm -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="ShiftType"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Ca làm việc</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Khung giờ & định biên</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-regular fa-clock"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 7. Đơn xin nghỉ -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="LeaveRequest"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Đơn xin nghỉ</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Duyệt nghỉ phép</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-calendar-minus"></i>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- 8. Quản lý đổi ca -->
+                    <div class="col-12 col-sm-6">
+                        <a asp-controller="ShiftTransfer"
+                           asp-action="Index"
+                           class="btn-action-card h-100">
+                            <div>
+                                <div class="fw-bold text-dark small">Quản lý đổi ca</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Phê duyệt hoán đổi</div>
+                            </div>
+                            <div class="action-icon-box">
+                                <i class="fa-solid fa-right-left"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

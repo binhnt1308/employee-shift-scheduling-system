@@ -412,7 +412,7 @@ public sealed class ShiftConfigurationValidationUnitTests
     [Fact(DisplayName = "TC-BR01-AUDIT-01: Thieu mot trong ba ma ca cua ky -> fail-closed")]
     public void TryResolvePolicy_WhenMissingOneOfThreeShiftCodes_Fails()
     {
-        // Chỉ có MORNING và AFTERNOON (thiếu EVENING)
+        // Cấu hình chỉ có MORNING và AFTERNOON, cố ý thiếu EVENING để kiểm tra fail-closed.
         var shifts = new List<ShiftType>
         {
             new() { ShiftTypeId = 1, ShiftCode = "MORNING", ConfigurationVersion = 2, MaxShiftsPerEmployeePerDay = 2, AllowSplitShift = false },
@@ -500,7 +500,8 @@ public sealed class ShiftConfigurationValidationUnitTests
             AllowSplitShift = false
         };
 
-        // Requirement có FK = 1 nhưng Navigation trỏ sang afternoon (ShiftTypeId = 2)
+        // Cố ý tạo dữ liệu lệch: FK = 1 nhưng navigation trỏ sang ca Chiều (ShiftTypeId = 2).
+        // Test xác nhận Service phát hiện quan hệ không nhất quán thay vì tin navigation.
         var requirements = new List<StaffingRequirement>
         {
             new() { ShiftTypeId = 1, ShiftType = afternoon }

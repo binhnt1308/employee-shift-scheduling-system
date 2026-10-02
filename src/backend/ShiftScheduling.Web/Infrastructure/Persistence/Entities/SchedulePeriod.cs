@@ -2,6 +2,7 @@ using ShiftScheduling.Models.Enums;
 
 namespace ShiftScheduling.Models.Entities;
 
+// Entity lưu một kỳ lịch 7 ngày cùng thời hạn đăng ký trong cơ sở dữ liệu.
 public class SchedulePeriod
 {
     public int SchedulePeriodId { get; set; }
