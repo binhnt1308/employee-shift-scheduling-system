@@ -40,23 +40,38 @@ public sealed class WorkScheduleCloseLifecycleTests
     {
         _period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ tháng 9",
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13)
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ tháng 9",
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13)
         };
         _morningShift = new ShiftType
         {
-            ShiftTypeId = 1, ShiftCode = "M", ShiftName = "Sáng",
-            StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(12, 0), DurationHours = 4, IsActive = true
+            ShiftTypeId = 1,
+            ShiftCode = "M",
+            ShiftName = "Sáng",
+            StartTime = new TimeOnly(8, 0),
+            EndTime = new TimeOnly(12, 0),
+            DurationHours = 4,
+            IsActive = true
         };
         _employee = new Employee
         {
-            EmployeeId = 1, UserAccountId = 101, EmployeeCode = "NV01", FullName = "Nguyễn An",
-            Position = EmployeePosition.Sales, EmploymentType = EmploymentType.FullTime, IsActive = true
+            EmployeeId = 1,
+            UserAccountId = 101,
+            EmployeeCode = "NV01",
+            FullName = "Nguyễn An",
+            Position = EmployeePosition.Sales,
+            EmploymentType = EmploymentType.FullTime,
+            IsActive = true
         };
         _schedule = new WorkSchedule
         {
-            WorkScheduleId = 10, SchedulePeriodId = 1, SchedulePeriod = _period,
-            Status = ScheduleStatus.Published, PublishedAt = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            SchedulePeriod = _period,
+            Status = ScheduleStatus.Published,
+            PublishedAt = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
             RowVersion = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }
         };
 
@@ -74,9 +89,14 @@ public sealed class WorkScheduleCloseLifecycleTests
         _workScheduleRepo.Schedules.Add(_schedule);
         _schedule.ShiftAssignments.Add(new ShiftAssignment
         {
-            ShiftAssignmentId = 100, WorkScheduleId = 10, WorkSchedule = _schedule,
-            EmployeeId = 1, Employee = _employee, WorkDate = new DateOnly(2026, 9, 12),
-            ShiftTypeId = 1, ShiftType = _morningShift
+            ShiftAssignmentId = 100,
+            WorkScheduleId = 10,
+            WorkSchedule = _schedule,
+            EmployeeId = 1,
+            Employee = _employee,
+            WorkDate = new DateOnly(2026, 9, 12),
+            ShiftTypeId = 1,
+            ShiftType = _morningShift
         });
     }
 
@@ -252,8 +272,10 @@ public sealed class WorkScheduleCloseLifecycleTests
         var reportService = CreateReportService(clock);
         var req = new AdjustWorkdayHoursRequest
         {
-            SchedulePeriodId = 1, ShiftAssignmentId = 100,
-            ActualWorkedHours = 5m, WorkdayAdjustmentReason = "Làm thêm 1h"
+            SchedulePeriodId = 1,
+            ShiftAssignmentId = 100,
+            ActualWorkedHours = 5m,
+            WorkdayAdjustmentReason = "Làm thêm 1h"
         };
         var result = await reportService.AdjustWorkdayHoursAsync(99, req);
         Assert.False(result.Succeeded);
@@ -349,12 +371,15 @@ public sealed class WorkScheduleCloseLifecycleTests
         _schedule.Status = ScheduleStatus.Closed;
         var currentPeriod = new SchedulePeriod
         {
-            SchedulePeriodId = 2, PeriodName = "Kỳ hiện tại",
-            WeekStartDate = new DateOnly(2026, 9, 14), WeekEndDate = new DateOnly(2026, 9, 20)
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ hiện tại",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20)
         };
         var currentPublished = new WorkSchedule
         {
-            WorkScheduleId = 20, SchedulePeriodId = 2,
+            WorkScheduleId = 20,
+            SchedulePeriodId = 2,
             Status = ScheduleStatus.Published,
             SchedulePeriod = currentPeriod
         };

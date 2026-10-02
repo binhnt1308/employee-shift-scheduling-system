@@ -52,12 +52,16 @@ public sealed class OrToolsFullTimeConsecutivePreferenceTests
             {
                 avails.Add(new Availability
                 {
-                    EmployeeId = emp.EmployeeId, WorkDate = date, ShiftTypeId = morning.ShiftTypeId,
+                    EmployeeId = emp.EmployeeId,
+                    WorkDate = date,
+                    ShiftTypeId = morning.ShiftTypeId,
                     PreferenceLevel = AvailabilityPreferenceLevel.Normal
                 });
                 avails.Add(new Availability
                 {
-                    EmployeeId = emp.EmployeeId, WorkDate = date, ShiftTypeId = afternoon.ShiftTypeId,
+                    EmployeeId = emp.EmployeeId,
+                    WorkDate = date,
+                    ShiftTypeId = afternoon.ShiftTypeId,
                     PreferenceLevel = AvailabilityPreferenceLevel.Normal
                 });
             }
@@ -70,21 +74,33 @@ public sealed class OrToolsFullTimeConsecutivePreferenceTests
             bool isWorkDay = d < 4;
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = morning.ShiftTypeId, ShiftType = morning,
-                RequiredSalesStaff = isWorkDay ? 1 : 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = isWorkDay ? 1 : 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = morning.ShiftTypeId,
+                ShiftType = morning,
+                RequiredSalesStaff = isWorkDay ? 1 : 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = isWorkDay ? 1 : 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = afternoon.ShiftTypeId, ShiftType = afternoon,
-                RequiredSalesStaff = isWorkDay ? 1 : 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = isWorkDay ? 1 : 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = afternoon.ShiftTypeId,
+                ShiftType = afternoon,
+                RequiredSalesStaff = isWorkDay ? 1 : 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = isWorkDay ? 1 : 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = evening.ShiftTypeId, ShiftType = evening,
-                RequiredSalesStaff = 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = evening.ShiftTypeId,
+                ShiftType = evening,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
         }
 
@@ -163,21 +179,33 @@ public sealed class OrToolsFullTimeConsecutivePreferenceTests
             var date = period.WeekStartDate.AddDays(d);
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = morning.ShiftTypeId, ShiftType = morning,
-                RequiredSalesStaff = d == 0 ? 1 : 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = d == 0 ? 1 : 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = morning.ShiftTypeId,
+                ShiftType = morning,
+                RequiredSalesStaff = d == 0 ? 1 : 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = d == 0 ? 1 : 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = afternoon.ShiftTypeId, ShiftType = afternoon,
-                RequiredSalesStaff = 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = afternoon.ShiftTypeId,
+                ShiftType = afternoon,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
             requirements.Add(new StaffingRequirement
             {
-                WorkDate = date, ShiftTypeId = evening.ShiftTypeId, ShiftType = evening,
-                RequiredSalesStaff = 0, RequiredCashiers = 0,
-                RequiredExperiencedStaff = 0, MinimumLevel = EmployeeLevel.Level2
+                WorkDate = date,
+                ShiftTypeId = evening.ShiftTypeId,
+                ShiftType = evening,
+                RequiredSalesStaff = 0,
+                RequiredCashiers = 0,
+                RequiredExperiencedStaff = 0,
+                MinimumLevel = EmployeeLevel.Level2
             });
         }
 

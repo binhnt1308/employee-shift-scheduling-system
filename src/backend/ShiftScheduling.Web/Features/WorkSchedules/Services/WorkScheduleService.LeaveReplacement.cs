@@ -61,12 +61,16 @@ public partial class WorkScheduleService
 
             assignmentViewModels.Add(new LeaveReplacementAssignmentViewModel
             {
-                ShiftAssignmentId = assignment.ShiftAssignmentId, WorkScheduleId = assignment.WorkScheduleId,
-                WorkDate = assignment.WorkDate, ShiftTypeId = assignment.ShiftTypeId,
+                ShiftAssignmentId = assignment.ShiftAssignmentId,
+                WorkScheduleId = assignment.WorkScheduleId,
+                WorkDate = assignment.WorkDate,
+                ShiftTypeId = assignment.ShiftTypeId,
                 ShiftName = shiftType?.ShiftName ?? $"Ca {assignment.ShiftTypeId}",
                 StartTime = shiftType?.StartTime ?? TimeOnly.MinValue,
                 EndTime = shiftType?.EndTime ?? TimeOnly.MinValue,
-                RequiredPosition = leaveRequest.Employee.Position, IsEnded = isEnded, Candidates = candidates
+                RequiredPosition = leaveRequest.Employee.Position,
+                IsEnded = isEnded,
+                Candidates = candidates
             });
         }
 
@@ -80,14 +84,20 @@ public partial class WorkScheduleService
     private static LeaveReplacementViewModel CreateLeaveReplacementViewModel(
         LeaveRequest leaveRequest, SchedulePeriod period,
         List<LeaveReplacementAssignmentViewModel> assignments) => new()
-    {
-        LeaveRequestId = leaveRequest.LeaveRequestId, SchedulePeriodId = period.SchedulePeriodId,
-        PeriodName = period.PeriodName, EmployeeId = leaveRequest.EmployeeId,
-        EmployeeCode = leaveRequest.Employee.EmployeeCode, EmployeeFullName = leaveRequest.Employee.FullName,
-        EmployeePosition = leaveRequest.Employee.Position, LeaveDate = leaveRequest.LeaveDate,
-        ShiftTypeId = leaveRequest.ShiftTypeId, ShiftTypeName = leaveRequest.ShiftType?.ShiftName,
-        LeaveReason = leaveRequest.Reason, AffectedAssignments = assignments
-    };
+        {
+            LeaveRequestId = leaveRequest.LeaveRequestId,
+            SchedulePeriodId = period.SchedulePeriodId,
+            PeriodName = period.PeriodName,
+            EmployeeId = leaveRequest.EmployeeId,
+            EmployeeCode = leaveRequest.Employee.EmployeeCode,
+            EmployeeFullName = leaveRequest.Employee.FullName,
+            EmployeePosition = leaveRequest.Employee.Position,
+            LeaveDate = leaveRequest.LeaveDate,
+            ShiftTypeId = leaveRequest.ShiftTypeId,
+            ShiftTypeName = leaveRequest.ShiftType?.ShiftName,
+            LeaveReason = leaveRequest.Reason,
+            AffectedAssignments = assignments
+        };
 
     /// <inheritdoc />
     public async Task<ServiceResult> ReplaceApprovedLeaveAssignmentAsync(
@@ -129,9 +139,12 @@ public partial class WorkScheduleService
 
             candidateOptions.Add(new LeaveReplacementCandidateViewModel
             {
-                EmployeeId = candidate.EmployeeId, EmployeeCode = candidate.EmployeeCode,
-                FullName = candidate.FullName, Position = candidate.Position,
-                EmploymentType = candidate.EmploymentType, Level = candidate.Level,
+                EmployeeId = candidate.EmployeeId,
+                EmployeeCode = candidate.EmployeeCode,
+                FullName = candidate.FullName,
+                Position = candidate.Position,
+                EmploymentType = candidate.EmploymentType,
+                Level = candidate.Level,
                 PreferenceLevel = preferenceLevel == AvailabilityPreferenceLevel.Preferred
                     ? AvailabilityPreferenceLevel.Preferred : AvailabilityPreferenceLevel.Normal
             });
@@ -179,12 +192,16 @@ public partial class WorkScheduleService
                 && a.WorkDate == target.WorkDate && a.ShiftTypeId == target.ShiftTypeId)
             .Select(a => new ShiftAssignment
             {
-                EmployeeId = a.EmployeeId, WorkDate = a.WorkDate, ShiftTypeId = a.ShiftTypeId
+                EmployeeId = a.EmployeeId,
+                WorkDate = a.WorkDate,
+                ShiftTypeId = a.ShiftTypeId
             })
             .Append(new ShiftAssignment
             {
-                EmployeeId = candidate.EmployeeId, WorkDate = target.WorkDate,
-                ShiftTypeId = target.ShiftTypeId, Source = AssignmentSource.Manual
+                EmployeeId = candidate.EmployeeId,
+                WorkDate = target.WorkDate,
+                ShiftTypeId = target.ShiftTypeId,
+                Source = AssignmentSource.Manual
             })
             .ToList();
 
@@ -249,8 +266,10 @@ public partial class WorkScheduleService
         // đăng ký rảnh và đơn nghỉ đã duyệt theo dữ liệu mới nhất.
         var dummyModel = new ManualAssignRequestViewModel
         {
-            SchedulePeriodId = period.SchedulePeriodId, WorkDate = target.WorkDate,
-            ShiftTypeId = target.ShiftTypeId, EmployeeId = candidateId
+            SchedulePeriodId = period.SchedulePeriodId,
+            WorkDate = target.WorkDate,
+            ShiftTypeId = target.ShiftTypeId,
+            EmployeeId = candidateId
         };
         var availLeaveCheck = await ValidateEmployeeAvailabilityAndLeavesAsync(dummyModel, cancellationToken);
         if (!availLeaveCheck.Succeeded) return (false, null, availLeaveCheck.Result);
@@ -306,11 +325,26 @@ public partial class WorkScheduleService
         target.UpdatedAt = now;
         schedule.UpdatedAt = now;
 
-        var auditOld = new { leave.LeaveRequestId, target.ShiftAssignmentId, schedule.SchedulePeriodId,
-            target.WorkDate, target.ShiftTypeId, OldEmployeeId = oldEmployeeId, OldSource = oldSource };
-        var auditNew = new { leave.LeaveRequestId, target.ShiftAssignmentId, schedule.SchedulePeriodId,
-            target.WorkDate, target.ShiftTypeId, NewEmployeeId = candidate.EmployeeId,
-            NewSource = AssignmentSource.Manual };
+        var auditOld = new
+        {
+            leave.LeaveRequestId,
+            target.ShiftAssignmentId,
+            schedule.SchedulePeriodId,
+            target.WorkDate,
+            target.ShiftTypeId,
+            OldEmployeeId = oldEmployeeId,
+            OldSource = oldSource
+        };
+        var auditNew = new
+        {
+            leave.LeaveRequestId,
+            target.ShiftAssignmentId,
+            schedule.SchedulePeriodId,
+            target.WorkDate,
+            target.ShiftTypeId,
+            NewEmployeeId = candidate.EmployeeId,
+            NewSource = AssignmentSource.Manual
+        };
 
         _auditLogRepository.Add(AuditLogFactory.Create(
             managerAccountId, "REPLACE_APPROVED_LEAVE_ASSIGNMENT", nameof(ShiftAssignment),
@@ -338,18 +372,24 @@ public partial class WorkScheduleService
         {
             _notificationRepository.Add(new Notification
             {
-                ReceiverAccountId = oldEmployee.UserAccountId.Value, Title = "Điều chỉnh lịch làm việc",
+                ReceiverAccountId = oldEmployee.UserAccountId.Value,
+                Title = "Điều chỉnh lịch làm việc",
                 Content = $"Ca {shiftName} ngày {dateText} của bạn đã được Quản lý bố trí người thay thế.",
-                Type = NotificationType.ScheduleChanged, RelatedObjectId = periodId, CreatedAt = now
+                Type = NotificationType.ScheduleChanged,
+                RelatedObjectId = periodId,
+                CreatedAt = now
             });
         }
         if (candidate.UserAccountId.HasValue)
         {
             _notificationRepository.Add(new Notification
             {
-                ReceiverAccountId = candidate.UserAccountId.Value, Title = "Phân công lịch làm việc mới",
+                ReceiverAccountId = candidate.UserAccountId.Value,
+                Title = "Phân công lịch làm việc mới",
                 Content = $"Bạn được phân công làm việc ca {shiftName} ngày {dateText}.",
-                Type = NotificationType.ScheduleChanged, RelatedObjectId = periodId, CreatedAt = now
+                Type = NotificationType.ScheduleChanged,
+                RelatedObjectId = periodId,
+                CreatedAt = now
             });
         }
     }

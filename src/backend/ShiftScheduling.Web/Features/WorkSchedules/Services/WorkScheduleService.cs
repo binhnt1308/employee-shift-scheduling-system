@@ -269,14 +269,17 @@ public partial class WorkScheduleService : IWorkScheduleService
                 && l.LeaveDate == a.WorkDate && (!l.ShiftTypeId.HasValue || l.ShiftTypeId.Value == a.ShiftTypeId));
             return new AssignedEmployeeItemViewModel
             {
-                ShiftAssignmentId = a.ShiftAssignmentId, EmployeeId = a.EmployeeId,
+                ShiftAssignmentId = a.ShiftAssignmentId,
+                EmployeeId = a.EmployeeId,
                 EmployeeCode = emp?.EmployeeCode ?? a.Employee?.EmployeeCode ?? string.Empty,
                 FullName = emp?.FullName ?? a.Employee?.FullName ?? string.Empty,
                 Position = emp?.Position ?? a.Employee?.Position ?? EmployeePosition.Sales,
                 EmploymentType = emp?.EmploymentType ?? a.Employee?.EmploymentType ?? EmploymentType.PartTime,
-                Level = emp?.Level ?? a.Employee?.Level ?? EmployeeLevel.Level1, Source = a.Source,
+                Level = emp?.Level ?? a.Employee?.Level ?? EmployeeLevel.Level1,
+                Source = a.Source,
                 IsPreferred = preferredSet?.Contains((a.EmployeeId, a.WorkDate, a.ShiftTypeId)) ?? false,
-                HasApprovedLeave = leave != null, ApprovedLeaveRequestId = leave?.LeaveRequestId
+                HasApprovedLeave = leave != null,
+                ApprovedLeaveRequestId = leave?.LeaveRequestId
             };
         }).OrderBy(e => e.Position).ThenBy(e => e.FullName).ToList();
 
@@ -286,10 +289,16 @@ public partial class WorkScheduleService : IWorkScheduleService
 
         return new SchedulingShiftCellViewModel
         {
-            WorkDate = date, ShiftTypeId = shift.ShiftTypeId, ShiftCode = shift.ShiftCode,
-            ShiftName = shift.ShiftName, StartTime = shift.StartTime, EndTime = shift.EndTime,
-            RequiredSales = reqSales, RequiredCashier = reqCashier,
-            AssignedSales = assignedSales, AssignedCashier = assignedCashier,
+            WorkDate = date,
+            ShiftTypeId = shift.ShiftTypeId,
+            ShiftCode = shift.ShiftCode,
+            ShiftName = shift.ShiftName,
+            StartTime = shift.StartTime,
+            EndTime = shift.EndTime,
+            RequiredSales = reqSales,
+            RequiredCashier = reqCashier,
+            AssignedSales = assignedSales,
+            AssignedCashier = assignedCashier,
             MissingSales = Math.Max(0, reqSales - assignedSales),
             MissingCashier = Math.Max(0, reqCashier - assignedCashier),
             HasLevel2Plus = hasLevel2Plus,

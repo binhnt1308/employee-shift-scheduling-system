@@ -95,7 +95,8 @@ public sealed partial class AvailabilityService
         public List<(DateOnly WorkDate, int ShiftTypeId)> ParsedShifts { get; init; } = new();
 
         public Dictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel>
-            PreferenceMap { get; init; } = new();
+            PreferenceMap
+        { get; init; } = new();
     }
 
     /// <summary>
@@ -216,7 +217,8 @@ public sealed partial class AvailabilityService
         public string? ErrorMessage { get; init; }
 
         public Dictionary<(DateOnly WorkDate, int ShiftTypeId), AvailabilityPreferenceLevel>
-            PreferenceMap { get; init; } = new();
+            PreferenceMap
+        { get; init; } = new();
     }
 
     private static PreferenceMapValidationResult ValidateAndBuildPreferenceMap(

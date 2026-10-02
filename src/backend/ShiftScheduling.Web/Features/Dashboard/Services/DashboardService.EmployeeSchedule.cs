@@ -13,7 +13,8 @@ public sealed partial class DashboardService
         public int EmployeeTotalAssignedShifts { get; init; }
 
         public IReadOnlyList<EmployeeDashboardDayScheduleViewModel>
-            EmployeeWeekSchedule { get; init; } =
+            EmployeeWeekSchedule
+        { get; init; } =
                 Array.Empty<EmployeeDashboardDayScheduleViewModel>();
     }
 

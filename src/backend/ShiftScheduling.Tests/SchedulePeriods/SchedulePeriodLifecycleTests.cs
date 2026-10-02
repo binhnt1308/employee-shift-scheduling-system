@@ -65,21 +65,36 @@ public sealed class SchedulePeriodLifecycleTests
     {
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 1, ShiftCode = "MORNING", ShiftName = "Ca sáng",
-            StartTime = new(8, 0), EndTime = new(12, 0),
-            ConfigurationVersion = 1, IsActive = true, DisplayOrder = 1
+            ShiftTypeId = 1,
+            ShiftCode = "MORNING",
+            ShiftName = "Ca sáng",
+            StartTime = new(8, 0),
+            EndTime = new(12, 0),
+            ConfigurationVersion = 1,
+            IsActive = true,
+            DisplayOrder = 1
         });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 2, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều",
-            StartTime = new(12, 0), EndTime = new(16, 0),
-            ConfigurationVersion = 1, IsActive = true, DisplayOrder = 2
+            ShiftTypeId = 2,
+            ShiftCode = "AFTERNOON",
+            ShiftName = "Ca chiều",
+            StartTime = new(12, 0),
+            EndTime = new(16, 0),
+            ConfigurationVersion = 1,
+            IsActive = true,
+            DisplayOrder = 2
         });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 3, ShiftCode = "EVENING", ShiftName = "Ca tối",
-            StartTime = new(16, 0), EndTime = new(20, 0),
-            ConfigurationVersion = 1, IsActive = true, DisplayOrder = 3
+            ShiftTypeId = 3,
+            ShiftCode = "EVENING",
+            ShiftName = "Ca tối",
+            StartTime = new(16, 0),
+            EndTime = new(20, 0),
+            ConfigurationVersion = 1,
+            IsActive = true,
+            DisplayOrder = 3
         });
     }
 
@@ -91,21 +106,36 @@ public sealed class SchedulePeriodLifecycleTests
         }
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 4, ShiftCode = "MORNING", ShiftName = "Ca sáng mới",
-            StartTime = new(7, 30), EndTime = new(11, 30),
-            ConfigurationVersion = 2, IsActive = true, DisplayOrder = 1
+            ShiftTypeId = 4,
+            ShiftCode = "MORNING",
+            ShiftName = "Ca sáng mới",
+            StartTime = new(7, 30),
+            EndTime = new(11, 30),
+            ConfigurationVersion = 2,
+            IsActive = true,
+            DisplayOrder = 1
         });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 5, ShiftCode = "AFTERNOON", ShiftName = "Ca chiều mới",
-            StartTime = new(11, 30), EndTime = new(15, 30),
-            ConfigurationVersion = 2, IsActive = true, DisplayOrder = 2
+            ShiftTypeId = 5,
+            ShiftCode = "AFTERNOON",
+            ShiftName = "Ca chiều mới",
+            StartTime = new(11, 30),
+            EndTime = new(15, 30),
+            ConfigurationVersion = 2,
+            IsActive = true,
+            DisplayOrder = 2
         });
         shiftTypeRepo.ShiftTypes.Add(new ShiftType
         {
-            ShiftTypeId = 6, ShiftCode = "EVENING", ShiftName = "Ca tối mới",
-            StartTime = new(15, 30), EndTime = new(19, 30),
-            ConfigurationVersion = 2, IsActive = true, DisplayOrder = 3
+            ShiftTypeId = 6,
+            ShiftCode = "EVENING",
+            ShiftName = "Ca tối mới",
+            StartTime = new(15, 30),
+            EndTime = new(19, 30),
+            ConfigurationVersion = 2,
+            IsActive = true,
+            DisplayOrder = 3
         });
     }
 
@@ -119,9 +149,12 @@ public sealed class SchedulePeriodLifecycleTests
         var initialDeadline = new DateTime(2026, 9, 6, 23, 59, 0, DateTimeKind.Utc);
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ 31/08 - 06/09",
-            WeekStartDate = new DateOnly(2026, 8, 31), WeekEndDate = new DateOnly(2026, 9, 6),
-            AvailabilityDeadline = initialDeadline, RegistrationStatus = RegistrationStatus.Open
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ 31/08 - 06/09",
+            WeekStartDate = new DateOnly(2026, 8, 31),
+            WeekEndDate = new DateOnly(2026, 9, 6),
+            AvailabilityDeadline = initialDeadline,
+            RegistrationStatus = RegistrationStatus.Open
         };
         periodRepo.Add(period);
 
@@ -156,8 +189,10 @@ public sealed class SchedulePeriodLifecycleTests
 
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 2, PeriodName = "Kỳ tương lai",
-            WeekStartDate = new DateOnly(2026, 9, 14), WeekEndDate = new DateOnly(2026, 9, 20),
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ tương lai",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
             AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         };
@@ -188,8 +223,10 @@ public sealed class SchedulePeriodLifecycleTests
 
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 3, PeriodName = "Kỳ đang chuẩn bị",
-            WeekStartDate = new DateOnly(2026, 9, 14), WeekEndDate = new DateOnly(2026, 9, 20),
+            SchedulePeriodId = 3,
+            PeriodName = "Kỳ đang chuẩn bị",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
             AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Preparing
         };
@@ -256,8 +293,10 @@ public sealed class SchedulePeriodLifecycleTests
 
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 4, PeriodName = "Kỳ tương lai có draft",
-            WeekStartDate = new DateOnly(2026, 9, 14), WeekEndDate = new DateOnly(2026, 9, 20),
+            SchedulePeriodId = 4,
+            PeriodName = "Kỳ tương lai có draft",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
             AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         };
@@ -265,7 +304,9 @@ public sealed class SchedulePeriodLifecycleTests
 
         var existingDraft = new WorkSchedule
         {
-            WorkScheduleId = 40, SchedulePeriodId = 4, Status = ScheduleStatus.Draft
+            WorkScheduleId = 40,
+            SchedulePeriodId = 4,
+            Status = ScheduleStatus.Draft
         };
         workScheduleRepo.Schedules.Add(existingDraft);
 
@@ -291,14 +332,18 @@ public sealed class SchedulePeriodLifecycleTests
 
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 5, PeriodName = "Kỳ 21/09 - 27/09",
-            WeekStartDate = new DateOnly(2026, 9, 21), WeekEndDate = new DateOnly(2026, 9, 27),
+            SchedulePeriodId = 5,
+            PeriodName = "Kỳ 21/09 - 27/09",
+            WeekStartDate = new DateOnly(2026, 9, 21),
+            WeekEndDate = new DateOnly(2026, 9, 27),
             AvailabilityDeadline = new DateTime(2026, 9, 19, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Closed
         };
         var publishedSchedule = new WorkSchedule
         {
-            WorkScheduleId = 50, SchedulePeriodId = 5, Status = ScheduleStatus.Published
+            WorkScheduleId = 50,
+            SchedulePeriodId = 5,
+            Status = ScheduleStatus.Published
         };
         period.WorkSchedules.Add(publishedSchedule);
         periodRepo.Add(period);
@@ -323,14 +368,18 @@ public sealed class SchedulePeriodLifecycleTests
 
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 6, PeriodName = "Kỳ 07/09 - 13/09",
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
+            SchedulePeriodId = 6,
+            PeriodName = "Kỳ 07/09 - 13/09",
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
             AvailabilityDeadline = new DateTime(2026, 9, 5, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Closed
         };
         var schedule = new WorkSchedule
         {
-            WorkScheduleId = 60, SchedulePeriodId = 6, Status = ScheduleStatus.Published
+            WorkScheduleId = 60,
+            SchedulePeriodId = 6,
+            Status = ScheduleStatus.Published
         };
         period.WorkSchedules.Add(schedule);
         periodRepo.Add(period);
