@@ -1197,7 +1197,7 @@ docker compose up -d web
 
 Hệ thống được triển khai trên **Azure Container Apps** và có thể truy cập qua HTTPS tại:
 
-<https://shift-scheduling-web.braveisland-f86e5e3f.eastasia.azurecontainerapps.io/>
+<https://shift-scheduling-web-v2.bluegrass-40eb6af8.malaysiawest.azurecontainerapps.io/>
 
 Kiến trúc triển khai:
 
