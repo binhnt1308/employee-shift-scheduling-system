@@ -37,14 +37,26 @@ public sealed class WorkScheduleLeaveReplacementTests
 
     public WorkScheduleLeaveReplacementTests()
     {
-        _period = new SchedulePeriod { SchedulePeriodId = 1, PeriodName = "Kỳ lịch 1",
-            WeekStartDate = new DateOnly(2026, 8, 10), WeekEndDate = new DateOnly(2026, 8, 16) };
+        _period = new SchedulePeriod
+        {
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ lịch 1",
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
+        };
         _morningShift = CreateShift(1, ShiftTypeConstants.MorningCode, "Sáng", 8, 12, 1);
         _afternoonShift = CreateShift(2, ShiftTypeConstants.AfternoonCode, "Chiều", 13, 17, 2);
         _eveningShift = CreateShift(3, ShiftTypeConstants.EveningCode, "Tối", 18, 22, 3);
         _period.StaffingRequirements = new[] { _morningShift, _afternoonShift, _eveningShift }
-            .Select(s => new StaffingRequirement { SchedulePeriodId = 1, WorkDate = _workDate,
-                ShiftTypeId = s.ShiftTypeId, RequiredSalesStaff = 1, RequiredCashiers = 1, ShiftType = s }).ToList();
+            .Select(s => new StaffingRequirement
+            {
+                SchedulePeriodId = 1,
+                WorkDate = _workDate,
+                ShiftTypeId = s.ShiftTypeId,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 1,
+                ShiftType = s
+            }).ToList();
         _leavingSales = CreateEmployee(1, "NV01", "Nghỉ", EmployeePosition.Sales, EmployeeLevel.Level2, 101);
         _candidatePreferred = CreateEmployee(2, "NV02", "Ưu Tiên", EmployeePosition.Sales, EmployeeLevel.Level2, 102);
         _candidateNormal = CreateEmployee(3, "NV03", "Thường", EmployeePosition.Sales, EmployeeLevel.Level1, 103);
@@ -61,28 +73,68 @@ public sealed class WorkScheduleLeaveReplacementTests
         _notificationRepo, _auditLogRepo, _unitOfWork, clock ?? _clock, NullLogger<WorkScheduleService>.Instance);
 
     private static ShiftType CreateShift(int id, string code, string name, int startH, int endH, int order) =>
-        new() { ShiftTypeId = id, ShiftCode = code, ShiftName = name, StartTime = new(startH, 0),
-            EndTime = new(endH, 0), DurationHours = endH - startH, IsActive = true, DisplayOrder = order };
+        new()
+        {
+            ShiftTypeId = id,
+            ShiftCode = code,
+            ShiftName = name,
+            StartTime = new(startH, 0),
+            EndTime = new(endH, 0),
+            DurationHours = endH - startH,
+            IsActive = true,
+            DisplayOrder = order
+        };
 
     private static Employee CreateEmployee(
         int id, string code, string name, EmployeePosition position, EmployeeLevel level, int accountId) =>
-        new() { EmployeeId = id, EmployeeCode = code, FullName = name, Position = position,
-            EmploymentType = EmploymentType.PartTime, Level = level, IsActive = true, UserAccountId = accountId };
+        new()
+        {
+            EmployeeId = id,
+            EmployeeCode = code,
+            FullName = name,
+            Position = position,
+            EmploymentType = EmploymentType.PartTime,
+            Level = level,
+            IsActive = true,
+            UserAccountId = accountId
+        };
 
     private ShiftAssignment Assign(
         int id, int empId, int shiftId, ShiftType shift, decimal? hours = null, string? reason = null) =>
-        new() { ShiftAssignmentId = id, WorkScheduleId = 10, EmployeeId = empId, WorkDate = _workDate,
-            ShiftTypeId = shiftId, Source = AssignmentSource.ORTools, ShiftType = shift,
-            ActualWorkedHours = hours, WorkdayAdjustmentReason = reason };
+        new()
+        {
+            ShiftAssignmentId = id,
+            WorkScheduleId = 10,
+            EmployeeId = empId,
+            WorkDate = _workDate,
+            ShiftTypeId = shiftId,
+            Source = AssignmentSource.ORTools,
+            ShiftType = shift,
+            ActualWorkedHours = hours,
+            WorkdayAdjustmentReason = reason
+        };
 
     private WorkSchedule CreatePublishedSchedule(params ShiftAssignment[] assignments) =>
-        AddAndReturn(_workScheduleRepo.Schedules, new WorkSchedule { WorkScheduleId = 10, SchedulePeriodId = 1,
-            Status = ScheduleStatus.Published, ShiftAssignments = [.. assignments] });
+        AddAndReturn(_workScheduleRepo.Schedules, new WorkSchedule
+        {
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published,
+            ShiftAssignments = [.. assignments]
+        });
 
     private LeaveRequest CreateApprovedLeave(int leaveId, int employeeId, int? shiftId, string reason = "Việc riêng") =>
-        AddAndReturn(_leaveRepo.Requests, new LeaveRequest { LeaveRequestId = leaveId, EmployeeId = employeeId,
-            SchedulePeriodId = 1, LeaveDate = _workDate, ShiftTypeId = shiftId, Status = LeaveRequestStatus.Approved,
-            Employee = _employeeRepo.Employees.First(e => e.EmployeeId == employeeId), Reason = reason });
+        AddAndReturn(_leaveRepo.Requests, new LeaveRequest
+        {
+            LeaveRequestId = leaveId,
+            EmployeeId = employeeId,
+            SchedulePeriodId = 1,
+            LeaveDate = _workDate,
+            ShiftTypeId = shiftId,
+            Status = LeaveRequestStatus.Approved,
+            Employee = _employeeRepo.Employees.First(e => e.EmployeeId == employeeId),
+            Reason = reason
+        });
 
     private static T AddAndReturn<T>(ICollection<T> collection, T item) { collection.Add(item); return item; }
 
@@ -97,8 +149,14 @@ public sealed class WorkScheduleLeaveReplacementTests
 
     private void AddAvail(
         int empId, AvailabilityPreferenceLevel pref = AvailabilityPreferenceLevel.Preferred, int shiftId = 1) =>
-        _availRepo.Availabilities.Add(new Availability { EmployeeId = empId, SchedulePeriodId = 1,
-            WorkDate = _workDate, ShiftTypeId = shiftId, PreferenceLevel = pref });
+        _availRepo.Availabilities.Add(new Availability
+        {
+            EmployeeId = empId,
+            SchedulePeriodId = 1,
+            WorkDate = _workDate,
+            ShiftTypeId = shiftId,
+            PreferenceLevel = pref
+        });
 
     private Task<ServiceResult> ReplaceAsync(
         int candidateId, int leaveId = 1, int assignId = 100, int managerId = 999) =>
@@ -112,7 +170,8 @@ public sealed class WorkScheduleLeaveReplacementTests
         _employeeRepo.Employees.AddRange([_leavingSales,
             CreateEmployee(5, "NV99", "Z", EmployeePosition.Sales, EmployeeLevel.Level2, 105),
             CreateEmployee(2, "NV02", "A", EmployeePosition.Sales, EmployeeLevel.Level2, 102),
-            _candidateNormal, _candidateCashier]);
+            _candidateNormal,
+            _candidateCashier]);
         CreatePublishedSchedule(Assign(100, 1, 1, _morningShift), Assign(105, 4, 1, _morningShift));
         CreateApprovedLeave(1, 1, 1);
         AddAvail(5);
@@ -123,7 +182,8 @@ public sealed class WorkScheduleLeaveReplacementTests
         var assignmentVm = Assert.Single(result.AffectedAssignments);
         Assert.Equal(3, assignmentVm.Candidates.Count);
         Assert.Equal(["NV02", "NV99", "NV03"], assignmentVm.Candidates.Select(c => c.EmployeeCode));
-        Assert.Equal([AvailabilityPreferenceLevel.Preferred, AvailabilityPreferenceLevel.Preferred,
+        Assert.Equal([AvailabilityPreferenceLevel.Preferred,
+            AvailabilityPreferenceLevel.Preferred,
             AvailabilityPreferenceLevel.Normal], assignmentVm.Candidates.Select(c => c.PreferenceLevel));
     }
 

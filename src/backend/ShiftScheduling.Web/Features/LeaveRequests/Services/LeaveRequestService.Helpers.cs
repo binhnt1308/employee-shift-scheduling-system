@@ -132,12 +132,17 @@ public sealed partial class LeaveRequestService
             var affected = await HasPublishedAssignmentAsync(request, cancellationToken);
             result.Add(new LeaveRequestListItemViewModel
             {
-                LeaveRequestId = request.LeaveRequestId, EmployeeCode = request.Employee.EmployeeCode,
-                EmployeeName = request.Employee.FullName, PeriodName = request.SchedulePeriod.PeriodName,
-                LeaveDate = request.LeaveDate, ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
-                Reason = request.Reason, Status = request.Status,
+                LeaveRequestId = request.LeaveRequestId,
+                EmployeeCode = request.Employee.EmployeeCode,
+                EmployeeName = request.Employee.FullName,
+                PeriodName = request.SchedulePeriod.PeriodName,
+                LeaveDate = request.LeaveDate,
+                ShiftName = request.ShiftType?.ShiftName ?? "Cả ngày",
+                Reason = request.Reason,
+                Status = request.Status,
                 SubmittedAt = _clock.ToVietnamTime(request.SubmittedAt),
-                HasPublishedAssignment = affected, RowVersion = Convert.ToBase64String(request.RowVersion)
+                HasPublishedAssignment = affected,
+                RowVersion = Convert.ToBase64String(request.RowVersion)
             });
         }
         return result;
@@ -190,8 +195,12 @@ public sealed partial class LeaveRequestService
 
     private LeaveRequest BuildLeaveRequest(int employeeId, LeaveRequestCreateViewModel model) => new()
     {
-        EmployeeId = employeeId, SchedulePeriodId = model.SchedulePeriodId, LeaveDate = model.LeaveDate,
-        ShiftTypeId = model.ShiftTypeId, Reason = model.Reason.Trim(), Status = LeaveRequestStatus.Pending,
+        EmployeeId = employeeId,
+        SchedulePeriodId = model.SchedulePeriodId,
+        LeaveDate = model.LeaveDate,
+        ShiftTypeId = model.ShiftTypeId,
+        Reason = model.Reason.Trim(),
+        Status = LeaveRequestStatus.Pending,
         SubmittedAt = _clock.UtcNow
     };
 
@@ -380,8 +389,14 @@ public sealed partial class LeaveRequestService
 
     private static object BuildAuditValues(LeaveRequest request) => new
     {
-        request.LeaveRequestId, request.EmployeeId, request.SchedulePeriodId, request.LeaveDate,
-        request.ShiftTypeId, request.Status, request.ApprovedByAccountId, request.ReviewedAt
+        request.LeaveRequestId,
+        request.EmployeeId,
+        request.SchedulePeriodId,
+        request.LeaveDate,
+        request.ShiftTypeId,
+        request.Status,
+        request.ApprovedByAccountId,
+        request.ReviewedAt
     };
 
     private static LeavePeriodOptionViewModel MapPeriodOption(SchedulePeriod period) =>

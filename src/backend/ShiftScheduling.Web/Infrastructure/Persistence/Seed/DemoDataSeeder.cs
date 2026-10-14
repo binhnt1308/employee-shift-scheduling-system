@@ -29,7 +29,14 @@ public static partial class DemoDataSeeder
 
     public static readonly string[] DemoEmployeeCodes =
     [
-        "NV01", "NV02", "NV03", "NV04", "NV05", "NV06", "NV07", "NV08"
+        "NV01",
+        "NV02",
+        "NV03",
+        "NV04",
+        "NV05",
+        "NV06",
+        "NV07",
+        "NV08"
     ];
 
     public const string ClosedDemoPeriodMarker = "(Demo đã đóng)";
@@ -40,7 +47,16 @@ public static partial class DemoDataSeeder
 
     public static readonly string[] DemoAccountUsernames =
     [
-        "admin", "quanly", "nv01", "nv02", "nv03", "nv04", "nv05", "nv06", "nv07", "nv08"
+        "admin",
+        "quanly",
+        "nv01",
+        "nv02",
+        "nv03",
+        "nv04",
+        "nv05",
+        "nv06",
+        "nv07",
+        "nv08"
     ];
 
     /// <summary>

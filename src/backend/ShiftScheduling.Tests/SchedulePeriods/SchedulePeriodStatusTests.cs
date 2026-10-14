@@ -16,14 +16,18 @@ public sealed class SchedulePeriodStatusTests
     {
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ 1",
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7),
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ 1",
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7),
             AvailabilityDeadline = new DateTime(2026, 8, 30, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         };
         var workSchedule = new WorkSchedule
         {
-            WorkScheduleId = 10, SchedulePeriodId = 1, Status = ScheduleStatus.Draft
+            WorkScheduleId = 10,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Draft
         };
         var currentUtc = new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc);
         var currentDate = new DateOnly(2026, 9, 2);
@@ -42,8 +46,10 @@ public sealed class SchedulePeriodStatusTests
     {
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ 1",
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7),
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ 1",
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7),
             AvailabilityDeadline = new DateTime(2026, 8, 30, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         };
@@ -62,7 +68,8 @@ public sealed class SchedulePeriodStatusTests
         var period = new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7)
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7)
         };
         var workSchedule = new WorkSchedule { WorkScheduleId = 10, Status = ScheduleStatus.Published };
         var currentUtc = new DateTime(2026, 9, 3, 10, 0, 0, DateTimeKind.Utc);
@@ -81,7 +88,8 @@ public sealed class SchedulePeriodStatusTests
         var period = new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 8, 1), WeekEndDate = new DateOnly(2026, 8, 7)
+            WeekStartDate = new DateOnly(2026, 8, 1),
+            WeekEndDate = new DateOnly(2026, 8, 7)
         };
         var workSchedule = new WorkSchedule { WorkScheduleId = 10, Status = ScheduleStatus.Published };
         var currentUtc = new DateTime(2026, 9, 1, 10, 0, 0, DateTimeKind.Utc);
@@ -100,7 +108,8 @@ public sealed class SchedulePeriodStatusTests
         var period = new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 8, 1), WeekEndDate = new DateOnly(2026, 8, 7)
+            WeekStartDate = new DateOnly(2026, 8, 1),
+            WeekEndDate = new DateOnly(2026, 8, 7)
         };
         var currentUtc = new DateTime(2026, 9, 1, 10, 0, 0, DateTimeKind.Utc);
         var currentDate = new DateOnly(2026, 9, 1);
@@ -117,19 +126,25 @@ public sealed class SchedulePeriodStatusTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var oldPeriod = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ cũ",
-            WeekStartDate = new DateOnly(2026, 8, 1), WeekEndDate = new DateOnly(2026, 8, 7)
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ cũ",
+            WeekStartDate = new DateOnly(2026, 8, 1),
+            WeekEndDate = new DateOnly(2026, 8, 7)
         };
         oldPeriod.WorkSchedules.Add(new WorkSchedule
         {
-            WorkScheduleId = 100, SchedulePeriodId = 1, Status = ScheduleStatus.Published
+            WorkScheduleId = 100,
+            SchedulePeriodId = 1,
+            Status = ScheduleStatus.Published
         });
         periodRepo.Add(oldPeriod);
 
         var ongoingPeriod = new SchedulePeriod
         {
-            SchedulePeriodId = 2, PeriodName = "Kỳ hiện tại",
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7)
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ hiện tại",
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7)
         };
         periodRepo.Add(ongoingPeriod);
 
@@ -151,8 +166,10 @@ public sealed class SchedulePeriodStatusTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var upcomingPeriod = new SchedulePeriod
         {
-            SchedulePeriodId = 2, PeriodName = "Kỳ tuần sau",
-            WeekStartDate = new DateOnly(2026, 9, 14), WeekEndDate = new DateOnly(2026, 9, 20),
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ tuần sau",
+            WeekStartDate = new DateOnly(2026, 9, 14),
+            WeekEndDate = new DateOnly(2026, 9, 20),
             AvailabilityDeadline = new DateTime(2026, 9, 12, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         };
@@ -176,12 +193,16 @@ public sealed class SchedulePeriodStatusTests
         var periodRepo = new FakeSchedulePeriodRepository();
         var ongoingPeriod = new SchedulePeriod
         {
-            SchedulePeriodId = 2, PeriodName = "Kỳ 2",
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7)
+            SchedulePeriodId = 2,
+            PeriodName = "Kỳ 2",
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7)
         };
         ongoingPeriod.WorkSchedules.Add(new WorkSchedule
         {
-            WorkScheduleId = 200, SchedulePeriodId = 2, Status = ScheduleStatus.Published
+            WorkScheduleId = 200,
+            SchedulePeriodId = 2,
+            Status = ScheduleStatus.Published
         });
         periodRepo.Add(ongoingPeriod);
 
@@ -202,8 +223,10 @@ public sealed class SchedulePeriodStatusTests
     {
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ đã qua",
-            WeekStartDate = new DateOnly(2026, 8, 3), WeekEndDate = new DateOnly(2026, 8, 9)
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ đã qua",
+            WeekStartDate = new DateOnly(2026, 8, 3),
+            WeekEndDate = new DateOnly(2026, 8, 9)
         };
         var currentUtc = new DateTime(2026, 8, 15, 10, 0, 0, DateTimeKind.Utc);
         var currentDate = new DateOnly(2026, 8, 15);
@@ -225,7 +248,8 @@ public sealed class SchedulePeriodStatusTests
     {
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, RegistrationStatus = RegistrationStatus.Open,
+            SchedulePeriodId = 1,
+            RegistrationStatus = RegistrationStatus.Open,
             WeekStartDate = new DateOnly(2026, 9, 7),
             AvailabilityDeadline = new DateTime(2026, 9, 5, 23, 59, 0, DateTimeKind.Utc)
         };
@@ -242,7 +266,8 @@ public sealed class SchedulePeriodStatusTests
     {
         var period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, RegistrationStatus = RegistrationStatus.Open,
+            SchedulePeriodId = 1,
+            RegistrationStatus = RegistrationStatus.Open,
             WeekStartDate = new DateOnly(2026, 8, 31),
             AvailabilityDeadline = new DateTime(2026, 9, 6, 23, 59, 0, DateTimeKind.Utc)
         };

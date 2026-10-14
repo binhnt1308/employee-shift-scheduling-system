@@ -190,11 +190,26 @@ public partial class WorkScheduleService
             target.Source = AssignmentSource.Manual;
             target.UpdatedAt = now;
 
-            var auditOld = new { leave.LeaveRequestId, target.ShiftAssignmentId, schedule.SchedulePeriodId,
-                target.WorkDate, target.ShiftTypeId, OldEmployeeId = oldEmpId, OldSource = oldSource };
-            var auditNew = new { leave.LeaveRequestId, target.ShiftAssignmentId, schedule.SchedulePeriodId,
-                target.WorkDate, target.ShiftTypeId, NewEmployeeId = candidate.EmployeeId,
-                NewSource = AssignmentSource.Manual };
+            var auditOld = new
+            {
+                leave.LeaveRequestId,
+                target.ShiftAssignmentId,
+                schedule.SchedulePeriodId,
+                target.WorkDate,
+                target.ShiftTypeId,
+                OldEmployeeId = oldEmpId,
+                OldSource = oldSource
+            };
+            var auditNew = new
+            {
+                leave.LeaveRequestId,
+                target.ShiftAssignmentId,
+                schedule.SchedulePeriodId,
+                target.WorkDate,
+                target.ShiftTypeId,
+                NewEmployeeId = candidate.EmployeeId,
+                NewSource = AssignmentSource.Manual
+            };
 
             _auditLogRepository.Add(AuditLogFactory.Create(
                 managerAccountId, "REPLACE_APPROVED_LEAVE_ASSIGNMENT", nameof(ShiftAssignment),
@@ -210,15 +225,27 @@ public partial class WorkScheduleService
 
         AddReplacementAndLeaveNotifications(schedule, leave, candidatePairs, now);
 
-        var prevLeaveValues = new { leave.LeaveRequestId, leave.Status, leave.ApprovedByAccountId,
-            leave.ReviewedAt, leave.ManagerNote };
+        var prevLeaveValues = new
+        {
+            leave.LeaveRequestId,
+            leave.Status,
+            leave.ApprovedByAccountId,
+            leave.ReviewedAt,
+            leave.ManagerNote
+        };
         leave.Status = LeaveRequestStatus.Approved;
         leave.ApprovedByAccountId = managerAccountId;
         leave.ReviewedAt = now;
         leave.ManagerNote = NormalizeOptionalText(managerNote);
 
-        var newLeaveValues = new { leave.LeaveRequestId, Status = LeaveRequestStatus.Approved,
-            ApprovedByAccountId = managerAccountId, ReviewedAt = now, leave.ManagerNote };
+        var newLeaveValues = new
+        {
+            leave.LeaveRequestId,
+            Status = LeaveRequestStatus.Approved,
+            ApprovedByAccountId = managerAccountId,
+            ReviewedAt = now,
+            leave.ManagerNote
+        };
         _auditLogRepository.Add(AuditLogFactory.Create(
             managerAccountId, "REVIEW_LEAVE_REQUEST", nameof(LeaveRequest),
             leave.LeaveRequestId.ToString(), prevLeaveValues, newLeaveValues, now));
@@ -348,15 +375,27 @@ public partial class WorkScheduleService
                 "Tất cả các ca đều có nhân viên thay thế phù hợp. Vui lòng sử dụng chức năng Bố trí người thay.");
 
         var now = _clock.UtcNow;
-        var prevLeaveValues = new { leave.LeaveRequestId, leave.Status, leave.ApprovedByAccountId,
-            leave.ReviewedAt, leave.ManagerNote };
+        var prevLeaveValues = new
+        {
+            leave.LeaveRequestId,
+            leave.Status,
+            leave.ApprovedByAccountId,
+            leave.ReviewedAt,
+            leave.ManagerNote
+        };
         leave.Status = LeaveRequestStatus.Approved;
         leave.ApprovedByAccountId = managerAccountId;
         leave.ReviewedAt = now;
         leave.ManagerNote = NormalizeOptionalText(model.ManagerNote);
 
-        var newLeaveValues = new { leave.LeaveRequestId, Status = LeaveRequestStatus.Approved,
-            ApprovedByAccountId = managerAccountId, ReviewedAt = now, leave.ManagerNote };
+        var newLeaveValues = new
+        {
+            leave.LeaveRequestId,
+            Status = LeaveRequestStatus.Approved,
+            ApprovedByAccountId = managerAccountId,
+            ReviewedAt = now,
+            leave.ManagerNote
+        };
         _auditLogRepository.Add(AuditLogFactory.Create(
             managerAccountId, "APPROVE_EMERGENCY_LEAVE", nameof(LeaveRequest),
             leave.LeaveRequestId.ToString(), prevLeaveValues, newLeaveValues, now));
@@ -366,10 +405,13 @@ public partial class WorkScheduleService
             var dateText = leave.LeaveDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
             _notificationRepository.Add(new Notification
             {
-                ReceiverAccountId = leave.Employee.UserAccountId.Value, Title = "Kết quả đơn xin nghỉ",
+                ReceiverAccountId = leave.Employee.UserAccountId.Value,
+                Title = "Kết quả đơn xin nghỉ",
                 Content = $"Đơn xin nghỉ ngày {dateText} đã được duyệt khẩn cấp.",
-                Type = NotificationType.LeaveRequestResult, RelatedObjectId = leave.LeaveRequestId,
-                IsRead = false, CreatedAt = now
+                Type = NotificationType.LeaveRequestResult,
+                RelatedObjectId = leave.LeaveRequestId,
+                IsRead = false,
+                CreatedAt = now
             });
         }
 

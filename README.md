@@ -5,6 +5,8 @@
 **Tên tiếng Việt:** Hệ thống lập lịch và quản lý phân công ca làm việc cho nhân viên  
 **Tên tiếng Anh:** Employee Shift Scheduling System
 
+**Phiên bản bàn giao:** `v1.0`
+
 Employee Shift Scheduling System là ứng dụng web hỗ trợ quản lý nhân viên và lập lịch làm việc theo tuần cho một cửa hàng bán lẻ quy mô nhỏ.
 
 Hệ thống hỗ trợ toàn bộ quy trình từ tạo kỳ lịch, đăng ký lịch rảnh, phân công nhân viên, sinh lịch đề xuất bằng Google OR-Tools CP-SAT, công bố lịch, xử lý đơn nghỉ và chuyển ca, đến tổng hợp giờ làm và chốt kỳ.
@@ -228,7 +230,7 @@ Máy chạy không cần SQL Server LocalDB.
 - Docker Desktop hoặc Docker Engine
 - Docker Compose
 
-### Chạy từ source mới clone
+### Chạy nhanh từ source mới clone
 
 Mở PowerShell:
 
@@ -968,27 +970,24 @@ dotnet test src/backend/ShiftScheduling.sln `
   --configuration Release
 ```
 
-Kết quả kiểm tra local gần nhất:
+Kết quả của bản phát hành cuối được xác nhận bằng GitHub Actions
+trên Pull Request vào `main`.
 
-```text
-Controller database integration:
-5 passed
-0 failed
+Workflow CI thực hiện:
 
-Non-integration:
-584 passed
-0 failed
+    Restore
+      ↓
+    Format / verify
+      ↓
+    Build Release
+      ↓
+    Khởi động SQL Server integration
+      ↓
+    Chạy toàn bộ test
 
-Full suite:
-589 passed
-0 failed
-
-Build Release:
-0 warnings
-0 errors
-```
-
-Các con số trên là kết quả tại thời điểm README được cập nhật và có thể tăng khi bổ sung test mới.
+Số lượng test có thể thay đổi khi bổ sung regression test,
+vì vậy kết quả cuối cùng được đối chiếu trực tiếp trên workflow CI
+của Pull Request phát hành.
 
 ---
 
@@ -1194,7 +1193,49 @@ docker compose up -d web
 
 ---
 
-# 21. Repository
+# 21. Triển khai
+
+Hệ thống được triển khai trên **Azure Container Apps** và có thể truy cập qua HTTPS tại:
+
+<https://shift-scheduling-web-v2.bluegrass-40eb6af8.malaysiawest.azurecontainerapps.io/>
+
+Kiến trúc triển khai:
+
+    Docker image
+        ↓
+    Azure Container Registry
+        ↓
+    Azure Container Apps
+        ↓
+    Azure SQL Database
+
+Các tài nguyên triển khai:
+
+| Thành phần | Giá trị |
+| --- | --- |
+| Resource Group | `rg-shift-scheduling` |
+| Container App | `shift-scheduling-web` |
+| Container Registry | `cabb825dc9a2acr.azurecr.io` |
+| Phiên bản bàn giao | `v1.0` |
+
+Source code không thay đổi giữa môi trường local và production.
+Connection string và thông tin nhạy cảm được cung cấp bằng biến môi trường
+hoặc secret của Azure, không commit vào repository.
+
+Schema trên môi trường triển khai được cập nhật bằng Entity Framework Core
+Migrations, không chỉnh sửa trực tiếp bằng công cụ quản trị.
+
+## Video demo
+
+🎥 [Xem video demo hệ thống](https://drive.google.com/drive/folders/1HQySNvFK6HeHenwC_qAur71WnWTtMi1w?usp=sharing)
+
+## Thông tin bản bảo vệ
+
+- Phiên bản: `v1.0`
+
+---
+
+# 22. Repository
 
 GitHub:
 
@@ -1204,7 +1245,7 @@ https://github.com/binhnt1308/employee-shift-scheduling-system
 
 ---
 
-# 22. Thông tin sinh viên
+# 23. Thông tin sinh viên
 
 **Sinh viên thực hiện:** Nguyễn Thanh Bình  
 **MSSV:** 2354050017  

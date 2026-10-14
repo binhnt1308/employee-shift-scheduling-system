@@ -87,7 +87,8 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7),
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7),
             AvailabilityDeadline = new DateTime(2026, 8, 30, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Preparing
         });
@@ -111,7 +112,8 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 1), WeekEndDate = new DateOnly(2026, 9, 7),
+            WeekStartDate = new DateOnly(2026, 9, 1),
+            WeekEndDate = new DateOnly(2026, 9, 7),
             AvailabilityDeadline = new DateTime(2026, 9, 5, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Open
         });
@@ -144,8 +146,10 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
-            AvailabilityDeadline = deadline, RegistrationStatus = RegistrationStatus.Open
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
+            AvailabilityDeadline = deadline,
+            RegistrationStatus = RegistrationStatus.Open
         });
 
         var shiftRepo = new FakeShiftTypeRepository();
@@ -175,8 +179,10 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
-            AvailabilityDeadline = deadline, RegistrationStatus = RegistrationStatus.Open
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
+            AvailabilityDeadline = deadline,
+            RegistrationStatus = RegistrationStatus.Open
         });
 
         var empRepo = new FakeEmployeeRepository();
@@ -204,7 +210,8 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
             AvailabilityDeadline = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Preparing
         });
@@ -231,7 +238,8 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
             AvailabilityDeadline = new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Preparing
         });
@@ -258,7 +266,8 @@ public sealed class SchedulePeriodRegistrationTests
         periodRepo.Add(new SchedulePeriod
         {
             SchedulePeriodId = 1,
-            WeekStartDate = new DateOnly(2026, 9, 7), WeekEndDate = new DateOnly(2026, 9, 13),
+            WeekStartDate = new DateOnly(2026, 9, 7),
+            WeekEndDate = new DateOnly(2026, 9, 13),
             AvailabilityDeadline = new DateTime(2026, 9, 3, 23, 59, 0, DateTimeKind.Utc),
             RegistrationStatus = RegistrationStatus.Preparing
         });

@@ -44,8 +44,10 @@ public sealed class LeaveReplacementUxTests
     {
         _period = new SchedulePeriod
         {
-            SchedulePeriodId = 1, PeriodName = "Kỳ lịch 1",
-            WeekStartDate = new DateOnly(2026, 8, 10), WeekEndDate = new DateOnly(2026, 8, 16)
+            SchedulePeriodId = 1,
+            PeriodName = "Kỳ lịch 1",
+            WeekStartDate = new DateOnly(2026, 8, 10),
+            WeekEndDate = new DateOnly(2026, 8, 16)
         };
         _morningShift = CreateShift(1, ShiftTypeConstants.MorningCode, "Sáng", 8, 12, 1);
         _afternoonShift = CreateShift(2, ShiftTypeConstants.AfternoonCode, "Chiều", 13, 17, 2);
@@ -68,8 +70,12 @@ public sealed class LeaveReplacementUxTests
         _period.StaffingRequirements = new[] { _morningShift, _afternoonShift, _eveningShift }
             .Select(s => new StaffingRequirement
             {
-                SchedulePeriodId = 1, WorkDate = _workDate, ShiftTypeId = s.ShiftTypeId,
-                RequiredSalesStaff = 1, RequiredCashiers = 0, ShiftType = s
+                SchedulePeriodId = 1,
+                WorkDate = _workDate,
+                ShiftTypeId = s.ShiftTypeId,
+                RequiredSalesStaff = 1,
+                RequiredCashiers = 0,
+                ShiftType = s
             }).ToList();
         _periodRepo.SchedulePeriods.Add(_period);
         _shiftTypeRepo.ShiftTypes.AddRange([_morningShift, _afternoonShift, _eveningShift]);
@@ -88,8 +94,14 @@ public sealed class LeaveReplacementUxTests
 
     private void AddAvail(
         int empId, int shiftId, AvailabilityPreferenceLevel pref = AvailabilityPreferenceLevel.Normal) =>
-        _availRepo.Availabilities.Add(new() { EmployeeId = empId, SchedulePeriodId = 1,
-            WorkDate = _workDate, ShiftTypeId = shiftId, PreferenceLevel = pref });
+        _availRepo.Availabilities.Add(new()
+        {
+            EmployeeId = empId,
+            SchedulePeriodId = 1,
+            WorkDate = _workDate,
+            ShiftTypeId = shiftId,
+            PreferenceLevel = pref
+        });
 
     [Fact]
     public async Task Review_PendingLeaveWithPublishedAssignment_DisplaysCandidatePreview()
@@ -293,11 +305,12 @@ public sealed class LeaveReplacementUxTests
 
     private static ApproveLeaveWithReplacementRequestViewModel CreateApproveModel(
         LeaveRequest leave, params (int AssignmentId, int CandidateId)[] replacements) => new()
-    {
-        LeaveRequestId = leave.LeaveRequestId, RowVersion = Convert.ToBase64String(leave.RowVersion),
-        Replacements = replacements.Select(r => new ShiftReplacementItemViewModel
+        {
+            LeaveRequestId = leave.LeaveRequestId,
+            RowVersion = Convert.ToBase64String(leave.RowVersion),
+            Replacements = replacements.Select(r => new ShiftReplacementItemViewModel
             { ShiftAssignmentId = r.AssignmentId, CandidateEmployeeId = r.CandidateId }).ToList()
-    };
+        };
 
     private void AssertUnchanged(LeaveRequest leave, params ShiftAssignment[] assignments)
     {
@@ -330,8 +343,12 @@ public sealed class LeaveReplacementUxTests
     {
         var schedule = new WorkSchedule
         {
-            WorkScheduleId = 1, SchedulePeriodId = _period.SchedulePeriodId, SchedulePeriod = _period,
-            Status = ScheduleStatus.Published, PublishedAt = _clock.UtcNow, PublishedByAccountId = 99
+            WorkScheduleId = 1,
+            SchedulePeriodId = _period.SchedulePeriodId,
+            SchedulePeriod = _period,
+            Status = ScheduleStatus.Published,
+            PublishedAt = _clock.UtcNow,
+            PublishedByAccountId = 99
         };
         _workScheduleRepo.Schedules.Add(schedule);
         return schedule;
@@ -341,8 +358,12 @@ public sealed class LeaveReplacementUxTests
     {
         var assignment = new ShiftAssignment
         {
-            ShiftAssignmentId = schedule.ShiftAssignments.Count + 1, WorkScheduleId = schedule.WorkScheduleId,
-            WorkSchedule = schedule, EmployeeId = employeeId, WorkDate = _workDate, ShiftTypeId = shiftTypeId
+            ShiftAssignmentId = schedule.ShiftAssignments.Count + 1,
+            WorkScheduleId = schedule.WorkScheduleId,
+            WorkSchedule = schedule,
+            EmployeeId = employeeId,
+            WorkDate = _workDate,
+            ShiftTypeId = shiftTypeId
         };
         schedule.ShiftAssignments.Add(assignment);
         return assignment;
@@ -352,8 +373,13 @@ public sealed class LeaveReplacementUxTests
     {
         var leave = new LeaveRequest
         {
-            LeaveRequestId = id, SchedulePeriodId = _period.SchedulePeriodId, SchedulePeriod = _period,
-            EmployeeId = employeeId, LeaveDate = _workDate, ShiftTypeId = shiftTypeId, Status = status,
+            LeaveRequestId = id,
+            SchedulePeriodId = _period.SchedulePeriodId,
+            SchedulePeriod = _period,
+            EmployeeId = employeeId,
+            LeaveDate = _workDate,
+            ShiftTypeId = shiftTypeId,
+            Status = status,
             RowVersion = [1, 2, 3, 4]
         };
         _leaveRepo.Requests.Add(leave);
@@ -361,11 +387,17 @@ public sealed class LeaveReplacementUxTests
         return leave;
     }
     private WorkScheduleController CreateWorkScheduleController(int accountId = 99) =>
-        new(_scheduleService) { ControllerContext = new() { HttpContext = CreateHttpContext(accountId) },
-            TempData = new TempDataDictionary(CreateHttpContext(accountId), new TestTempDataProvider()) };
+        new(_scheduleService)
+        {
+            ControllerContext = new() { HttpContext = CreateHttpContext(accountId) },
+            TempData = new TempDataDictionary(CreateHttpContext(accountId), new TestTempDataProvider())
+        };
     private LeaveRequestController CreateLeaveRequestController(int accountId = 99) =>
-        new(_leaveService, _scheduleService) { ControllerContext = new() { HttpContext = CreateHttpContext(accountId) },
-            TempData = new TempDataDictionary(CreateHttpContext(accountId), new TestTempDataProvider()) };
+        new(_leaveService, _scheduleService)
+        {
+            ControllerContext = new() { HttpContext = CreateHttpContext(accountId) },
+            TempData = new TempDataDictionary(CreateHttpContext(accountId), new TestTempDataProvider())
+        };
     private static HttpContext CreateHttpContext(int accountId)
     {
         var context = new DefaultHttpContext();
@@ -379,16 +411,31 @@ public sealed class LeaveReplacementUxTests
     }
 
     private static ShiftType CreateShift(int id, string code, string name, int startH, int endH, int order) =>
-        new() { ShiftTypeId = id, ShiftCode = code, ShiftName = name, StartTime = new TimeOnly(startH, 0),
-            EndTime = new TimeOnly(endH, 0), DurationHours = endH - startH, DisplayOrder = order, IsActive = true };
+        new()
+        {
+            ShiftTypeId = id,
+            ShiftCode = code,
+            ShiftName = name,
+            StartTime = new TimeOnly(startH, 0),
+            EndTime = new TimeOnly(endH, 0),
+            DurationHours = endH - startH,
+            DisplayOrder = order,
+            IsActive = true
+        };
 
     private static Employee CreateEmployee(int id, int accountId, string code, string name, EmployeePosition pos) =>
         new()
         {
-            EmployeeId = id, UserAccountId = accountId, EmployeeCode = code, FullName = name, Position = pos,
-            EmploymentType = EmploymentType.PartTime, Level = EmployeeLevel.Level2, IsActive = true,
+            EmployeeId = id,
+            UserAccountId = accountId,
+            EmployeeCode = code,
+            FullName = name,
+            Position = pos,
+            EmploymentType = EmploymentType.PartTime,
+            Level = EmployeeLevel.Level2,
+            IsActive = true,
             UserAccount = new()
-                { UserAccountId = accountId, Username = code.ToLowerInvariant(), Role = UserRole.Employee }
+            { UserAccountId = accountId, Username = code.ToLowerInvariant(), Role = UserRole.Employee }
         };
 
     private sealed class TestTempDataProvider : ITempDataProvider
